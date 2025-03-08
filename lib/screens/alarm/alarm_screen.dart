@@ -4,6 +4,10 @@ import 'package:upnow/providers/alarm_provider.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/alarm_card.dart';
 import 'package:upnow/widgets/gradient_button.dart';
+import 'package:upnow/services/alarm_service.dart';
+import 'package:upnow/models/alarm_model.dart';
+import 'package:upnow/database/hive_database.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 class AlarmScreen extends StatelessWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -104,5 +108,99 @@ class AlarmScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  // Add a new test method to create an alarm directly from the alarm screen for testing
+  static Future<void> createAndScheduleTestAlarm(BuildContext context) async {
+    try {
+      debugPrint('ALARM CREATION: Starting alarm creation process...');
+      
+      // Create a new alarm using the current time plus 5 minutes
+      final now = DateTime.now();
+      final alarmTime = now.add(const Duration(minutes: 5));
+      final alarmHour = alarmTime.hour;
+      final alarmMinute = alarmTime.minute;
+      
+      debugPrint('ALARM CREATION: New alarm time set to ${alarmHour}:${alarmMinute}');
+      
+      final AlarmModel newAlarm = AlarmModel(
+        hour: alarmHour,
+        minute: alarmMinute,
+        isEnabled: true,
+        dismissType: DismissType.normal,
+        vibrate: true,
+        repeat: AlarmRepeat.once,
+      );
+      
+      // Add a special label to help identify the alarm in logs
+      newAlarm.label = 'Test Alarm - ${DateTime.now().millisecondsSinceEpoch % 10000}';
+      debugPrint('ALARM CREATION: Created alarm with label: ${newAlarm.label}');
+      
+      // Save the new alarm to the database
+      debugPrint('ALARM CREATION: Saving to database...');
+      await HiveDatabase.saveAlarm(newAlarm);
+      
+      // Verify the alarm was saved by retrieving all alarms
+      final alarms = HiveDatabase.getAllAlarms();
+      debugPrint('ALARM CREATION: Total alarms in database: ${alarms.length}');
+      for (final a in alarms) {
+        debugPrint('ALARM CREATION: Stored alarm: ${a.id} - ${a.hour}:${a.minute} - ${a.label}');
+      }
+      
+      // Find the alarm we just saved in the database
+      final savedAlarm = alarms.firstWhere(
+        (a) => a.label == newAlarm.label, 
+        orElse: () => throw Exception('Alarm not found in database after saving')
+      );
+      debugPrint('ALARM CREATION: Successfully found saved alarm with ID: ${savedAlarm.id}');
+      
+      // Schedule the alarm
+      debugPrint('ALARM CREATION: Scheduling alarm...');
+      try {
+        await AlarmService.scheduleAlarm(savedAlarm);
+        debugPrint('ALARM CREATION: Alarm scheduled successfully');
+      } catch (e, stackTrace) {
+        debugPrint('ALARM CREATION: Error scheduling alarm: $e');
+        debugPrint('ALARM CREATION: Stack trace: $stackTrace');
+        
+        // Show error to user but don't prevent alarm creation
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Alarm created but scheduling failed: $e'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      
+      // Verify pending notifications
+      final notifications = FlutterLocalNotificationsPlugin();
+      final pending = await notifications.pendingNotificationRequests();
+      debugPrint('ALARM CREATION: Pending notifications: ${pending.length}');
+      for (final p in pending) {
+        debugPrint('ALARM CREATION: Pending notification: ${p.id} - ${p.title}');
+      }
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Test alarm set for ${alarmHour}:${alarmMinute.toString().padLeft(2, '0')}'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      // Final success log
+      debugPrint('ALARM CREATION: Alarm creation process completed successfully');
+    } catch (e, stackTrace) {
+      debugPrint('ALARM CREATION ERROR: $e');
+      debugPrint('ALARM CREATION STACK TRACE: $stackTrace');
+      
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error creating alarm: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 } 

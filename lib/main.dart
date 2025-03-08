@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -98,8 +99,7 @@ class _MainScreenState extends State<MainScreen> {
   }
 
   Future<void> _requestPermissions() async {
-    final alarmService = AlarmService();
-    await alarmService.requestPermissions();
+    await AlarmService.requestPermissions();
   }
 
   @override

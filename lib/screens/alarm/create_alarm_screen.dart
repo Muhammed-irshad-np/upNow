@@ -431,6 +431,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     alarm.weekdays = _weekdays;
     alarm.vibrate = _vibrate;
     
+    // Debug: Log the alarm time being set
+    debugPrint('Setting alarm for ${_selectedTime.hour}:${_selectedTime.minute} (${alarm.hour}:${alarm.minute})');
+    
     // Get the AlarmProvider and save the alarm
     final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
     if (widget.alarm != null) {
