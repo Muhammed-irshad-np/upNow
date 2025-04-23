@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -18,22 +17,22 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
   // Set preferred orientations
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  
+
   // Initialize database
   await HiveDatabase.init();
-  
+
   // Migrate default sound path to alarm_sound
   await _migrateDefaultSoundPath();
-  
+
   // Initialize alarm service
   await AlarmService.init();
-  
+
   runApp(const MyApp());
 }
 
@@ -67,7 +66,8 @@ class MyApp extends StatelessWidget {
         routes: {
           '/create_alarm': (context) => const CreateAlarmScreen(),
           '/edit_alarm': (context) {
-            final alarm = ModalRoute.of(context)?.settings.arguments as AlarmModel;
+            final alarm =
+                ModalRoute.of(context)?.settings.arguments as AlarmModel;
             return CreateAlarmScreen(alarm: alarm);
           },
         },
@@ -85,13 +85,13 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
-  
+
   final List<Widget> _screens = [
     const AlarmScreen(),
     const SleepTrackerScreen(),
     const SettingsScreen(),
   ];
-  
+
   @override
   void initState() {
     super.initState();

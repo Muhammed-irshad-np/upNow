@@ -8,7 +8,7 @@ part of 'sleep_data_model.dart';
 
 class SleepDataModelAdapter extends TypeAdapter<SleepDataModel> {
   @override
-  final int typeId = 1;
+  final int typeId = 3;
 
   @override
   SleepDataModel read(BinaryReader reader) {
@@ -17,7 +17,7 @@ class SleepDataModelAdapter extends TypeAdapter<SleepDataModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return SleepDataModel(
-      id: fields[0] as String,
+      id: fields[0] as String?,
       sleepStart: fields[1] as DateTime,
       sleepEnd: fields[2] as DateTime,
       sleepDurationMinutes: fields[3] as int,

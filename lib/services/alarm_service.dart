@@ -9,6 +9,7 @@ import 'dart:io';
 import 'package:upnow/screens/alarm/alarm_ring_screen.dart';
 import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:path/path.dart' as p;
 
 
 class AlarmService {
@@ -237,66 +238,69 @@ class AlarmService {
       final int notificationId = alarmHashCode;
       debugPrint('🔔 Generated notification ID: $notificationId');
 
-      // Use the same channel and notification details that work with the 10-second test
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'test_channel',  // Using the same channel ID as the working test
-        'Test Notifications',
-        channelDescription: 'Channel for test notifications',
+      // --- Dynamic Notification Details ---
+      String soundName = 'alarm_sound'; // Default sound
+      if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+         try {
+           // Extract filename without extension
+           soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+         } catch (e) {
+           debugPrint('Error extracting sound name: $e. Using default.');
+           // Keep the default 'alarm_sound'
+         }
+      }
+      debugPrint('🔔 Using sound: $soundName');
+
+      // Create AndroidNotificationDetails dynamically
+      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'alarm_channel', // Ensure this channel is created in init()
+        'Alarm Notifications',
+        channelDescription: 'Channel for alarm notifications',
         importance: Importance.max,
         priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
+        sound: RawResourceAndroidNotificationSound(soundName), // Use extracted sound name
         playSound: true,
-        fullScreenIntent: true,
+        enableVibration: alarm.vibrate, // Use vibrate setting from alarm model
+        fullScreenIntent: true, 
         category: AndroidNotificationCategory.alarm,
-        visibility: NotificationVisibility.public,
+        // ongoing: true, // Optional: keeps notification until dismissed
+        // actions: [ ... ] // Optional: Add snooze/dismiss actions
       );
       
-      const NotificationDetails platformDetails = NotificationDetails(
+      // Default iOS settings (iOS sound customization might need platform channels or specific packages)
+      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
+        presentSound: true, // Use default iOS sound
+        // sound: 'custom_sound.caf', // Example if you add sounds to iOS project
+      );
+
+      final NotificationDetails notificationDetails = NotificationDetails(
         android: androidDetails,
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-        ),
+        iOS: iosDetails,
       );
-      
-      // Schedule the actual alarm notification
-      debugPrint('🔔 Scheduling notification with exact mode...');
+      // --- End Dynamic Notification Details ---
+
       await _notifications.zonedSchedule(
-        notificationId,
-        alarm.label.isNotEmpty ? alarm.label : 'Alarm',
-        'Scheduled for ${scheduledDate.hour.toString().padLeft(2, '0')}:${scheduledDate.minute.toString().padLeft(2, '0')}',
-        tzScheduledDate,
-        platformDetails,
-        androidScheduleMode: AndroidScheduleMode.exact,
+        notificationId, // Use the consistent ID
+        alarm.label.isNotEmpty ? alarm.label : 'Alarm', // Title
+        'Time to wake up!', // Body
+        tzScheduledDate, // Scheduled time
+        notificationDetails, // Use the dynamically created details
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: alarm.repeat == AlarmRepeat.once 
+                                   ? null // Don't repeat for 'once'
+                                   : DateTimeComponents.time, // Repeat daily/weekly based on time
+        payload: alarm.id, // Use the actual alarm ID string as payload
       );
-      
-      // Immediately send a test notification if this alarm is scheduled to go off within 2 minutes
-      final Duration timeUntilAlarm = scheduledDate.difference(now);
-      if (timeUntilAlarm.inMinutes < 2) {
-        debugPrint('🔔 Alarm scheduled very soon (${timeUntilAlarm.inSeconds} seconds). Sending immediate verification notification...');
-        await _notifications.show(
-          notificationId + 100000, // Use a different ID to avoid conflicts
-          '⏰ Alarm verification',
-          'Your alarm "${alarm.label}" is scheduled to go off in ${timeUntilAlarm.inSeconds} seconds',
-          platformDetails,
-        );
-      }
-      
-      // Verify the alarm was scheduled by checking pending notifications
-      final List<PendingNotificationRequest> pendingNotifications = 
-          await _notifications.pendingNotificationRequests();
-      debugPrint('🔔 Total pending notifications: ${pendingNotifications.length}');
-      final bool alarmFound = pendingNotifications.any((notification) => notification.id == notificationId);
-      debugPrint('🔔 Alarm with ID $notificationId found in pending notifications: $alarmFound');
-      
-      // Final success log
-      debugPrint('🔔 SCHEDULING COMPLETE: Alarm scheduled for ${tzScheduledDate.toString()}');
-    } catch (e, stackTrace) {
-      debugPrint('🔔 ERROR SCHEDULING ALARM: $e');
-      debugPrint('🔔 Stack trace: $stackTrace');
-      rethrow; // Re-throw the error to be handled by the caller
+
+      debugPrint('✅ ALARM SCHEDULED: ID $notificationId at $tzScheduledDate with sound $soundName');
+
+      // Schedule backup notification if needed (existing logic)
+      // ... (Consider if backup needs custom sound too)
+
+    } catch (e) {
+      debugPrint('❌ Error scheduling alarm ID ${alarm.id}: $e');
+      // Consider re-throwing or showing an error to the user
     }
   }
   

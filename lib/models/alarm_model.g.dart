@@ -8,7 +8,7 @@ part of 'alarm_model.dart';
 
 class AlarmModelAdapter extends TypeAdapter<AlarmModel> {
   @override
-  final int typeId = 0;
+  final int typeId = 2;
 
   @override
   AlarmModel read(BinaryReader reader) {
@@ -17,14 +17,14 @@ class AlarmModelAdapter extends TypeAdapter<AlarmModel> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return AlarmModel(
-      id: fields[0] as String,
+      id: fields[0] as String?,
       hour: fields[1] as int,
       minute: fields[2] as int,
       isEnabled: fields[3] as bool,
       label: fields[4] as String,
       dismissType: fields[5] as DismissType,
       repeat: fields[6] as AlarmRepeat,
-      weekdays: (fields[7] as List).cast<bool>(),
+      weekdays: (fields[7] as List?)?.cast<bool>(),
       soundPath: fields[8] as String,
       volume: fields[9] as int,
       vibrate: fields[10] as bool,
@@ -66,6 +66,124 @@ class AlarmModelAdapter extends TypeAdapter<AlarmModel> {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is AlarmModelAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class AlarmRepeatAdapter extends TypeAdapter<AlarmRepeat> {
+  @override
+  final int typeId = 0;
+
+  @override
+  AlarmRepeat read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return AlarmRepeat.once;
+      case 1:
+        return AlarmRepeat.daily;
+      case 2:
+        return AlarmRepeat.weekdays;
+      case 3:
+        return AlarmRepeat.weekends;
+      case 4:
+        return AlarmRepeat.custom;
+      default:
+        return AlarmRepeat.once;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, AlarmRepeat obj) {
+    switch (obj) {
+      case AlarmRepeat.once:
+        writer.writeByte(0);
+        break;
+      case AlarmRepeat.daily:
+        writer.writeByte(1);
+        break;
+      case AlarmRepeat.weekdays:
+        writer.writeByte(2);
+        break;
+      case AlarmRepeat.weekends:
+        writer.writeByte(3);
+        break;
+      case AlarmRepeat.custom:
+        writer.writeByte(4);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is AlarmRepeatAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class DismissTypeAdapter extends TypeAdapter<DismissType> {
+  @override
+  final int typeId = 1;
+
+  @override
+  DismissType read(BinaryReader reader) {
+    switch (reader.readByte()) {
+      case 0:
+        return DismissType.normal;
+      case 1:
+        return DismissType.math;
+      case 2:
+        return DismissType.shake;
+      case 3:
+        return DismissType.qrCode;
+      case 4:
+        return DismissType.typing;
+      case 5:
+        return DismissType.memory;
+      case 6:
+        return DismissType.barcode;
+      default:
+        return DismissType.normal;
+    }
+  }
+
+  @override
+  void write(BinaryWriter writer, DismissType obj) {
+    switch (obj) {
+      case DismissType.normal:
+        writer.writeByte(0);
+        break;
+      case DismissType.math:
+        writer.writeByte(1);
+        break;
+      case DismissType.shake:
+        writer.writeByte(2);
+        break;
+      case DismissType.qrCode:
+        writer.writeByte(3);
+        break;
+      case DismissType.typing:
+        writer.writeByte(4);
+        break;
+      case DismissType.memory:
+        writer.writeByte(5);
+        break;
+      case DismissType.barcode:
+        writer.writeByte(6);
+        break;
+    }
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is DismissTypeAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

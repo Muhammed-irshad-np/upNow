@@ -5,6 +5,8 @@ import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/gradient_button.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
+import 'package:path/path.dart' as p;
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -22,14 +24,21 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   late AlarmRepeat _repeat;
   late List<bool> _weekdays;
   late bool _vibrate;
+  late String? _selectedSoundPath;
   
   final TextEditingController _labelController = TextEditingController();
+  final AudioPlayer _audioPlayer = AudioPlayer();
+
+  final List<String> _availableSounds = [
+    'assets/sounds/stardust.mp3',
+    'assets/sounds/simplified.mp3',
+    'assets/sounds/lofi.mp3',
+  ];
 
   @override
   void initState() {
     super.initState();
     
-    // Initialize with existing alarm data or defaults
     if (widget.alarm != null) {
       _selectedTime = TimeOfDay(hour: widget.alarm!.hour, minute: widget.alarm!.minute);
       _label = widget.alarm!.label;
@@ -37,8 +46,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       _repeat = widget.alarm!.repeat;
       _weekdays = List.from(widget.alarm!.weekdays);
       _vibrate = widget.alarm!.vibrate;
+      _selectedSoundPath = widget.alarm!.soundPath;
     } else {
-      // Set defaults for new alarm
       final now = TimeOfDay.now();
       _selectedTime = TimeOfDay(hour: now.hour, minute: now.minute);
       _label = 'Alarm';
@@ -46,6 +55,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       _repeat = AlarmRepeat.once;
       _weekdays = List.filled(7, false);
       _vibrate = true;
+      _selectedSoundPath = _availableSounds.isNotEmpty ? _availableSounds[0] : null;
     }
     
     _labelController.text = _label;
@@ -54,6 +64,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   @override
   void dispose() {
     _labelController.dispose();
+    _audioPlayer.dispose();
     super.dispose();
   }
 
@@ -83,6 +94,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 padding: const EdgeInsets.only(top: 16),
                 child: _buildWeekdaySelector(),
               ),
+            const SizedBox(height: 24),
+            _buildSoundSelector(),
             const SizedBox(height: 24),
             _buildVibrationOption(),
             const SizedBox(height: 36),
@@ -362,6 +375,136 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
+  Widget _buildSoundSelector() {
+    String displaySound = _selectedSoundPath != null && _selectedSoundPath!.isNotEmpty
+        ? p.basename(_selectedSoundPath!)
+        : 'Default'; 
+
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: const Icon(Icons.music_note_outlined, color: AppTheme.secondaryTextColor),
+      title: const Text('Sound', style: AppTheme.subtitleStyle),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+             displaySound,
+             style: const TextStyle(color: AppTheme.secondaryTextColor, fontSize: 16)
+          ),
+          const SizedBox(width: 8),
+          const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.secondaryTextColor),
+        ],
+      ),
+      onTap: _showSoundSelectionDialog,
+    );
+  }
+
+  void _showSoundSelectionDialog() {
+    // Store the initially selected path to manage temporary selection in the dialog
+    String? tempSelectedPath = _selectedSoundPath; 
+
+    showDialog(
+      context: context,
+      // Prevent dialog dismissal by tapping outside
+      barrierDismissible: false, 
+      builder: (BuildContext context) {
+        // Use StatefulBuilder to manage state within the dialog
+        return StatefulBuilder(
+          builder: (context, dialogSetState) {
+            return SimpleDialog(
+              title: const Text('Select Alarm Sound'),
+              backgroundColor: AppTheme.darkCardColor,
+              titleTextStyle: const TextStyle(color: AppTheme.textColor, fontSize: 20, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              children: [
+                // Map sounds to dialog options
+                ..._availableSounds.map((soundPath) {
+                  final fileName = p.basename(soundPath);
+                  // Check if this sound is the one temporarily selected in the dialog
+                  final isTemporarilySelected = tempSelectedPath == soundPath; 
+
+                  return SimpleDialogOption(
+                    onPressed: () async {
+                      String relativePath = ''; // Declare outside try
+                      try {
+                        await _audioPlayer.stop(); // Stop previous sound
+                        relativePath = soundPath.replaceFirst('assets/', ''); // Assign inside try
+                        debugPrint('Previewing sound: $relativePath'); 
+                        await _audioPlayer.play(AssetSource(relativePath)); // Play preview
+                        
+                        // Update the temporary selection within the dialog ONLY
+                        dialogSetState(() { 
+                          tempSelectedPath = soundPath;
+                        });
+
+                      } catch (e, stackTrace) { // Add stackTrace here
+                        print("Error playing sound preview for path: $soundPath");
+                        // Now relativePath is accessible here
+                        print("Relative path attempted: $relativePath"); 
+                        print("ERROR DETAILS: $e"); // Log the error
+                        print("STACK TRACE: $stackTrace"); // Log the full stack trace
+                      }
+                      // DO NOT pop navigator here
+                      // DO NOT set the main screen state here
+                    },
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          fileName,
+                          style: TextStyle(
+                            // Highlight the temporarily selected item
+                            color: isTemporarilySelected ? Theme.of(context).primaryColor : AppTheme.textColor, 
+                            fontSize: 16,
+                            fontWeight: isTemporarilySelected ? FontWeight.bold : FontWeight.normal,
+                          )
+                        ),
+                        if (isTemporarilySelected) // Show check only for temporary selection
+                          Icon(Icons.music_note, color: Theme.of(context).primaryColor, size: 20),
+                        // Optional: Show a different indicator for the *originally* selected sound
+                        // else if (_selectedSoundPath == soundPath) 
+                        //   Icon(Icons.check_circle_outline, color: AppTheme.secondaryTextColor, size: 20),
+                      ],
+                    ),
+                  );
+                }).toList(),
+                
+                // Add Cancel and OK buttons
+                Padding(
+                  padding: const EdgeInsets.only(top: 16.0, right: 16.0, bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        child: const Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor)),
+                        onPressed: () async {
+                          await _audioPlayer.stop(); // Stop preview on cancel
+                          Navigator.pop(context); // Close dialog
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      TextButton(
+                        child: Text('OK', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                        onPressed: () async {
+                           await _audioPlayer.stop(); // Stop preview on OK
+                           // Update the main screen state with the temporary selection
+                           setState(() {
+                             _selectedSoundPath = tempSelectedPath;
+                           });
+                           Navigator.pop(context); // Close dialog
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    ); // Removed .then() as stopping is handled by buttons now
+  }
+
   Widget _buildVibrationOption() {
     return SwitchListTile(
       title: const Text(
@@ -414,7 +557,6 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       _label = 'Alarm';
     }
     
-    // Create or update alarm
     final alarm = widget.alarm != null
         ? widget.alarm!
         : AlarmModel(
@@ -422,7 +564,6 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             minute: _selectedTime.minute,
           );
     
-    // Update properties
     alarm.hour = _selectedTime.hour;
     alarm.minute = _selectedTime.minute;
     alarm.label = _label;
@@ -430,11 +571,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     alarm.repeat = _repeat;
     alarm.weekdays = _weekdays;
     alarm.vibrate = _vibrate;
+    alarm.soundPath = _selectedSoundPath ?? '';
     
-    // Debug: Log the alarm time being set
     debugPrint('Setting alarm for ${_selectedTime.hour}:${_selectedTime.minute} (${alarm.hour}:${alarm.minute})');
     
-    // Get the AlarmProvider and save the alarm
     final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
     if (widget.alarm != null) {
       await alarmProvider.updateAlarm(alarm);
