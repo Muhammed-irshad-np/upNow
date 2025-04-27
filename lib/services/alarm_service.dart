@@ -302,7 +302,7 @@ class AlarmService {
            // Keep the default 'alarm_sound'
          }
       }
-      debugPrint('🔔 Using sound: $soundName');
+      debugPrint('🎵 Selected sound for notification: $soundName');
       
       // For immediate launching of alarm when notification is created
       // This is critical for our functionality
@@ -419,32 +419,35 @@ class AlarmService {
         iOS: iosDetails,
       );
       
-      // Determine matchDateTimeComponents based on repeat type for recurring alarms
-      DateTimeComponents? matchDateTimeComponents;
-      if (alarm.repeat == AlarmRepeat.daily) {
-        matchDateTimeComponents = DateTimeComponents.time;
-      } else if (alarm.repeat == AlarmRepeat.weekdays || 
-                 alarm.repeat == AlarmRepeat.weekends ||
-                 alarm.repeat == AlarmRepeat.custom) {
-        matchDateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
-      } else {
-        // AlarmRepeat.once should have null matchDateTimeComponents
-        matchDateTimeComponents = null;
-      }
-
+      // Schedule the simple "Wake up!" notification - This is *only* for display
       await _notifications.zonedSchedule(
         notificationId, // Use the consistent ID
         alarm.label.isNotEmpty ? alarm.label : 'Alarm', // Title
-        'Time to wake up!', // Body
+        'Wake up!', // Simplified Body
         tzScheduledDate, // Scheduled time
-        notificationDetails, // Use the dynamically created details
+        // Modify details for silent informational notification
+        const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'alarm_channel', // Use the same channel ID
+            'Alarm Notifications',
+            channelDescription: 'Channel for alarm notifications',
+            importance: Importance.max, 
+            priority: Priority.high,
+            playSound: false, // *** Make this notification silent ***
+            sound: null,      // *** Remove specific sound ***
+            enableVibration: false, // No vibration needed here either
+          ),
+          // Keep basic iOS settings if needed, also silent
+          iOS: DarwinNotificationDetails(
+            presentSound: false,
+          )
+        ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: matchDateTimeComponents, 
-        payload: alarm.id, // Use the actual alarm ID string as payload
+        payload: alarm.id, // Keep payload just in case
       );
 
-      debugPrint('✅ ALARM SCHEDULED: ID $notificationId at $tzScheduledDate with sound $soundName');
+      debugPrint('🔔 Informational Notification scheduled for $tzScheduledDate with ID $notificationId');
 
     } catch (e) {
       debugPrint('❌ Error scheduling alarm ID ${alarm.id}: $e');
@@ -467,17 +470,28 @@ class AlarmService {
   
   // Helper to send a broadcast to the native side to launch alarm activity
   static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
+    String soundName = 'alarm_sound'; // Default
+    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+      try {
+        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+      } catch (e) {
+        debugPrint('Error extracting sound name for broadcast: $e. Using default.');
+      }
+    }
+    debugPrint('🎵 Using sound name for broadcast: $soundName');
+
     try {
       debugPrint('📱 ALARM BROADCAST: Sending broadcast for alarm ID ${alarm.id}');
       await _platformChannel.invokeMethod('sendAlarmBroadcast', {
         'id': alarm.id,
-        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm', 
+        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+        'soundName': soundName, // Pass sound name
       });
       debugPrint('📱 ALARM BROADCAST: Broadcast sent');
     } on PlatformException catch (e) {
       debugPrint("📱 ALARM BROADCAST: Failed to send broadcast: '${e.message}'.");
     } catch (e) {
-       debugPrint("📱 ALARM BROADCAST: Generic error sending broadcast: $e");
+      debugPrint("📱 ALARM BROADCAST: Generic error sending broadcast: $e");
     }
   }
 
@@ -521,10 +535,21 @@ class AlarmService {
     }
   }
   
-  static Future<void> cancelAlarm(String id) async {
-    if (!_isInitialized) await init();
-    await _notifications.cancel(id.hashCode);
-    debugPrint('Cancelled alarm with ID: $id');
+  static Future<void> cancelAlarm(String alarmId) async {
+    debugPrint('🔴 Cancelling alarm with ID: $alarmId');
+    try {
+      // Cancel the native Android AlarmManager alarm
+      await _platformChannel.invokeMethod('cancelNativeAlarm', {'alarmId': alarmId});
+      debugPrint('🔴 Native AlarmManager alarm cancelled for ID: $alarmId');
+
+      // Remove the flutter_local_notifications cancellation - no longer needed
+      // final int notificationId = alarmId.hashCode;
+      // await _notifications.cancel(notificationId);
+      // debugPrint('🔴 Notification cancelled for ID: $notificationId');
+      
+    } catch (e) {
+      debugPrint('Error cancelling alarm: $e');
+    }
   }
   
   static Future<void> cancelAllAlarms() async {
@@ -801,20 +826,30 @@ try {
   // When alarm time is reached, this method will be called to launch the fullscreen activity
   static Future<void> _launchFullscreenAlarm(String alarmId, String label) async {
     debugPrint('📱 ALARM LAUNCH: Attempting to show fullscreen alarm for $alarmId');
+    // Retrieve alarm to get sound path
+    final alarm = HiveDatabase.getAlarm(alarmId);
+    String soundName = 'alarm_sound'; // Default
+    if (alarm != null && alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+      try {
+        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+      } catch (e) {
+        debugPrint('Error extracting sound name for launch: $e. Using default.');
+      }
+    }
+    debugPrint('🎵 Using sound name for launch: $soundName');
+
     try {
       // First try direct method channel call to immediately show the math screen
       final result = await _platformChannel.invokeMethod('showOverlay', {
         'id': alarmId,
         'label': label,
+        'soundName': soundName, // Pass sound name
       });
       debugPrint('📱 ALARM LAUNCH: Direct launch result: $result');
       
       // Also send broadcast as backup method (belt and suspenders approach)
-      await _platformChannel.invokeMethod('sendAlarmBroadcast', {
-        'id': alarmId,
-        'label': label,
-      });
-      debugPrint('📱 ALARM BROADCAST: Broadcast sent');
+      await _sendAlarmBroadcast(alarm!); // Pass the full alarm model
+      debugPrint('📱 ALARM BROADCAST: Backup broadcast sent');
     } catch (e) {
       debugPrint('❌ ERROR launching fullscreen alarm: $e');
     }

@@ -34,8 +34,11 @@ class AlarmReceiver : BroadcastReceiver() {
             if (intent.action == ACTION_ALARM_TRIGGERED || 
                 intent.action == Intent.ACTION_BOOT_COMPLETED) {
                 
-                var alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown_id"
-                var alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm"
+                val alarmId = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_ID) ?: "unknown"
+                val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL) ?: "Alarm"
+                val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND) ?: "alarm_sound"
+                
+                Log.d(TAG, "AlarmReceiver received broadcast for ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
                 
                 // Skip launching for unknown IDs that aren't from a real alarm
                 if (alarmId == "unknown_id") {
@@ -49,6 +52,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
                     putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
                     putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+                    putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
                     
                     // These flags are crucial for showing over lock screen and other apps
                     flags = Intent.FLAG_ACTIVITY_NEW_TASK or 

@@ -23,6 +23,7 @@ class AlarmActivity : AppCompatActivity() {
         private const val TAG = "AlarmActivity"
         const val EXTRA_ALARM_ID = "alarm_id"
         const val EXTRA_ALARM_LABEL = "alarm_label"
+        const val EXTRA_ALARM_SOUND = "alarm_sound"
     }
 
     private var mediaPlayer: MediaPlayer? = null
@@ -55,8 +56,9 @@ class AlarmActivity : AppCompatActivity() {
         // Get alarm details from intent
         alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown"
         val alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!"
+        val soundName = intent.getStringExtra(EXTRA_ALARM_SOUND) ?: "alarm_sound"
         
-        Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: $alarmLabel")
+        Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
         
         // Set alarm title
         val titleTextView = findViewById<TextView>(R.id.alarm_title)
@@ -66,7 +68,7 @@ class AlarmActivity : AppCompatActivity() {
         acquireWakeLock()
         
         // Start sound and vibration
-        startAlarmSound()
+        startAlarmSound(soundName)
         startVibration()
         
         // Generate math problem
@@ -151,13 +153,58 @@ class AlarmActivity : AppCompatActivity() {
         wakeLock?.acquire(10*60*1000L /*10 minutes*/)
     }
     
-    private fun startAlarmSound() {
+    private fun startAlarmSound(soundName: String) {
         try {
-            // Using a default alarm sound - you can replace with custom sound from raw resources
-            mediaPlayer = MediaPlayer.create(this, android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI)
-            mediaPlayer?.isLooping = true
-            mediaPlayer?.start()
-            Log.d(TAG, "Alarm sound started")
+            var soundUri: android.net.Uri? = null
+            
+            // Try to get resource ID for the custom sound name
+            if (soundName != "alarm_sound" && soundName.isNotEmpty()) {
+                val resourceId = resources.getIdentifier(soundName, "raw", packageName)
+                if (resourceId != 0) { 
+                    soundUri = android.net.Uri.parse("android.resource://$packageName/$resourceId")
+                    Log.d(TAG, "Using custom sound resource: $soundName (ID: $resourceId)")
+                } else {
+                    Log.w(TAG, "Custom sound resource '$soundName' not found. Falling back to default.")
+                }
+            }
+            
+            // If custom sound wasn't found or wasn't specified, use default system alarm sound
+            if (soundUri == null) {
+                soundUri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
+                Log.d(TAG, "Using default system alarm sound.")
+            }
+            
+            // Create and start MediaPlayer
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(this@AlarmActivity, soundUri!!)
+                setAudioAttributes(
+                    android.media.AudioAttributes.Builder()
+                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
+                        .build()
+                )
+                isLooping = true
+                prepareAsync() // Use prepareAsync for network/resource URIs
+                setOnPreparedListener { 
+                    start()
+                    Log.d(TAG, "Alarm sound started with URI: $soundUri")
+                }
+                setOnErrorListener { mp, what, extra ->
+                    Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra. URI: $soundUri")
+                    // Fallback to basic create maybe?
+                    try {
+                        mp.release() // Release errored player
+                        mediaPlayer = MediaPlayer.create(this@AlarmActivity, android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI)
+                        mediaPlayer?.isLooping = true
+                        mediaPlayer?.start()
+                        Log.d(TAG, "Fallback sound started after error.")
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error starting fallback sound: ${e.message}")
+                    }
+                    true // Indicate error was handled
+                }
+            }
+            
         } catch (e: Exception) {
             Log.e(TAG, "Error starting alarm sound: ${e.message}")
         }

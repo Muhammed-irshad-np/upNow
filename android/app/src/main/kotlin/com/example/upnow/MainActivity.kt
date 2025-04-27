@@ -21,14 +21,11 @@ class MainActivity : FlutterActivity() {
             Log.d("MainActivity", "Method call received: ${call.method}")
             when (call.method) {
                 "showOverlay" -> {
-                    val args = call.arguments as? Map<String, Any>
-                    val alarmId = args?.get("id") as? String ?: "unknown_id"
-                    val alarmLabel = args?.get("label") as? String ?: "Alarm"
-                    Log.d("MainActivity", "showOverlay called with ID: $alarmId, Label: $alarmLabel")
-                    
-                    // Launch AlarmActivity instead of showing overlay
-                    launchAlarmActivity(alarmId, alarmLabel)
-                    result.success(true)
+                    val alarmId = call.argument<String>("id") ?: "unknown"
+                    val alarmLabel = call.argument<String>("label") ?: "Alarm"
+                    val soundName = call.argument<String>("soundName") ?: "alarm_sound"
+                    launchAlarmActivity(alarmId, alarmLabel, soundName)
+                    result.success("Overlay shown")
                 }
                 "hideOverlay" -> {
                     // No longer needed as we use AlarmActivity, but kept for compatibility
@@ -36,12 +33,25 @@ class MainActivity : FlutterActivity() {
                     result.success(true)
                 }
                 "sendAlarmBroadcast" -> {
-                    // Send a broadcast to the AlarmReceiver to launch the AlarmActivity
-                    val args = call.arguments as? Map<String, Any>
-                    val alarmId = args?.get("id") as? String ?: "unknown_id"
-                    val alarmLabel = args?.get("label") as? String ?: "Alarm"
-                    sendAlarmBroadcast(alarmId, alarmLabel)
-                    result.success(true)
+                    val alarmId = call.argument<String>("id")
+                    val alarmLabel = call.argument<String>("label")
+                    val soundName = call.argument<String>("soundName")
+
+                    if (alarmId != null && alarmLabel != null && soundName != null) {
+                        Log.d("MainActivity", "Received sendAlarmBroadcast request for ID: $alarmId, Sound: $soundName")
+                        val intent = Intent(this, AlarmReceiver::class.java).apply {
+                            action = "com.example.upnow.ALARM_TRIGGER"
+                            putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+                            putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+                            putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+                        }
+                        sendBroadcast(intent)
+                        Log.d("MainActivity", "Broadcast sent immediately for alarm $alarmId")
+                        result.success("Broadcast sent")
+                    } else {
+                        Log.e("MainActivity", "Missing arguments for sendAlarmBroadcast")
+                        result.error("INVALID_ARGUMENTS", "Missing id, label, or soundName for broadcast", null)
+                    }
                 }
                 else -> {
                     Log.w("MainActivity", "Method ${call.method} not implemented.")
@@ -54,31 +64,23 @@ class MainActivity : FlutterActivity() {
         setupNotificationHandler()
     }
     
-    private fun sendAlarmBroadcast(alarmId: String, alarmLabel: String) {
-        val intent = Intent(AlarmReceiver.ACTION_ALARM_TRIGGERED).apply {
-            putExtra(AlarmReceiver.EXTRA_ALARM_ID, alarmId)
-            putExtra(AlarmReceiver.EXTRA_ALARM_LABEL, alarmLabel)
-        }
-        sendBroadcast(intent)
-        Log.i("MainActivity", "Sent alarm broadcast for alarm: $alarmId")
-    }
-    
     private fun setupNotificationHandler() {
         // Just log that we're ready to handle notifications
         Log.d("MainActivity", "Notification handler set up")
         // The actual launching happens via the Intent registered in the manifest
     }
     
-    private fun launchAlarmActivity(alarmId: String, alarmLabel: String) {
+    private fun launchAlarmActivity(alarmId: String, alarmLabel: String, soundName: String) {
         // Skip launching for unknown IDs that aren't from a real alarm
-        if (alarmId == "unknown_id") {
-            Log.d("MainActivity", "Skipping launch of AlarmActivity for unknown_id")
+        if (alarmId == "unknown") {
+            Log.d("MainActivity", "Skipping launch of AlarmActivity for unknown")
             return
         }
         
         val intent = Intent(this, AlarmActivity::class.java).apply {
             putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
             putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+            putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
             // Use flags consistent with AlarmReceiver for showing over lock screen
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
                     Intent.FLAG_ACTIVITY_CLEAR_TOP or
