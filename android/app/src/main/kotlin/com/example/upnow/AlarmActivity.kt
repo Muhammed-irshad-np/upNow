@@ -16,6 +16,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import kotlin.random.Random
+import androidx.activity.OnBackPressedCallback
 
 class AlarmActivity : AppCompatActivity() {
     companion object {
@@ -28,6 +29,7 @@ class AlarmActivity : AppCompatActivity() {
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var alarmId: String? = null
+    private var isAlarmActive = true // Flag to track if the alarm is still active
     
     // Math problem variables
     private var num1: Int = 0
@@ -97,6 +99,15 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter an answer", Toast.LENGTH_SHORT).show()
             }
         }
+
+        // Use the modern way to handle back presses
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // Do nothing to prevent back button from closing the activity
+                Log.d(TAG, "Back button pressed, ignoring.")
+                Toast.makeText(this@AlarmActivity, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
+            }
+        })
     }
     
     private fun generateMathProblem() {
@@ -172,6 +183,8 @@ class AlarmActivity : AppCompatActivity() {
     }
     
     private fun stopAlarmAndFinish() {
+        isAlarmActive = false // Set flag to false when alarm is dismissed
+        
         // Stop media player
         mediaPlayer?.apply {
             if (isPlaying) {
@@ -200,12 +213,6 @@ class AlarmActivity : AppCompatActivity() {
         finish()
     }
     
-    // Prevent back button from dismissing the activity
-    override fun onBackPressed() {
-        // Do nothing, preventing back button dismiss
-        Toast.makeText(this, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
-    }
-    
     // Prevent volume keys and other system keys from dismissing
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
         return if (keyCode == KeyEvent.KEYCODE_VOLUME_DOWN || 
@@ -218,6 +225,22 @@ class AlarmActivity : AppCompatActivity() {
         }
     }
     
+    // Attempt to bring the activity back to front if user tries to exit via Home/Recents
+    override fun onStop() {
+        super.onStop()
+        Log.d(TAG, "AlarmActivity onStop. isAlarmActive: $isAlarmActive")
+        
+        if (isAlarmActive) {
+            // If the alarm hasn't been dismissed, try to bring it back
+            Log.d(TAG, "Alarm still active, attempting to bring activity back to front.")
+            val relaunchIntent = Intent(this, AlarmActivity::class.java).apply {
+                // Add flags to reorder it to the front if it exists
+                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+            }
+            startActivity(relaunchIntent)
+        }
+    }
+
     // Clean up resources if activity is destroyed
     override fun onDestroy() {
         mediaPlayer?.release()
