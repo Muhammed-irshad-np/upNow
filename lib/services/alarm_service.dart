@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:flutter/services.dart'; // Import for Platform Channel
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
@@ -11,10 +13,46 @@ import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 
+// Define a global variable to hold the current app lifecycle state
+AppLifecycleState currentAppState = AppLifecycleState.resumed;
 
 class AlarmService {
   static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   static bool _isInitialized = false;
+  
+  // Define the platform channel
+  static const MethodChannel _platformChannel = 
+      MethodChannel('com.example.upnow/alarm_overlay');
+  
+  // Method to show the overlay via platform channel
+  static Future<void> _showOverlay(AlarmModel alarm) async {
+    try {
+      debugPrint('📱 ALARM OVERLAY: Requesting to show overlay for alarm ID ${alarm.id}');
+      await _platformChannel.invokeMethod('showOverlay', {
+        'id': alarm.id,
+        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm', 
+        // Add other necessary data for the overlay task here if needed
+      });
+      debugPrint('📱 ALARM OVERLAY: showOverlay method invoked.');
+    } on PlatformException catch (e) {
+      debugPrint("📱 ALARM OVERLAY: Failed to invoke showOverlay: '${e.message}'.");
+    } catch (e) {
+       debugPrint("📱 ALARM OVERLAY: Generic error invoking showOverlay: $e");
+    }
+  }
+
+  // Method to hide the overlay via platform channel
+  static Future<void> hideOverlay() async {
+     try {
+      debugPrint('📱 ALARM OVERLAY: Requesting to hide overlay.');
+      await _platformChannel.invokeMethod('hideOverlay');
+      debugPrint('📱 ALARM OVERLAY: hideOverlay method invoked.');
+    } on PlatformException catch (e) {
+      debugPrint("📱 ALARM OVERLAY: Failed to invoke hideOverlay: '${e.message}'.");
+    } catch (e) {
+       debugPrint("📱 ALARM OVERLAY: Generic error invoking hideOverlay: $e");
+    }
+  }
   
   static Future<void> init() async {
     if (_isInitialized) return;
@@ -34,7 +72,6 @@ class AlarmService {
         'Alarm Notifications',
         description: 'Channel for alarm notifications',
         importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
         enableVibration: true,
         playSound: true,
         enableLights: true,
@@ -113,6 +150,7 @@ class AlarmService {
     await _notifications.initialize(
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
+      onDidReceiveBackgroundNotificationResponse: notificationActionCallback,
     );
     
     _isInitialized = true;
@@ -135,22 +173,8 @@ class AlarmService {
           ? alarmId.substring(7) // Remove 'backup_' prefix
           : alarmId;
       
-      final alarm = HiveDatabase.getAlarm(actualId);
-      
-      debugPrint('Retrieved alarm: $alarm');
-      
-      if (alarm != null) {
-        // Use this to navigate to the alarm ring screen
-        // We need a navigatorKey in the main app for this to work
-        navigatorKey.currentState?.push(
-          MaterialPageRoute(
-            builder: (_) => AlarmRingScreen(alarm: alarm),
-            fullscreenDialog: true,
-          ),
-        );
-      } else {
-        debugPrint('Error: Could not find alarm with ID: $actualId');
-      }
+      // Use the same handler as the background notifications
+      _handleAlarmNotificationAction(actualId);
     }
   }
   
@@ -169,7 +193,8 @@ class AlarmService {
       debugPrint('🔔 SCHEDULING ALARM: Starting...');
       // Get the current time for logging purposes
       final DateTime now = DateTime.now();
-      debugPrint('🔔 Current time: ${now.toString()}');
+      final tz.TZDateTime tzNow = tz.TZDateTime.from(now, tz.local);
+      debugPrint('🔔 Current time: ${tzNow.toString()}');
       
       // Calculate the initial scheduled date based on the alarm's hour and minute
       var scheduledDate = DateTime(
@@ -229,6 +254,34 @@ class AlarmService {
       final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
       debugPrint('🔔 Timezone adjusted date: ${tzScheduledDate.toString()}');
       
+      // --- Foreground Check ---
+      final Duration timeUntilAlarm = tzScheduledDate.difference(tzNow);
+      debugPrint('🔔 Time until alarm: $timeUntilAlarm');
+      
+      // Check if the alarm is very soon (e.g., within 5 seconds) AND app is in foreground
+      const Duration foregroundThreshold = Duration(seconds: 5); 
+      
+      if (currentAppState == AppLifecycleState.resumed && 
+          timeUntilAlarm > Duration.zero && // Ensure it's in the future
+          timeUntilAlarm <= foregroundThreshold) {
+            
+        debugPrint('📱 App is in foreground and alarm is imminent. Triggering alarm broadcast.');
+        
+        // Cancel potentially existing notification for this specific time 
+        final int notificationId = alarm.hashCode;
+        await _notifications.cancel(notificationId);
+        
+        // Show the alarm via broadcast to receiver
+        await _sendAlarmBroadcast(alarm);
+        
+        // We need to schedule the next occurrence for recurring alarms
+        // For now, we'll just log this need
+        debugPrint('🔔 Need to schedule the next alarm occurrence after foreground overlay for ID ${alarm.id}');
+        
+        return; // Stop further processing for this specific alarm time
+      }
+      // --- End Foreground Check ---
+      
       // Cancel any existing alarms with this ID (based on hash) to avoid duplicates
       final int alarmHashCode = alarm.hashCode;
       await _notifications.cancel(alarmHashCode);
@@ -250,34 +303,134 @@ class AlarmService {
          }
       }
       debugPrint('🔔 Using sound: $soundName');
-
-      // Create AndroidNotificationDetails dynamically
-      final AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'alarm_channel', // Ensure this channel is created in init()
+      
+      // For immediate launching of alarm when notification is created
+      // This is critical for our functionality
+      
+      // --- IMPORTANT: Immediate Alarm Launch ---
+      // When notification is scheduled, immediately send the broadcast
+      // This ensures the alarm shows up without waiting for user interaction
+      Future.delayed(timeUntilAlarm, () {
+        debugPrint('🔔 ALARM TIME REACHED! Checking if alarm should launch automatically');
+        
+        // Get the current time to check if we're within an acceptable window
+        final currentTime = DateTime.now();
+        final DateTime alarmTime = tzScheduledDate.toLocal();
+        
+        // Check if we're within 60 seconds of the alarm time (past or future)
+        final timeDifference = currentTime.difference(alarmTime).abs();
+        
+        if (timeDifference.inSeconds <= 60) {
+          debugPrint('🔔 Current time is within 60 seconds of alarm time, launching fullscreen alarm');
+          _launchFullscreenAlarm(alarm.id, alarm.label.isNotEmpty ? alarm.label : 'Alarm');
+        } else {
+          debugPrint('🔔 Alarm time difference is ${timeDifference.inSeconds} seconds, not showing fullscreen');
+          // Just let notification handle it instead of showing fullscreen
+        }
+      });
+      
+      // Get the AndroidFlutterLocalNotificationsPlugin to set custom intents
+      final AndroidFlutterLocalNotificationsPlugin? androidImplementation = 
+          _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+          
+      // Create custom notification details with full screen intent
+      AndroidNotificationDetails? enhancedAndroidDetails;
+      
+      if (androidImplementation != null) {
+        try {
+          // Create AndroidNotificationDetails with custom intents
+          enhancedAndroidDetails = AndroidNotificationDetails(
+            'alarm_channel',
+            'Alarm Notifications',
+            channelDescription: 'Channel for alarm notifications',
+            importance: Importance.max,
+            priority: Priority.max,
+            sound: RawResourceAndroidNotificationSound(soundName),
+            playSound: true,
+            enableVibration: alarm.vibrate,
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.alarm,
+            autoCancel: true,
+            additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
+            ongoing: true,
+            actions: [
+              const AndroidNotificationAction(
+                'show_alarm',
+                'Show Alarm',
+                showsUserInterface: true,
+                cancelNotification: true,
+              ),
+            ],
+          );
+          
+          // The broadcast action to launch our AlarmReceiver for automatic fullscreen
+          await androidImplementation.createNotificationChannel(
+            const AndroidNotificationChannel(
+              'alarm_channel',
+              'Alarm Notifications',
+              description: 'Channel for alarm notifications',
+              importance: Importance.max,
+              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              enableVibration: true,
+              playSound: true,
+              enableLights: true,
+              showBadge: true,
+            ),
+          );
+          
+          debugPrint('🔔 Enhanced notification details created successfully');
+        } catch (e) {
+          debugPrint('❌ Error creating enhanced notification details: $e');
+        }
+      }
+      
+      // Use enhanced details if available, otherwise fall back to basic details
+      final AndroidNotificationDetails androidDetails = enhancedAndroidDetails ?? AndroidNotificationDetails(
+        'alarm_channel',
         'Alarm Notifications',
         channelDescription: 'Channel for alarm notifications',
         importance: Importance.max,
         priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound(soundName), // Use extracted sound name
+        sound: RawResourceAndroidNotificationSound(soundName),
         playSound: true,
-        enableVibration: alarm.vibrate, // Use vibrate setting from alarm model
-        fullScreenIntent: true, 
+        enableVibration: alarm.vibrate,
+        fullScreenIntent: true,
         category: AndroidNotificationCategory.alarm,
-        // ongoing: true, // Optional: keeps notification until dismissed
-        // actions: [ ... ] // Optional: Add snooze/dismiss actions
+        autoCancel: true,
+        additionalFlags: Int32List.fromList(<int>[4]),
+        ongoing: true,
+        actions: [
+          const AndroidNotificationAction(
+            'show_alarm',
+            'Show Alarm',
+            showsUserInterface: true,
+            cancelNotification: true,
+          ),
+        ],
       );
       
-      // Default iOS settings (iOS sound customization might need platform channels or specific packages)
+      // Default iOS settings
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
         presentSound: true, // Use default iOS sound
-        // sound: 'custom_sound.caf', // Example if you add sounds to iOS project
       );
 
       final NotificationDetails notificationDetails = NotificationDetails(
         android: androidDetails,
         iOS: iosDetails,
       );
-      // --- End Dynamic Notification Details ---
+      
+      // Determine matchDateTimeComponents based on repeat type for recurring alarms
+      DateTimeComponents? matchDateTimeComponents;
+      if (alarm.repeat == AlarmRepeat.daily) {
+        matchDateTimeComponents = DateTimeComponents.time;
+      } else if (alarm.repeat == AlarmRepeat.weekdays || 
+                 alarm.repeat == AlarmRepeat.weekends ||
+                 alarm.repeat == AlarmRepeat.custom) {
+        matchDateTimeComponents = DateTimeComponents.dayOfWeekAndTime;
+      } else {
+        // AlarmRepeat.once should have null matchDateTimeComponents
+        matchDateTimeComponents = null;
+      }
 
       await _notifications.zonedSchedule(
         notificationId, // Use the consistent ID
@@ -287,20 +440,56 @@ class AlarmService {
         notificationDetails, // Use the dynamically created details
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: alarm.repeat == AlarmRepeat.once 
-                                   ? null // Don't repeat for 'once'
-                                   : DateTimeComponents.time, // Repeat daily/weekly based on time
+        matchDateTimeComponents: matchDateTimeComponents, 
         payload: alarm.id, // Use the actual alarm ID string as payload
       );
 
       debugPrint('✅ ALARM SCHEDULED: ID $notificationId at $tzScheduledDate with sound $soundName');
 
-      // Schedule backup notification if needed (existing logic)
-      // ... (Consider if backup needs custom sound too)
-
     } catch (e) {
       debugPrint('❌ Error scheduling alarm ID ${alarm.id}: $e');
       // Consider re-throwing or showing an error to the user
+    }
+  }
+  
+  // This is called when a notification action is tapped in the background
+  @pragma('vm:entry-point')
+  static void notificationActionCallback(NotificationResponse response) {
+    // This gets called in the background isolate and needs to be a top-level or static function
+    debugPrint('Background notification response: ${response.id} - ${response.actionId} - ${response.payload}');
+    
+    // For background handling, we can only log and pass the info to the AlarmReceiver
+    // The actual launching of the AlarmActivity happens in the native code
+    if (response.payload != null && (response.actionId == 'show_alarm' || response.notificationResponseType == NotificationResponseType.selectedNotification)) {
+      _handleAlarmNotificationAction(response.payload!);
+    }
+  }
+  
+  // Helper to send a broadcast to the native side to launch alarm activity
+  static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
+    try {
+      debugPrint('📱 ALARM BROADCAST: Sending broadcast for alarm ID ${alarm.id}');
+      await _platformChannel.invokeMethod('sendAlarmBroadcast', {
+        'id': alarm.id,
+        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm', 
+      });
+      debugPrint('📱 ALARM BROADCAST: Broadcast sent');
+    } on PlatformException catch (e) {
+      debugPrint("📱 ALARM BROADCAST: Failed to send broadcast: '${e.message}'.");
+    } catch (e) {
+       debugPrint("📱 ALARM BROADCAST: Generic error sending broadcast: $e");
+    }
+  }
+
+  // Helper to launch the alarm activity from both foreground and background
+  static void _handleAlarmNotificationAction(String alarmId) {
+    debugPrint('Handling alarm notification action for ID: $alarmId');
+    
+    // Get the alarm
+    final alarm = HiveDatabase.getAlarm(alarmId);
+    if (alarm != null) {
+      // Use broadcast to launch native AlarmActivity
+      _sendAlarmBroadcast(alarm);
     }
   }
   
@@ -347,7 +536,12 @@ class AlarmService {
   // Request necessary permissions for alarms and notifications
   static Future<void> requestPermissions() async {
     debugPrint('Requesting alarm permissions...');
-        await requestBatteryOptimizationExemption();
+    // Request SYSTEM_ALERT_WINDOW permission
+    if (await Permission.systemAlertWindow.isDenied) {
+      final status = await Permission.systemAlertWindow.request();
+      debugPrint('System Alert Window permission status: $status');
+    }
+    await requestBatteryOptimizationExemption();
 
     // For notifications on Android 13+
     if (Platform.isAndroid) {
@@ -601,6 +795,28 @@ try {
     } catch (e) {
       debugPrint('ALARM FOCUS TEST ERROR: $e');
       return false;
+    }
+  }
+
+  // When alarm time is reached, this method will be called to launch the fullscreen activity
+  static Future<void> _launchFullscreenAlarm(String alarmId, String label) async {
+    debugPrint('📱 ALARM LAUNCH: Attempting to show fullscreen alarm for $alarmId');
+    try {
+      // First try direct method channel call to immediately show the math screen
+      final result = await _platformChannel.invokeMethod('showOverlay', {
+        'id': alarmId,
+        'label': label,
+      });
+      debugPrint('📱 ALARM LAUNCH: Direct launch result: $result');
+      
+      // Also send broadcast as backup method (belt and suspenders approach)
+      await _platformChannel.invokeMethod('sendAlarmBroadcast', {
+        'id': alarmId,
+        'label': label,
+      });
+      debugPrint('📱 ALARM BROADCAST: Broadcast sent');
+    } catch (e) {
+      debugPrint('❌ ERROR launching fullscreen alarm: $e');
     }
   }
 } 

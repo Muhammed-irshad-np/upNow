@@ -7,7 +7,7 @@ plugins {
 
 android {
     namespace = "com.example.upnow"
-    compileSdk = flutter.compileSdkVersion
+    compileSdk = 35
     ndkVersion = "27.0.12077973"
 
     compileOptions {
@@ -43,6 +43,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:1.2.2")
+    implementation("androidx.appcompat:appcompat:1.6.1")
 }
 
 flutter {
