@@ -67,6 +67,13 @@ class AlarmService {
     // Request permissions first
     await requestPermissions();
     
+    // Fix release mode issues
+    final bool isReleaseMode = const bool.fromEnvironment('dart.vm.product');
+    if (isReleaseMode) {
+      debugPrint('ALARM SERVICE: Running in release mode - applying fixes');
+      await fixReleasePermissions();
+    }
+    
     // Create notification channels with high importance
     List<AndroidNotificationChannel> channels = [
       const AndroidNotificationChannel(
@@ -925,6 +932,139 @@ try {
       debugPrint('📱 ALARM BROADCAST: Backup broadcast sent');
     } catch (e) {
       debugPrint('❌ ERROR launching fullscreen alarm: $e');
+    }
+  }
+
+  // Check all permissions for release builds
+  static Future<Map<String, dynamic>> checkReleasePermissions() async {
+    try {
+      debugPrint('📱 ALARM SERVICE: Checking permissions for release build');
+      
+      // Check native permissions through platform channel
+      final Map<String, dynamic> nativePermissions = 
+          await _platformChannel.invokeMethod('checkAlarmPermissions')
+              .then((result) => Map<String, dynamic>.from(result as Map))
+              .catchError((e) {
+                debugPrint('Error checking native permissions: $e');
+                return <String, dynamic>{'error': e.toString()};
+              });
+      
+      // Check Flutter permissions using permission_handler
+      final Map<String, dynamic> flutterPermissions = {};
+      
+      // Schedule exact alarms permission
+      flutterPermissions['scheduleExactAlarm'] = 
+          await Permission.scheduleExactAlarm.status.isGranted;
+      
+      // Notification permission
+      flutterPermissions['notification'] = 
+          await Permission.notification.status.isGranted;
+      
+      // Battery optimization
+      flutterPermissions['ignoreBatteryOptimizations'] = 
+          await Permission.ignoreBatteryOptimizations.status.isGranted;
+          
+      // System alert window permission (overlay)
+      flutterPermissions['systemAlertWindow'] = 
+          await Permission.systemAlertWindow.status.isGranted;
+      
+      // Get the number of scheduled alarms
+      final pendingNotifications = await _notifications.pendingNotificationRequests();
+      
+      // Combine all results
+      return {
+        'native': nativePermissions,
+        'flutter': flutterPermissions,
+        'pendingNotificationsCount': pendingNotifications.length,
+        'appLifecycleState': currentAppState.toString(),
+      };
+    } catch (e) {
+      debugPrint('Error in checkReleasePermissions: $e');
+      return {'error': e.toString()};
+    }
+  }
+  
+  // Fix permissions for release builds
+  static Future<bool> fixReleasePermissions() async {
+    try {
+      debugPrint('📱 ALARM SERVICE: Fixing permissions for release build');
+      
+      // Request all necessary permissions
+      await requestPermissions();
+      
+      // Request battery optimization exemption
+      await requestBatteryOptimizationExemption();
+      
+      // Request system alert window permission if needed
+      final hasOverlayPermission = await Permission.systemAlertWindow.isGranted;
+      if (!hasOverlayPermission) {
+        if (await Permission.systemAlertWindow.shouldShowRequestRationale) {
+          // Open the settings directly if we should show rationale
+          await openAppSettings();
+        } else {
+          await Permission.systemAlertWindow.request();
+        }
+      }
+      
+      // Check permissions after requesting
+      final permissionStatus = await checkReleasePermissions();
+      debugPrint('📱 ALARM SERVICE: Permission status after fixing: $permissionStatus');
+      
+      return true;
+    } catch (e) {
+      debugPrint('Error fixing release permissions: $e');
+      return false;
+    }
+  }
+
+  // Test alarm functionality in release mode
+  static Future<Map<String, dynamic>> testReleaseAlarm() async {
+    try {
+      debugPrint('📱 ALARM SERVICE: Testing alarm in release mode');
+      
+      // First check permissions
+      final permissionStatus = await checkReleasePermissions();
+      
+      // Create a test alarm for 30 seconds from now
+      final now = DateTime.now();
+      final testAlarmTime = now.add(const Duration(seconds: 30));
+      
+      // Create a test alarm model
+      final testAlarm = AlarmModel(
+        id: 'test_release_${now.millisecondsSinceEpoch}',
+        hour: testAlarmTime.hour,
+        minute: testAlarmTime.minute,
+        isEnabled: true,
+        label: 'Release Test Alarm',
+        vibrate: true,
+        repeat: AlarmRepeat.once,
+        weekdays: List.filled(7, false),
+        soundPath: 'alarm_sound',
+        dismissType: DismissType.normal,
+      );
+      
+      // Log the test alarm
+      debugPrint('📱 ALARM SERVICE: Created test alarm for ${testAlarmTime.toString()}');
+      
+      // Try to schedule it
+      await scheduleAlarm(testAlarm);
+      
+      // Get pending notifications
+      final pendingNotifications = await _notifications.pendingNotificationRequests();
+      
+      // Also send a direct test notification
+      await testDirectNotification();
+      
+      // Log result and return status
+      return {
+        'permissionStatus': permissionStatus,
+        'testAlarmCreated': true,
+        'testAlarmTime': '${testAlarmTime.hour}:${testAlarmTime.minute}:${testAlarmTime.second}',
+        'pendingNotificationsCount': pendingNotifications.length,
+      };
+    } catch (e) {
+      debugPrint('Error testing release alarm: $e');
+      return {'error': e.toString()};
     }
   }
 } 
