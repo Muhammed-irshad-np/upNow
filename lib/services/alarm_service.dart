@@ -31,6 +31,8 @@ class AlarmService {
       await _platformChannel.invokeMethod('showOverlay', {
         'id': alarm.id,
         'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm', 
+        'hour': alarm.hour, // Pass hour for time validation
+        'minute': alarm.minute, // Pass minute for time validation
         // Add other necessary data for the overlay task here if needed
       });
       debugPrint('📱 ALARM OVERLAY: showOverlay method invoked.');
@@ -178,9 +180,28 @@ class AlarmService {
     }
   }
   
+  // Method to update the pending alarms flag in the native platform
+  static Future<void> _updatePendingAlarmsFlag(bool hasPendingAlarms) async {
+    try {
+      debugPrint('📱 ALARM SERVICE: Updating pending alarms flag: $hasPendingAlarms');
+      await _platformChannel.invokeMethod('updatePendingAlarms', {
+        'hasPendingAlarms': hasPendingAlarms,
+      });
+      debugPrint('📱 ALARM SERVICE: Successfully updated pending alarms flag');
+    } on PlatformException catch (e) {
+      debugPrint("📱 ALARM SERVICE: Failed to update pending alarms flag: '${e.message}'.");
+    } catch (e) {
+      debugPrint("📱 ALARM SERVICE: Generic error updating pending alarms flag: $e");
+    }
+  }
+  
   static Future<void> _scheduleAllAlarms() async {
     final alarms = HiveDatabase.getAllAlarms();
     debugPrint('Scheduling ${alarms.length} alarms');
+    
+    // Update the flag to indicate we have pending alarms
+    await _updatePendingAlarmsFlag(alarms.any((alarm) => alarm.isEnabled));
+    
     for (final alarm in alarms) {
       if (alarm.isEnabled) {
         await scheduleAlarm(alarm);
@@ -449,6 +470,11 @@ class AlarmService {
 
       debugPrint('🔔 Informational Notification scheduled for $tzScheduledDate with ID $notificationId');
 
+      // After scheduling, update the pending alarms flag
+      final allAlarms = HiveDatabase.getAllAlarms();
+      final hasEnabledAlarms = allAlarms.any((a) => a.isEnabled);
+      await _updatePendingAlarmsFlag(hasEnabledAlarms);
+
     } catch (e) {
       debugPrint('❌ Error scheduling alarm ID ${alarm.id}: $e');
       // Consider re-throwing or showing an error to the user
@@ -486,6 +512,8 @@ class AlarmService {
         'id': alarm.id,
         'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
         'soundName': soundName, // Pass sound name
+        'hour': alarm.hour, // Pass hour for time validation
+        'minute': alarm.minute, // Pass minute for time validation
       });
       debugPrint('📱 ALARM BROADCAST: Broadcast sent');
     } on PlatformException catch (e) {
@@ -536,26 +564,53 @@ class AlarmService {
   }
   
   static Future<void> cancelAlarm(String alarmId) async {
-    debugPrint('🔴 Cancelling alarm with ID: $alarmId');
     try {
-      // Cancel the native Android AlarmManager alarm
-      await _platformChannel.invokeMethod('cancelNativeAlarm', {'alarmId': alarmId});
-      debugPrint('🔴 Native AlarmManager alarm cancelled for ID: $alarmId');
-
-      // Remove the flutter_local_notifications cancellation - no longer needed
-      // final int notificationId = alarmId.hashCode;
-      // await _notifications.cancel(notificationId);
-      // debugPrint('🔴 Notification cancelled for ID: $notificationId');
+      debugPrint('Cancelling alarm with ID: $alarmId');
       
+      // Get the alarm from database
+      final alarm = HiveDatabase.getAlarm(alarmId);
+      if (alarm == null) {
+        debugPrint('Alarm not found with ID: $alarmId');
+        return;
+      }
+      
+      // Cancel the notification
+      final int notificationId = alarm.hashCode;
+      await _notifications.cancel(notificationId);
+      
+      // Check if there are any remaining enabled alarms
+      final allAlarms = HiveDatabase.getAllAlarms();
+      final hasEnabledAlarms = allAlarms.any((a) => a != null && a.id != alarmId && a.isEnabled);
+      
+      // Update the pending alarms flag
+      await _updatePendingAlarmsFlag(hasEnabledAlarms);
+      
+      debugPrint('Alarm cancelled with ID: $alarmId');
     } catch (e) {
       debugPrint('Error cancelling alarm: $e');
     }
   }
   
   static Future<void> cancelAllAlarms() async {
-    if (!_isInitialized) await init();
-    await _notifications.cancelAll();
-    debugPrint('Cancelled all alarms');
+    try {
+      debugPrint('Cancelling all alarms');
+      
+      // Get all alarms
+      final alarms = HiveDatabase.getAllAlarms();
+      
+      // Cancel each alarm notification
+      for (final alarm in alarms) {
+        final int notificationId = alarm.hashCode;
+        await _notifications.cancel(notificationId);
+      }
+      
+      // Update the pending alarms flag to false since all alarms are cancelled
+      await _updatePendingAlarmsFlag(false);
+      
+      debugPrint('All alarms cancelled');
+    } catch (e) {
+      debugPrint('Error cancelling all alarms: $e');
+    }
   }
 
   // Request necessary permissions for alarms and notifications
@@ -828,8 +883,24 @@ try {
     debugPrint('📱 ALARM LAUNCH: Attempting to show fullscreen alarm for $alarmId');
     // Retrieve alarm to get sound path
     final alarm = HiveDatabase.getAlarm(alarmId);
+    if (alarm == null) {
+      debugPrint('❌ Alarm not found with ID: $alarmId');
+      return;
+    }
+    
+    // Check if the alarm time has already passed (comparing only hour and minute)
+    final now = DateTime.now();
+    final bool isAlarmInPast = 
+        (now.hour > alarm.hour) || 
+        (now.hour == alarm.hour && now.minute > alarm.minute);
+    
+    if (isAlarmInPast) {
+      debugPrint('⏰ Not showing alarm that has already passed: ${alarm.hour}:${alarm.minute}');
+      return;
+    }
+    
     String soundName = 'alarm_sound'; // Default
-    if (alarm != null && alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
       try {
         soundName = p.basenameWithoutExtension(alarm.soundPath!); 
       } catch (e) {
@@ -844,11 +915,13 @@ try {
         'id': alarmId,
         'label': label,
         'soundName': soundName, // Pass sound name
+        'hour': alarm.hour, // Pass hour
+        'minute': alarm.minute, // Pass minute
       });
       debugPrint('📱 ALARM LAUNCH: Direct launch result: $result');
       
       // Also send broadcast as backup method (belt and suspenders approach)
-      await _sendAlarmBroadcast(alarm!); // Pass the full alarm model
+      await _sendAlarmBroadcast(alarm); // Pass the full alarm model
       debugPrint('📱 ALARM BROADCAST: Backup broadcast sent');
     } catch (e) {
       debugPrint('❌ ERROR launching fullscreen alarm: $e');
