@@ -11,6 +11,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.app.AlarmManager
 import android.os.PowerManager
+import android.app.PendingIntent
 
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.upnow/alarm_overlay"
@@ -111,10 +112,18 @@ class MainActivity : FlutterActivity() {
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as? AlarmManager
             Log.d("MainActivity", "AlarmManager available: ${alarmManager != null}")
             
-            // Check for broadcast receiver
+            // Check for broadcast receiver existence
             val receiverIntent = Intent(this, AlarmReceiver::class.java)
+            
+            // Safely check for broadcast receiver with proper flags
+            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_NO_CREATE
+            }
+            
             val receiverExists = PendingIntent.getBroadcast(
-                this, 0, receiverIntent, PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+                this, 0, receiverIntent, pendingIntentFlags
             ) != null
             Log.d("MainActivity", "AlarmReceiver registered: $receiverExists")
             
