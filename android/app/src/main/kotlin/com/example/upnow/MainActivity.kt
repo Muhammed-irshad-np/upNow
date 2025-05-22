@@ -90,6 +90,23 @@ class MainActivity : FlutterActivity() {
                     val permissionsResult = checkAlarmPermissions()
                     result.success(permissionsResult)
                 }
+                "registerTerminatedStateAlarm" -> {
+                    try {
+                        // Extract alarm data from the call
+                        val alarmId = call.argument<String>("id") ?: return@setMethodCallHandler result.error("INVALID_ARGS", "Missing alarm ID", null)
+                        val alarmLabel = call.argument<String>("label") ?: "Alarm"
+                        val soundName = call.argument<String>("soundName") ?: "alarm_sound"
+                        val hour = call.argument<Int>("hour") ?: return@setMethodCallHandler result.error("INVALID_ARGS", "Missing hour", null)
+                        val minute = call.argument<Int>("minute") ?: return@setMethodCallHandler result.error("INVALID_ARGS", "Missing minute", null)
+                        
+                        // Register alarm with system AlarmManager for terminated state
+                        registerSystemAlarm(alarmId, alarmLabel, soundName, hour, minute)
+                        result.success("Alarm registered with system")
+                    } catch (e: Exception) {
+                        Log.e("MainActivity", "Error registering terminated state alarm: ${e.message}")
+                        result.error("ALARM_ERROR", "Failed to register system alarm: ${e.message}", null)
+                    }
+                }
                 else -> {
                     Log.w("MainActivity", "Method ${call.method} not implemented.")
                     result.notImplemented()
@@ -226,5 +243,91 @@ class MainActivity : FlutterActivity() {
         
         startActivity(intent)
         Log.i("MainActivity", "AlarmActivity launched for alarm: $alarmId")
+    }
+    
+    /**
+     * Register an alarm with the system AlarmManager to ensure it works in terminated state
+     */
+    private fun registerSystemAlarm(alarmId: String, alarmLabel: String, soundName: String, hour: Int, minute: Int) {
+        try {
+            Log.d("MainActivity", "Registering system alarm for ID: $alarmId at $hour:$minute")
+            
+            // Create an intent for AlarmReceiver
+            val intent = Intent(this, AlarmReceiver::class.java).apply {
+                action = "com.example.upnow.ALARM_TRIGGER"
+                putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+                putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+                putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+                putExtra("hour", hour)
+                putExtra("minute", minute)
+                putExtra("isSystemAlarm", true) // Mark this as a system alarm
+            }
+            
+            // Create a unique ID for this alarm based on the alarm ID
+            val pendingIntentId = alarmId.hashCode()
+            
+            // Set up pending intent flags for Android compatibility
+            val pendingIntentFlags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+            } else {
+                PendingIntent.FLAG_UPDATE_CURRENT
+            }
+            
+            // Create the PendingIntent for the alarm
+            val pendingIntent = PendingIntent.getBroadcast(
+                this,
+                pendingIntentId,
+                intent,
+                pendingIntentFlags
+            )
+            
+            // Calculate alarm time
+            val calendar = java.util.Calendar.getInstance().apply {
+                set(java.util.Calendar.HOUR_OF_DAY, hour)
+                set(java.util.Calendar.MINUTE, minute)
+                set(java.util.Calendar.SECOND, 0)
+                
+                // If the time is in the past, add a day
+                if (timeInMillis <= System.currentTimeMillis()) {
+                    add(java.util.Calendar.DAY_OF_YEAR, 1)
+                }
+            }
+            
+            // Get system alarm manager
+            val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+            
+            // Set the exact alarm based on Android version
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                // For Android 6.0+ with exact timing and waking from Doze
+                alarmManager.setExactAndAllowWhileIdle(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                // For Android 4.4-5.1
+                alarmManager.setExact(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            } else {
+                // For older Android versions
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    calendar.timeInMillis,
+                    pendingIntent
+                )
+            }
+            
+            Log.i("MainActivity", "System alarm successfully registered for $hour:$minute (${calendar.timeInMillis})")
+            
+            // Store information that we have pending alarms in SharedPreferences
+            AlarmReceiver.updatePendingAlarmsFlag(this, true)
+            
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to register system alarm: ${e.message}")
+            throw e
+        }
     }
 }

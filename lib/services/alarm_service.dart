@@ -332,30 +332,8 @@ class AlarmService {
       }
       debugPrint('🎵 Selected sound for notification: $soundName');
       
-      // For immediate launching of alarm when notification is created
-      // This is critical for our functionality
-      
-      // --- IMPORTANT: Immediate Alarm Launch ---
-      // When notification is scheduled, immediately send the broadcast
-      // This ensures the alarm shows up without waiting for user interaction
-      Future.delayed(timeUntilAlarm, () {
-        debugPrint('🔔 ALARM TIME REACHED! Checking if alarm should launch automatically');
-        
-        // Get the current time to check if we're within an acceptable window
-        final currentTime = DateTime.now();
-        final DateTime alarmTime = tzScheduledDate.toLocal();
-        
-        // Check if we're within 60 seconds of the alarm time (past or future)
-        final timeDifference = currentTime.difference(alarmTime).abs();
-        
-        if (timeDifference.inSeconds <= 60) {
-          debugPrint('🔔 Current time is within 60 seconds of alarm time, launching fullscreen alarm');
-          _launchFullscreenAlarm(alarm.id, alarm.label.isNotEmpty ? alarm.label : 'Alarm');
-        } else {
-          debugPrint('🔔 Alarm time difference is ${timeDifference.inSeconds} seconds, not showing fullscreen');
-          // Just let notification handle it instead of showing fullscreen
-        }
-      });
+      // --- REMOVED Future.delayed timer here which doesn't work in terminated state ---
+      // Instead rely on system notifications with proper intent configuration
       
       // Get the AndroidFlutterLocalNotificationsPlugin to set custom intents
       final AndroidFlutterLocalNotificationsPlugin? androidImplementation = 
@@ -378,7 +356,7 @@ class AlarmService {
             enableVibration: alarm.vibrate,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
-            autoCancel: true,
+            autoCancel: false, // Changed to false to keep alarm notification visible
             additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
             ongoing: true,
             actions: [
@@ -386,7 +364,7 @@ class AlarmService {
                 'show_alarm',
                 'Show Alarm',
                 showsUserInterface: true,
-                cancelNotification: true,
+                cancelNotification: false,
               ),
             ],
           );
@@ -405,6 +383,32 @@ class AlarmService {
               showBadge: true,
             ),
           );
+          
+          // Add intent to directly launch the full alarm activity
+          // This is critical for terminated state functionality
+          await androidImplementation.createNotificationChannel(
+            const AndroidNotificationChannel(
+              'alarm_focus',
+              'Alarm Focus', 
+              description: 'High priority alarm notifications',
+              importance: Importance.max,
+              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              enableVibration: true,
+              playSound: true,
+            ),
+          );
+          
+          // Configure alarm intent
+          final alarmIntent = {
+            'id': alarm.id,
+            'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+            'soundName': soundName,
+            'hour': alarm.hour,
+            'minute': alarm.minute,
+          };
+          
+          // Register the alarm with the platform for terminated state
+          await _platformChannel.invokeMethod('registerTerminatedStateAlarm', alarmIntent);
           
           debugPrint('🔔 Enhanced notification details created successfully');
         } catch (e) {
