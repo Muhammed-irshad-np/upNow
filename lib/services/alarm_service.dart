@@ -627,59 +627,8 @@ class AlarmService {
   // Request necessary permissions for alarms and notifications
   static Future<void> requestPermissions() async {
     debugPrint('Requesting alarm permissions...');
-    // Request SYSTEM_ALERT_WINDOW permission
-    if (await Permission.systemAlertWindow.isDenied) {
-      final status = await Permission.systemAlertWindow.request();
-      debugPrint('System Alert Window permission status: $status');
-    }
-    await requestBatteryOptimizationExemption();
-
-    // For notifications on Android 13+
-    if (Platform.isAndroid) {
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-          _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      // Add this code to your requestPermissions method
-// Request battery optimization exemption
-try {
-  if (await Permission.ignoreBatteryOptimizations.isDenied) {
-    final status = await Permission.ignoreBatteryOptimizations.request();
-    debugPrint('Battery optimization exemption status: $status');
-  }
-} catch (e) {
-  debugPrint('Error requesting battery optimization exemption: $e');
-}
-      if (androidImplementation != null) {
-        // Request exact alarm permission (Android 12+)
-        try {
-          final hasExactAlarmPermission = await androidImplementation.requestExactAlarmsPermission();
-          debugPrint('Exact alarm permission: $hasExactAlarmPermission');
-        } catch (e) {
-          debugPrint('Error requesting exact alarms permission: $e');
-        }
-        
-        // Request notification permission (Android 13+)
-        try {
-          final hasNotificationPermission = await androidImplementation.requestNotificationsPermission();
-          debugPrint('Notification permission: $hasNotificationPermission');
-        } catch (e) {
-          debugPrint('Error requesting notification permission: $e');
-        }
-      }
-    }
-    
-    // For alarm scheduling on Android 14+
-    if (await Permission.scheduleExactAlarm.isDenied) {
-      final status = await Permission.scheduleExactAlarm.request();
-      debugPrint('Schedule exact alarm permission status: $status');
-    }
-    
-    // For notification permission using permission handler 
-    if (await Permission.notification.isDenied) {
-      final status = await Permission.notification.request();
-      debugPrint('Notification permission status: $status');
-    }
-    
-    debugPrint('Finished requesting all necessary permissions for alarms');
+    // No need to do anything here since permissions are now handled by PermissionsManager
+    // Keep this method for backward compatibility
   }
 
   // For directly checking notification settings

@@ -7,10 +7,12 @@ import 'package:upnow/providers/alarm_provider.dart';
 import 'package:upnow/providers/sleep_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
+import 'package:upnow/screens/onboarding/onboarding_screen.dart';
 import 'package:upnow/screens/sleep_tracker/sleep_tracker_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
 import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:upnow/utils/preferences_helper.dart';
 
 // Global navigator key for accessing Navigator from outside the widget tree
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -62,7 +64,7 @@ class MyApp extends StatelessWidget {
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
         theme: AppTheme.getDarkTheme(),
-        home: const MainScreen(),
+        home: const StartupScreen(),
         routes: {
           '/create_alarm': (context) => const CreateAlarmScreen(),
           '/edit_alarm': (context) {
@@ -73,6 +75,49 @@ class MyApp extends StatelessWidget {
         },
       ),
     );
+  }
+}
+
+class StartupScreen extends StatefulWidget {
+  const StartupScreen({super.key});
+
+  @override
+  State<StartupScreen> createState() => _StartupScreenState();
+}
+
+class _StartupScreenState extends State<StartupScreen> {
+  bool _isLoading = true;
+  bool _hasCompletedOnboarding = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkOnboardingStatus();
+  }
+
+  Future<void> _checkOnboardingStatus() async {
+    // final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
+    final hasCompleted = false;
+    setState(() {
+      _hasCompletedOnboarding = hasCompleted;
+      _isLoading = false;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: AppTheme.darkBackground,
+        body: Center(
+          child: CircularProgressIndicator(
+            color: AppTheme.primaryColor,
+          ),
+        ),
+      );
+    }
+    
+    return _hasCompletedOnboarding ? const MainScreen() : const OnboardingScreen();
   }
 }
 
@@ -96,7 +141,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _requestPermissions();
   }
 
   @override
