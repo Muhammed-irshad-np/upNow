@@ -940,32 +940,19 @@ class AlarmService {
   // Fix permissions for release builds
   static Future<bool> fixReleasePermissions() async {
     try {
-      debugPrint('📱 ALARM SERVICE: Fixing permissions for release build');
+      debugPrint('📱 ALARM SERVICE: Checking permissions for release build');
       
-      // Request all necessary permissions
-      await requestPermissions();
-      
-      // Request battery optimization exemption
-      await requestBatteryOptimizationExemption();
-      
-      // Request system alert window permission if needed
-      final hasOverlayPermission = await Permission.systemAlertWindow.isGranted;
-      if (!hasOverlayPermission) {
-        if (await Permission.systemAlertWindow.shouldShowRequestRationale) {
-          // Open the settings directly if we should show rationale
-          await openAppSettings();
-        } else {
-          await Permission.systemAlertWindow.request();
-        }
-      }
-      
-      // Check permissions after requesting
+      // Check all permissions but don't request them automatically
+      // This ensures we're aware of the current permission state
       final permissionStatus = await checkReleasePermissions();
-      debugPrint('📱 ALARM SERVICE: Permission status after fixing: $permissionStatus');
+      debugPrint('📱 ALARM SERVICE: Current permission status: $permissionStatus');
+      
+      // Don't request permissions here anymore - let the PermissionsScreen handle it
+      // This prevents prompting at startup on physical devices
       
       return true;
     } catch (e) {
-      debugPrint('Error fixing release permissions: $e');
+      debugPrint('Error checking release permissions: $e');
       return false;
     }
   }
