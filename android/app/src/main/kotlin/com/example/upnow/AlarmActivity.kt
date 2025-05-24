@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.media.MediaPlayer
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -15,8 +17,11 @@ import android.widget.EditText
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import kotlin.random.Random
 import androidx.activity.OnBackPressedCallback
+import kotlin.random.Random
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 
 class AlarmActivity : AppCompatActivity() {
     companion object {
@@ -31,6 +36,8 @@ class AlarmActivity : AppCompatActivity() {
     private var wakeLock: PowerManager.WakeLock? = null
     private var alarmId: String? = null
     private var isAlarmActive = true // Flag to track if the alarm is still active
+    private var timeUpdateHandler: Handler? = null
+    private var timeRunnable: Runnable? = null
     
     // Math problem variables
     private var num1: Int = 0
@@ -47,8 +54,7 @@ class AlarmActivity : AppCompatActivity() {
             WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON or
             WindowManager.LayoutParams.FLAG_DISMISS_KEYGUARD or
             WindowManager.LayoutParams.FLAG_SHOW_WHEN_LOCKED or
-            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON or
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
+            WindowManager.LayoutParams.FLAG_TURN_SCREEN_ON
         )
         
         setContentView(R.layout.activity_alarm)
@@ -63,6 +69,9 @@ class AlarmActivity : AppCompatActivity() {
         // Set alarm title
         val titleTextView = findViewById<TextView>(R.id.alarm_title)
         titleTextView.text = alarmLabel
+        
+        // Set up current time display
+        setupTimeDisplay()
         
         // Acquire wake lock to keep CPU running
         acquireWakeLock()
@@ -101,6 +110,12 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this, "Please enter an answer", Toast.LENGTH_SHORT).show()
             }
         }
+        
+        // Set up snooze button
+        val snoozeButton = findViewById<Button>(R.id.snooze_button)
+        snoozeButton.setOnClickListener {
+            snoozeAlarm()
+        }
 
         // Use the modern way to handle back presses
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
@@ -110,6 +125,77 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this@AlarmActivity, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+    
+    private fun setupTimeDisplay() {
+        val timeTextView = findViewById<TextView>(R.id.current_time)
+        val amPmIndicator = findViewById<TextView>(R.id.am_pm_indicator)
+        
+        // Update time initially
+        updateCurrentTime(timeTextView, amPmIndicator)
+        
+        // Set up a handler to update the time every minute
+        timeUpdateHandler = Handler(Looper.getMainLooper())
+        timeRunnable = object : Runnable {
+            override fun run() {
+                updateCurrentTime(timeTextView, amPmIndicator)
+                timeUpdateHandler?.postDelayed(this, 60000) // Update every minute
+            }
+        }
+        
+        // Start the time updates
+        timeUpdateHandler?.post(timeRunnable!!)
+    }
+    
+    private fun updateCurrentTime(timeTextView: TextView, amPmIndicator: TextView) {
+        val calendar = Calendar.getInstance()
+        val timeFormat = SimpleDateFormat("h:mm", Locale.getDefault())
+        val currentTime = timeFormat.format(calendar.time)
+        timeTextView.text = currentTime
+        
+        // Update AM/PM indicator
+        val isAm = calendar.get(Calendar.AM_PM) == Calendar.AM
+        amPmIndicator.text = if (isAm) "AM" else "PM"
+    }
+    
+    private fun snoozeAlarm() {
+        // Create an intent to trigger the alarm again after 10 minutes
+        val intent = Intent(this, AlarmReceiver::class.java).apply {
+            action = "com.example.upnow.ALARM_TRIGGER"
+            putExtra(EXTRA_ALARM_ID, alarmId)
+            putExtra(EXTRA_ALARM_LABEL, findViewById<TextView>(R.id.alarm_title).text.toString())
+        }
+        
+        // Create a pending intent
+        val pendingIntent = android.app.PendingIntent.getBroadcast(
+            this,
+            alarmId.hashCode() + 1000, // Use a different request code than the original alarm
+            intent,
+            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        // Get the alarm manager
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
+        
+        // Set the alarm to trigger after 10 minutes
+        val snoozeTimeInMillis = System.currentTimeMillis() + (10 * 60 * 1000)
+        
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                android.app.AlarmManager.RTC_WAKEUP,
+                snoozeTimeInMillis,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExact(
+                android.app.AlarmManager.RTC_WAKEUP,
+                snoozeTimeInMillis,
+                pendingIntent
+            )
+        }
+        
+        Toast.makeText(this, "Alarm snoozed for 10 minutes", Toast.LENGTH_SHORT).show()
+        stopAlarmAndFinish()
     }
     
     private fun generateMathProblem() {
@@ -249,6 +335,9 @@ class AlarmActivity : AppCompatActivity() {
         wakeLock?.release()
         wakeLock = null
         
+        // Stop time updates
+        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
+        
         Log.d(TAG, "Alarm stopped and resources released")
         
         // Notify Flutter through broadcast (optional, implement if needed)
@@ -290,6 +379,9 @@ class AlarmActivity : AppCompatActivity() {
 
     // Clean up resources if activity is destroyed
     override fun onDestroy() {
+        // Stop time updates
+        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
+        
         mediaPlayer?.release()
         vibrator?.cancel()
         wakeLock?.release()

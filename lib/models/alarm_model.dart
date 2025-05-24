@@ -1,5 +1,7 @@
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
+import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 part 'alarm_model.g.dart';
 
@@ -192,5 +194,89 @@ class AlarmModel {
       volume: json['volume'],
       vibrate: json['vibrate'],
     );
+  }
+
+  // Get the next alarm time as a DateTime
+  DateTime getNextAlarmTime() {
+    final now = DateTime.now();
+    
+    // Create a date with today and the alarm time
+    var alarmTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      hour,
+      minute,
+    );
+    
+    // If alarm time is in the past, adjust based on repeat type
+    if (alarmTime.isBefore(now)) {
+      if (repeat == AlarmRepeat.once) {
+        // One-time alarm: schedule for tomorrow
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      } else if (repeat == AlarmRepeat.daily) {
+        // Daily alarm: schedule for tomorrow
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      } else if (repeat == AlarmRepeat.weekdays) {
+        // Weekdays: find next weekday
+        do {
+          alarmTime = alarmTime.add(const Duration(days: 1));
+        } while (alarmTime.weekday > 5); // Skip Saturday (6) and Sunday (7)
+      } else if (repeat == AlarmRepeat.weekends) {
+        // Weekends: find next weekend
+        do {
+          alarmTime = alarmTime.add(const Duration(days: 1));
+        } while (alarmTime.weekday != 6 && alarmTime.weekday != 7); // Only Saturday (6) and Sunday (7)
+      } else if (repeat == AlarmRepeat.custom && weekdays.any((day) => day)) {
+        // Custom: find next enabled day
+        int days = 1;
+        bool foundDay = false;
+        
+        // Try up to 7 days
+        while (days <= 7 && !foundDay) {
+          final nextDay = alarmTime.add(Duration(days: days));
+          final weekdayIndex = (nextDay.weekday - 1) % 7;
+          
+          if (weekdays[weekdayIndex]) {
+            alarmTime = nextDay;
+            foundDay = true;
+          } else {
+            days++;
+          }
+        }
+        
+        // If no day is enabled, default to tomorrow
+        if (!foundDay) {
+          alarmTime = alarmTime.add(const Duration(days: 1));
+        }
+      }
+    }
+    
+    return alarmTime;
+  }
+  
+  // Get a formatted string for the next alarm time (e.g., "Tomorrow at 7:00 AM")
+  String get nextAlarmString {
+    if (!isEnabled) {
+      return 'Disabled';
+    }
+    
+    final nextTime = getNextAlarmTime();
+    final now = DateTime.now();
+    final tomorrow = DateTime(now.year, now.month, now.day + 1);
+    final formatter = DateFormat('E, MMM d'); // Format: Mon, Jan 1
+    
+    // Calculate days difference
+    final difference = nextTime.difference(now).inDays;
+    
+    // Check if it's today, tomorrow, or another day
+    if (nextTime.year == now.year && nextTime.month == now.month && nextTime.day == now.day) {
+      return 'Today at $timeString';
+    } else if (nextTime.year == tomorrow.year && nextTime.month == tomorrow.month && nextTime.day == tomorrow.day) {
+      return 'Tomorrow at $timeString';
+    } else {
+      // Format with day name, month and date
+      return '${formatter.format(nextTime)} at $timeString';
+    }
   }
 } 

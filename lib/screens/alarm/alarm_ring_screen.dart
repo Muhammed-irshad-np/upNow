@@ -65,7 +65,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         return GradientButton(
           text: 'Dismiss Alarm',
           onPressed: () {
-            Navigator.of(context).pop();
+            _dismissAlarm();
           },
         );
       case DismissType.math:
@@ -83,10 +83,21 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         return GradientButton(
           text: 'Dismiss Alarm',
           onPressed: () {
-            Navigator.of(context).pop();
+            _dismissAlarm();
           },
         );
     }
+  }
+  
+  // Handle alarm dismissal
+  void _dismissAlarm() {
+    // If this is a one-time alarm, we'll delete it automatically
+    if (widget.alarm.repeat == AlarmRepeat.once) {
+      // No need to do anything here, as the AlarmService will handle deletion
+      // when the alarm fires in _rescheduleAlarmForNextOccurrence
+      debugPrint('One-time alarm dismissed - will be removed automatically');
+    }
+    Navigator.of(context).pop();
   }
   
   Widget _buildMathProblem() {
@@ -116,7 +127,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
           ),
           onSubmitted: (value) {
             if (value == '15') {
-              Navigator.of(context).pop();
+              _dismissAlarm();
             } else {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(

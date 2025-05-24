@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Primary and accent colors from Flutter app theme -->
+    <color name="primary">#6C63FF</color>
+    <color name="primary_dark">#5A52E0</color>
+    <color name="primary_light">#7E77FF</color>
+    <color name="accent">#FF5C8D</color>
+    
+    <!-- Background colors for dark theme -->
+    <color name="dark_background">#121212</color>
+    <color name="dark_surface">#1E1E1E</color>
+    <color name="dark_card">#2A2A2A</color>
+    
+    <!-- Text colors -->
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#B3FFFFFF</color> <!-- 70% white -->
+    
+    <!-- Button gradient colors -->
+    <color name="gradient_start">#6C63FF</color>
+    <color name="gradient_end">#FF5C8D</color>
+    
+    <!-- System colors -->
+    <color name="black">#000000</color>
+    <color name="white">#FFFFFF</color>
+</resources> 

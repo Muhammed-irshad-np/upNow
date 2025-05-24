@@ -12,6 +12,7 @@ import 'package:upnow/screens/alarm/alarm_ring_screen.dart';
 import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
+import 'package:upnow/providers/alarm_provider.dart';
 
 // Define a global variable to hold the current app lifecycle state
 AppLifecycleState currentAppState = AppLifecycleState.resumed;
@@ -237,43 +238,68 @@ class AlarmService {
       // Adjust the scheduled date if it's in the past
       if (scheduledDate.isBefore(now)) {
         debugPrint('🔔 Scheduled date is in the past, adjusting...');
+        
         // For "once" alarms, schedule for the next day
         if (alarm.repeat == AlarmRepeat.once) {
           scheduledDate = scheduledDate.add(const Duration(days: 1));
+          debugPrint('🔔 Once alarm adjusted to tomorrow: ${scheduledDate.toString()}');
         }
         // For daily alarms, schedule for tomorrow
         else if (alarm.repeat == AlarmRepeat.daily) {
           scheduledDate = scheduledDate.add(const Duration(days: 1));
+          debugPrint('🔔 Daily alarm adjusted to tomorrow: ${scheduledDate.toString()}');
         }
         // For weekday alarms, find the next weekday
         else if (alarm.repeat == AlarmRepeat.weekdays) {
           do {
             scheduledDate = scheduledDate.add(const Duration(days: 1));
           } while (scheduledDate.weekday > 5); // Skip Saturday (6) and Sunday (7)
+          debugPrint('🔔 Weekday alarm adjusted to next weekday: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
         }
         // For weekend alarms, find the next weekend day
         else if (alarm.repeat == AlarmRepeat.weekends) {
           do {
             scheduledDate = scheduledDate.add(const Duration(days: 1));
           } while (scheduledDate.weekday != 6 && scheduledDate.weekday != 7); // Only Saturday (6) and Sunday (7)
+          debugPrint('🔔 Weekend alarm adjusted to next weekend: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
         }
         // For custom repeat, find the next enabled day
         else if (alarm.repeat == AlarmRepeat.custom && alarm.weekdays.any((day) => day)) {
+          debugPrint('🔔 Custom repeat pattern: ${alarm.weekdays}');
           int daysToAdd = 1;
           int checkDay = 0;
+          bool foundNextDay = false;
+          
           // Try up to 7 days to find the next enabled day
-          while (checkDay < 7) {
+          while (checkDay < 7 && !foundNextDay) {
             final DateTime nextDay = scheduledDate.add(Duration(days: daysToAdd));
             // Convert weekday to index (0-6, where 0 is Monday in the weekdays array)
             final int weekdayIndex = (nextDay.weekday - 1) % 7;
+            
+            debugPrint('🔔 Checking day ${nextDay.toString()} (weekday ${nextDay.weekday}, index $weekdayIndex): ${alarm.weekdays[weekdayIndex]}');
+            
             if (alarm.weekdays[weekdayIndex]) {
               scheduledDate = nextDay;
+              foundNextDay = true;
+              debugPrint('🔔 Found next custom day: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
               break;
             }
+            
             daysToAdd++;
             checkDay++;
           }
+          
+          if (!foundNextDay) {
+            debugPrint('⚠️ No enabled days found for custom repeat, defaulting to tomorrow');
+            scheduledDate = scheduledDate.add(const Duration(days: 1));
+          }
+        } else {
+          // Fallback - just add a day if nothing else matches
+          debugPrint('⚠️ Unknown repeat pattern, defaulting to tomorrow');
+          scheduledDate = scheduledDate.add(const Duration(days: 1));
         }
+      } else {
+        debugPrint('🔔 Scheduled date is in the future, keeping as is');
       }
       
       debugPrint('🔔 Final scheduled date: ${scheduledDate.toString()}');
@@ -303,8 +329,10 @@ class AlarmService {
         await _sendAlarmBroadcast(alarm);
         
         // We need to schedule the next occurrence for recurring alarms
-        // For now, we'll just log this need
-        debugPrint('🔔 Need to schedule the next alarm occurrence after foreground overlay for ID ${alarm.id}');
+        if (alarm.repeat != AlarmRepeat.once) {
+          debugPrint('🔄 Need to schedule next occurrence for recurring alarm');
+          await _rescheduleAlarmForNextOccurrence(alarm);
+        }
         
         return; // Stop further processing for this specific alarm time
       }
@@ -476,10 +504,12 @@ class AlarmService {
         ),
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+        matchDateTimeComponents: _getDateTimeComponents(alarm.repeat), // Enable recurring notifications
         payload: alarm.id, // Keep payload just in case
       );
 
       debugPrint('🔔 Informational Notification scheduled for $tzScheduledDate with ID $notificationId');
+      debugPrint('🔁 Repeat type: ${alarm.repeat} - Will auto-repeat: ${_getDateTimeComponents(alarm.repeat) != null}');
 
       // After scheduling, update the pending alarms flag
       final allAlarms = HiveDatabase.getAllAlarms();
@@ -543,6 +573,127 @@ class AlarmService {
     if (alarm != null) {
       // Use broadcast to launch native AlarmActivity
       _sendAlarmBroadcast(alarm);
+      
+      // Reschedule the alarm if it's a repeating alarm
+      if (alarm.repeat != AlarmRepeat.once) {
+        _rescheduleAlarmForNextOccurrence(alarm);
+      }
+    }
+  }
+  
+  // Helper to reschedule alarm for next occurrence after it fires
+  static Future<void> _rescheduleAlarmForNextOccurrence(AlarmModel alarm) async {
+    try {
+      debugPrint('🔄 Rescheduling alarm ID ${alarm.id} for next occurrence');
+      
+      // Only reschedule repeating alarms
+      if (alarm.repeat == AlarmRepeat.once) {
+        debugPrint('❌ Not rescheduling one-time alarm');
+        
+        // For one-time alarms, delete them after they fire
+        await HiveDatabase.deleteAlarm(alarm.id);
+        debugPrint('✅ One-time alarm deleted after firing');
+        
+        // No need to try to update UI directly - the app will refresh alarms when it becomes active
+        
+        return;
+      }
+      
+      // Get current time
+      final DateTime now = DateTime.now();
+      
+      // Start from today with the alarm time
+      var nextOccurrence = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        alarm.hour,
+        alarm.minute,
+      );
+      
+      debugPrint('🔄 Base date for calculation: ${nextOccurrence.toString()}');
+      
+      // Adjust for next occurrence based on repeat type
+      if (alarm.repeat == AlarmRepeat.daily) {
+        // For daily, add one day
+        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
+        debugPrint('🔄 Daily alarm - next occurrence: ${nextOccurrence.toString()}');
+      } else if (alarm.repeat == AlarmRepeat.weekdays) {
+        // Add one day first
+        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
+        
+        // If we land on a weekend, jump to Monday
+        if (nextOccurrence.weekday > 5) { // 6 = Saturday, 7 = Sunday
+          // Calculate days until next Monday (weekday 1)
+          int daysUntilMonday = 8 - nextOccurrence.weekday; // 8-6=2 (Sat->Mon), 8-7=1 (Sun->Mon)
+          nextOccurrence = nextOccurrence.add(Duration(days: daysUntilMonday));
+        }
+        
+        debugPrint('🔄 Weekday alarm - next occurrence: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
+      } else if (alarm.repeat == AlarmRepeat.weekends) {
+        // Add one day first
+        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
+        
+        // If we land on a weekday (1-5), jump to Saturday (6)
+        if (nextOccurrence.weekday < 6) {
+          // Calculate days until next Saturday (weekday 6)
+          int daysUntilSaturday = 6 - nextOccurrence.weekday;
+          nextOccurrence = nextOccurrence.add(Duration(days: daysUntilSaturday));
+        }
+        
+        debugPrint('🔄 Weekend alarm - next occurrence: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
+      } else if (alarm.repeat == AlarmRepeat.custom && alarm.weekdays.any((day) => day)) {
+        // First check if there are any days enabled
+        if (!alarm.weekdays.contains(true)) {
+          debugPrint('⚠️ Custom alarm has no days enabled, not rescheduling');
+          return;
+        }
+        
+        debugPrint('🔄 Custom repeat pattern: ${alarm.weekdays}');
+        
+        // Add one day first
+        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
+        int currentWeekdayIndex = (nextOccurrence.weekday - 1) % 7; // Convert to 0-6 index
+        
+        // If current day is not enabled, find the next enabled day
+        if (!alarm.weekdays[currentWeekdayIndex]) {
+          bool foundDay = false;
+          
+          // Try each day, up to 7 days
+          for (int i = 1; i <= 7; i++) {
+            final checkDate = nextOccurrence.add(Duration(days: i - 1));
+            final weekdayIndex = (checkDate.weekday - 1) % 7;
+            
+            debugPrint('🔄 Checking day ${checkDate.toString()} (weekday ${checkDate.weekday}, index $weekdayIndex): ${alarm.weekdays[weekdayIndex]}');
+            
+            if (alarm.weekdays[weekdayIndex]) {
+              nextOccurrence = checkDate;
+              foundDay = true;
+              debugPrint('🔄 Found next custom day: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
+              break;
+            }
+          }
+          
+          if (!foundDay) {
+            debugPrint('⚠️ Could not find next enabled day for custom alarm, not rescheduling');
+            return;
+          }
+        } else {
+          debugPrint('🔄 Next day is already enabled: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
+        }
+      }
+      
+      debugPrint('🔄 Final next occurrence: ${nextOccurrence.toString()}');
+      
+      // Update the alarm with the next occurrence time (keeping the hour/minute the same)
+      // We don't need to modify the alarm object since the hour/minute stay the same
+      // Just reschedule it
+      
+      // Use the existing alarm scheduling mechanism
+      await scheduleAlarm(alarm);
+      
+    } catch (e) {
+      debugPrint('❌ Error rescheduling alarm: $e');
     }
   }
   

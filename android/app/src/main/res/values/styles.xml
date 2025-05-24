@@ -15,4 +15,28 @@
     <style name="NormalTheme" parent="@android:style/Theme.Light.NoTitleBar">
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
+    
+    <!-- Custom theme for alarm activity -->
+    <style name="AlarmTheme" parent="Theme.AppCompat.NoActionBar">
+        <item name="android:windowBackground">@color/dark_background</item>
+        <item name="colorPrimary">@color/primary</item>
+        <item name="colorPrimaryDark">@color/primary_dark</item>
+        <item name="colorAccent">@color/accent</item>
+        <item name="android:textColorPrimary">@color/text_primary</item>
+        <item name="android:textColorSecondary">@color/text_secondary</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
+    
+    <!-- Style for the gradient button -->
+    <style name="GradientButton">
+        <item name="android:background">@drawable/ripple_button_background</item>
+        <item name="android:textColor">@color/white</item>
+        <item name="android:textSize">18sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:paddingTop">16dp</item>
+        <item name="android:paddingBottom">16dp</item>
+        <item name="android:paddingLeft">32dp</item>
+        <item name="android:paddingRight">32dp</item>
+        <item name="android:elevation">4dp</item>
+    </style>
 </resources>
