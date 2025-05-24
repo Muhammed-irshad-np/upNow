@@ -110,6 +110,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Widget _buildTimeSelector() {
+    // Convert 24-hour format to 12-hour format for display only
+    final int displayHour = _selectedTime.hour > 12 ? _selectedTime.hour - 12 : _selectedTime.hour == 0 ? 12 : _selectedTime.hour;
+    final String amPm = _selectedTime.hour >= 12 ? 'PM' : 'AM';
+    
     return Center(
       child: GestureDetector(
         onTap: _showTimePicker,
@@ -121,13 +125,29 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           ),
           child: Column(
             children: [
-              Text(
-                '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
-                style: const TextStyle(
-                  fontSize: 60,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.textColor,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    '$displayHour:${_selectedTime.minute.toString().padLeft(2, '0')}',
+                    style: const TextStyle(
+                      fontSize: 60,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    amPm,
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.textColor,
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 8),
               const Text(
@@ -238,42 +258,126 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     required Color color,
   }) {
     final isSelected = _dismissType == type;
+    final bool isComingSoon = type != DismissType.math && type != DismissType.normal;
+    // Create a global key for the tooltip
+    final GlobalKey tooltipKey = GlobalKey();
+    
+    Widget optionWidget = Container(
+      width: 110,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: isSelected ? color.withOpacity(0.2) : AppTheme.darkCardColor,
+        borderRadius: BorderRadius.circular(12),
+        border: isSelected ? Border.all(color: color, width: 2) : null,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            icon,
+            color: isSelected ? color : AppTheme.secondaryTextColor,
+            size: 32,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: isSelected ? AppTheme.textColor : AppTheme.secondaryTextColor,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+            ),
+          ),
+        ],
+      ),
+    );
+    
+    // Wrap with stack to show the "SOON" label if needed
+    if (isComingSoon) {
+      optionWidget = Stack(
+        children: [
+          optionWidget,
+          Positioned(
+            top: 0,
+            right: 12,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: Colors.red,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Text(
+                'SOON',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 8,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+      
+      // Wrap with tooltip
+      optionWidget = Tooltip(
+        key: tooltipKey,
+        message: '$title is coming soon!',
+        preferBelow: true,
+        showDuration: const Duration(seconds: 2),
+        decoration: BoxDecoration(
+          color: color.withOpacity(0.9),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        textStyle: const TextStyle(color: Colors.white),
+        triggerMode: TooltipTriggerMode.longPress, // Show on long press by default
+        child: optionWidget,
+      );
+    }
     
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _dismissType = type;
-        });
+        if (isComingSoon) {
+          // Show a custom dialog instead of trying to force tooltip
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Coming Soon!'),
+                content: Text('$title feature will be available in a future update.'),
+                backgroundColor: AppTheme.darkCardColor,
+                titleTextStyle: TextStyle(
+                  color: color,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+                contentTextStyle: const TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 16,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: const Text('OK'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: color,
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+          // Don't change the selected option
+        } else {
+          setState(() {
+            _dismissType = type;
+          });
+        }
       },
-      child: Container(
-        width: 110,
-        margin: const EdgeInsets.only(right: 12),
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: isSelected ? color.withOpacity(0.2) : AppTheme.darkCardColor,
-          borderRadius: BorderRadius.circular(12),
-          border: isSelected ? Border.all(color: color, width: 2) : null,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: isSelected ? color : AppTheme.secondaryTextColor,
-              size: 32,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: isSelected ? AppTheme.textColor : AppTheme.secondaryTextColor,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
+      child: optionWidget,
     );
   }
 
@@ -532,15 +636,25 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: _selectedTime,
+      initialEntryMode: TimePickerEntryMode.dial,
       builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.dark().copyWith(
-            colorScheme: const ColorScheme.dark(
-              primary: AppTheme.primaryColor,
-              onSurface: AppTheme.textColor,
+        // Wrap with MediaQuery to use 12-hour format
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppTheme.primaryColor,
+                onSurface: AppTheme.textColor,
+              ),
+              timePickerTheme: TimePickerThemeData(
+                hourMinuteShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
             ),
+            child: child!,
           ),
-          child: child!,
         );
       },
     );
@@ -555,6 +669,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   Future<void> _saveAlarm() async {
     if (_label.isEmpty) {
       _label = 'Alarm';
+    }
+    
+    // Ensure we're using a supported dismiss type
+    if (_dismissType != DismissType.math && _dismissType != DismissType.normal) {
+      // Force to math problem as other types aren't implemented yet
+      _dismissType = DismissType.math;
     }
     
     final alarm = widget.alarm != null
