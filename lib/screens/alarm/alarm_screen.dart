@@ -9,6 +9,7 @@ import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AlarmScreen extends StatelessWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -21,12 +22,42 @@ class AlarmScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
-        title: const Text('Alarms'),
+        title: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'UpN',
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor,
+                letterSpacing: -0.5,
+              ),
+            ),
+            Icon(
+              Icons.alarm,
+              size: 22.sp,
+              color: AppTheme.primaryColor,
+            ),
+            Text(
+              'w',
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
+        titleSpacing: 20,
       ),
       body: Column(
         children: [
+          _buildNextAlarmSection(context, alarms),
+          const SizedBox(height: 8),
           _buildQuickAlarmButtons(context),
           const SizedBox(height: 8),
           Expanded(
@@ -36,19 +67,162 @@ class AlarmScreen extends StatelessWidget {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          // Check for critical permissions before creating an alarm
-          if (!await _checkCriticalPermissions(context)) {
-            return;
-          }
-          
-          // Navigate to create alarm screen and refresh when returning
-          final result = await Navigator.pushNamed(context, '/create_alarm');
-          // The AlarmProvider will automatically reload the alarms when adding/updating
-        },
-        backgroundColor: AppTheme.primaryColor,
-        child: const Icon(Icons.add),
+    );
+  }
+
+  // Find the next upcoming alarm
+  AlarmModel? _findNextAlarm(List<dynamic> alarms) {
+    final now = DateTime.now();
+    AlarmModel? nextAlarm;
+    DateTime? nextAlarmTime;
+
+    for (final alarm in alarms) {
+      if (!alarm.isEnabled) continue;
+
+      DateTime alarmDateTime = _getNextAlarmDateTime(alarm, now);
+      
+      if (nextAlarmTime == null || alarmDateTime.isBefore(nextAlarmTime)) {
+        nextAlarmTime = alarmDateTime;
+        nextAlarm = alarm;
+      }
+    }
+
+    return nextAlarm;
+  }
+
+  // Calculate the next occurrence of an alarm
+  DateTime _getNextAlarmDateTime(AlarmModel alarm, DateTime now) {
+    DateTime alarmToday = DateTime(now.year, now.month, now.day, alarm.hour, alarm.minute);
+    
+    // If the alarm time has passed today, schedule for tomorrow
+    if (alarmToday.isBefore(now) || alarmToday.isAtSameMomentAs(now)) {
+      return alarmToday.add(const Duration(days: 1));
+    }
+    
+    return alarmToday;
+  }
+
+  // Format time remaining until alarm
+  String _formatTimeRemaining(DateTime alarmTime) {
+    final now = DateTime.now();
+    final difference = alarmTime.difference(now);
+    
+    if (difference.inDays > 0) {
+      return 'Rings in ${difference.inDays}d ${difference.inHours % 24}h';
+    } else if (difference.inHours > 0) {
+      return 'Rings in ${difference.inHours}h ${difference.inMinutes % 60}m';
+    } else if (difference.inMinutes > 0) {
+      return 'Rings in ${difference.inMinutes}m';
+    } else {
+      return 'Rings in less than 1m';
+    }
+  }
+
+  // Format time to 12-hour format with AM/PM
+  String _formatTo12Hour(int hour, int minute) {
+    final period = hour >= 12 ? 'PM' : 'AM';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final minuteStr = minute.toString().padLeft(2, '0');
+    return '$displayHour:$minuteStr $period';
+  }
+
+  // Build the next alarm section
+  Widget _buildNextAlarmSection(BuildContext context, List<dynamic> alarms) {
+    final nextAlarm = _findNextAlarm(alarms);
+    
+    if (nextAlarm == null) {
+      return const SizedBox.shrink(); // Don't show anything if no next alarm
+    }
+
+    final nextAlarmTime = _getNextAlarmDateTime(nextAlarm, DateTime.now());
+    final timeRemaining = _formatTimeRemaining(nextAlarmTime);
+    final alarmTimeString = _formatTo12Hour(nextAlarm.hour, nextAlarm.minute);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryColor.withOpacity(0.1),
+            AppTheme.primaryColor.withOpacity(0.05),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.schedule,
+                color: AppTheme.primaryColor,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Next Alarm',
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    alarmTimeString,
+                    style: TextStyle(
+                      color: AppTheme.textColor,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (nextAlarm.label.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      nextAlarm.label,
+                      style: TextStyle(
+                        color: AppTheme.secondaryTextColor,
+                        fontSize: 11.sp,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  timeRemaining,
+                  style: TextStyle(
+                    color: AppTheme.primaryColor,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -149,30 +323,61 @@ class AlarmScreen extends StatelessWidget {
   }
 
   Widget _buildAlarmList(BuildContext context, List<dynamic> alarms) {
-    return ListView.builder(
+    // Define vibrant colors for the stacked cards
+    final List<Color> cardColors = [
+      const Color(0xFF4A90E2), // Blue
+      const Color(0xFF7ED321), // Green
+      const Color(0xFFF5A623), // Orange/Yellow
+      const Color(0xFFD0021B), // Red
+      const Color(0xFF9013FE), // Purple
+      const Color(0xFF50E3C2), // Teal
+      const Color(0xFFBD10E0), // Magenta
+      const Color(0xFFB8E986), // Light Green
+    ];
+
+    // Calculate the height needed for stacked cards
+    final double cardHeight = 150.h;
+    final double stackOffset = 120.h; // Show more of each card while keeping stacked effect
+    final double totalHeight = (alarms.length - 1) * stackOffset + cardHeight + 40.h;
+
+    return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      itemCount: alarms.length,
-      itemBuilder: (context, index) {
-        final alarm = alarms[index];
-        return AlarmCard(
-          alarm: alarm,
-          onDelete: () {
-            Provider.of<AlarmProvider>(context, listen: false).deleteAlarm(alarm.id);
-          },
-          onToggle: (value) {
-            Provider.of<AlarmProvider>(context, listen: false).toggleAlarm(alarm.id, value);
-          },
-          onTap: () async {
-            // Navigate to edit alarm screen
-            await Navigator.pushNamed(
-              context, 
-              '/edit_alarm',
-              arguments: alarm,
-            );
-            // AlarmProvider will automatically reload alarms
-          },
-        );
-      },
+      child: SizedBox(
+        height: totalHeight,
+        child: Stack(
+          children: [
+            // Build cards from bottom to top (reverse order for proper stacking)
+            for (int i = alarms.length - 1; i >= 0; i--)
+              Positioned(
+                top: i * stackOffset,
+                left: 0,
+                right: 0,
+                child: AlarmCard(
+                  alarm: alarms[i],
+                  cardColor: cardColors[i % cardColors.length],
+                  stackOffset: 0,
+                  onDelete: () {
+                    Provider.of<AlarmProvider>(context, listen: false)
+                        .deleteAlarm(alarms[i].id);
+                  },
+                  onToggle: (value) {
+                    Provider.of<AlarmProvider>(context, listen: false)
+                        .toggleAlarm(alarms[i].id, value);
+                  },
+                  onTap: () async {
+                    // Navigate to edit alarm screen
+                    await Navigator.pushNamed(
+                      context,
+                      '/edit_alarm',
+                      arguments: alarms[i],
+                    );
+                    // AlarmProvider will automatically reload alarms
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 

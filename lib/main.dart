@@ -4,15 +4,14 @@ import 'package:provider/provider.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/alarm_provider.dart';
-import 'package:upnow/providers/sleep_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 import 'package:upnow/screens/onboarding/onboarding_screen.dart';
-import 'package:upnow/screens/sleep_tracker/sleep_tracker_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
 import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/preferences_helper.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 // Global navigator key for accessing Navigator from outside the widget tree
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -54,26 +53,33 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AlarmProvider()),
-        ChangeNotifierProvider(create: (_) => SleepProvider()),
-      ],
-      child: MaterialApp(
-        title: 'UpNow',
-        debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
-        theme: AppTheme.getDarkTheme(),
-        home: const StartupScreen(),
-        routes: {
-          '/create_alarm': (context) => const CreateAlarmScreen(),
-          '/edit_alarm': (context) {
-            final alarm =
-                ModalRoute.of(context)?.settings.arguments as AlarmModel;
-            return CreateAlarmScreen(alarm: alarm);
-          },
-        },
-      ),
+    return ScreenUtilInit(
+      designSize: const Size(375, 812),
+      minTextAdapt: true,
+      splitScreenMode: true,
+      builder: (context, _) {
+        return MultiProvider(
+          providers: [
+            ChangeNotifierProvider(create: (_) => AlarmProvider()),
+            // ChangeNotifierProvider(create: (_) => SleepProvider()), // Commented out for first phase
+          ],
+          child: MaterialApp(
+            title: 'UpNow',
+            debugShowCheckedModeBanner: false,
+            navigatorKey: navigatorKey,
+            theme: AppTheme.getDarkTheme(),
+            home: const StartupScreen(),
+            routes: {
+              '/create_alarm': (context) => const CreateAlarmScreen(),
+              '/edit_alarm': (context) {
+                final alarm =
+                    ModalRoute.of(context)?.settings.arguments as AlarmModel;
+                return CreateAlarmScreen(alarm: alarm);
+              },
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -96,8 +102,8 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _checkOnboardingStatus() async {
-    // final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
-    final hasCompleted = false;
+    final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
+    // final hasCompleted = false;
     setState(() {
       _hasCompletedOnboarding = hasCompleted;
       _isLoading = false;
@@ -133,7 +139,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   final List<Widget> _screens = [
     const AlarmScreen(),
-    const SleepTrackerScreen(),
     const SettingsScreen(),
   ];
 
@@ -165,40 +170,161 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      bottomNavigationBar: Container(
+      floatingActionButton: Container(
+        width: 64,
+        height: 64,
         decoration: BoxDecoration(
+          gradient: AppTheme.primaryGradient,
+          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, -5),
+              color: AppTheme.primaryColor.withOpacity(0.3),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          backgroundColor: AppTheme.darkSurface,
-          selectedItemColor: AppTheme.primaryColor,
-          unselectedItemColor: AppTheme.secondaryTextColor,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.alarm),
-              label: 'Alarm',
+                 child: FloatingActionButton(
+           onPressed: () async {
+             // Navigate to create alarm screen  
+             await Navigator.pushNamed(context, '/create_alarm');
+           },
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          child: const Icon(
+            Icons.add,
+            color: Colors.white,
+            size: 28,
+          ),
+        ),
+      ),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      bottomNavigationBar: Container(
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        decoration: BoxDecoration(
+          color: AppTheme.darkSurface,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 20,
+              offset: const Offset(0, 8),
             ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.nightlight_round),
-              label: 'Sleep',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.settings),
-              label: 'Settings',
+            BoxShadow(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              blurRadius: 40,
+              offset: const Offset(0, 16),
             ),
           ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BottomAppBar(
+            color: Colors.transparent,
+            elevation: 0,
+            height: 70,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 8,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _currentIndex = 0;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _currentIndex == 0 
+                          ? AppTheme.primaryColor.withOpacity(0.1)
+                          : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
+                            color: _currentIndex == 0 
+                              ? AppTheme.primaryColor 
+                              : AppTheme.secondaryTextColor,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Alarm',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _currentIndex == 0 
+                                ? AppTheme.primaryColor 
+                                : AppTheme.secondaryTextColor,
+                              fontWeight: _currentIndex == 0 
+                                ? FontWeight.w600 
+                                : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 80), // Space for FAB
+                Expanded(
+                  child: InkWell(
+                    onTap: () {
+                      setState(() {
+                        _currentIndex = 1;
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      height: 50,
+                      decoration: BoxDecoration(
+                        color: _currentIndex == 1 
+                          ? AppTheme.primaryColor.withOpacity(0.1)
+                          : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            _currentIndex == 1 ? Icons.settings : Icons.settings_outlined,
+                            color: _currentIndex == 1 
+                              ? AppTheme.primaryColor 
+                              : AppTheme.secondaryTextColor,
+                            size: 24,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            'Settings',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: _currentIndex == 1 
+                                ? AppTheme.primaryColor 
+                                : AppTheme.secondaryTextColor,
+                              fontWeight: _currentIndex == 1 
+                                ? FontWeight.w600 
+                                : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

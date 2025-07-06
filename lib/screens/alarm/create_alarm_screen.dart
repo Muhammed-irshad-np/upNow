@@ -532,6 +532,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                       String relativePath = ''; // Declare outside try
                       try {
                         await _audioPlayer.stop(); // Stop previous sound
+                        await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop the sound until user decides
                         relativePath = soundPath.replaceFirst('assets/', ''); // Assign inside try
                         debugPrint('Previewing sound: $relativePath'); 
                         await _audioPlayer.play(AssetSource(relativePath)); // Play preview

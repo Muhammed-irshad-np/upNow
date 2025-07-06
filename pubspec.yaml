@@ -54,6 +54,7 @@ dependencies:
   permission_handler: ^11.0.1
   audioplayers: ^6.0.0
   shared_preferences: ^2.2.2
+  flutter_screenutil: ^5.9.0
 
 dev_dependencies:
   flutter_test:
