@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  // Primary colors
-  static const Color primaryColor = Color(0xFF6C63FF);
-  static const Color primaryColorLight = Color(0xFF8F88FF);
-  static const Color primaryColorDark = Color(0xFF4B44CC);
+  // Primary colors - Changed to red theme
+  static const Color primaryColor = Color(0xFFE53935);
+  static const Color primaryColorLight = Color(0xFFFF6659);
+  static const Color primaryColorDark = Color(0xFFAB000D);
   
   // Secondary colors
-  static const Color accentColor = Color(0xFF03DAC5);
-  static const Color accentColorLight = Color(0xFF66FFF8);
-  static const Color accentColorDark = Color(0xFF00A896);
+  static const Color accentColor = Color(0xFFFF5722);
+  static const Color accentColorLight = Color(0xFFFF8A50);
+  static const Color accentColorDark = Color(0xFFBF360C);
   
-  // Background colors
-  static const Color darkBackground = Color(0xFF121212);
-  static const Color darkSurface = Color(0xFF1E1E1E);
-  static const Color darkSurfaceLight = Color(0xFF2C2C2C);
-  static const Color darkCardColor = Color(0xFF2A2A2A);
+  // Background colors - Changed to pure black and darker surfaces
+  static const Color darkBackground = Color(0xFF000000);
+  static const Color darkSurface = Color(0xFF0A0A0A);
+  static const Color darkSurfaceLight = Color(0xFF1A1A1A);
+  static const Color darkCardColor = Color(0xFF151515);
   
-  // Text colors
+  // Text colors - Keeping white as requested
   static const Color primaryTextColor = Color(0xFFFFFFFF);
   static const Color secondaryTextColor = Color(0xFFB3B3B3);
   static const Color textColor = Color(0xFFEEEEEE);
@@ -34,7 +34,7 @@ class AppTheme {
   static const Color remSleepColor = Color(0xFF7986CB);
   static const Color awakeSleepColor = Color(0xFF9FA8DA);
   
-  // Gradients
+  // Gradients - Updated to use red colors
   static const LinearGradient primaryGradient = LinearGradient(
     colors: [primaryColor, primaryColorLight],
     begin: Alignment.topLeft,

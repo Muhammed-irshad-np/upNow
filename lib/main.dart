@@ -222,109 +222,136 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
-          child: BottomAppBar(
-            color: Colors.transparent,
-            elevation: 0,
-            height: 70,
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 8,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _currentIndex = 0;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: _currentIndex == 0 
-                          ? AppTheme.primaryColor.withOpacity(0.1)
-                          : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
-                            color: _currentIndex == 0 
-                              ? AppTheme.primaryColor 
-                              : AppTheme.secondaryTextColor,
-                            size: 24,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Alarm',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _currentIndex == 0 
-                                ? AppTheme.primaryColor 
-                                : AppTheme.secondaryTextColor,
-                              fontWeight: _currentIndex == 0 
-                                ? FontWeight.w600 
-                                : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
+        child: Stack(
+          children: [
+            // Animated background indicator (switch-like) - covers entire container half
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              left: _currentIndex == 0 ? 0 : null,
+              right: _currentIndex == 1 ? 0 : null,
+              top: 0,
+              bottom: 0,
+              child: Container(
+                width: (MediaQuery.of(context).size.width - 32) / 2, // Half of container width
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  borderRadius: BorderRadius.circular(24), // Match container radius
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryColor.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 80), // Space for FAB
-                Expanded(
-                  child: InkWell(
-                    onTap: () {
-                      setState(() {
-                        _currentIndex = 1;
-                      });
-                    },
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: _currentIndex == 1 
-                          ? AppTheme.primaryColor.withOpacity(0.1)
-                          : Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            _currentIndex == 1 ? Icons.settings : Icons.settings_outlined,
-                            color: _currentIndex == 1 
-                              ? AppTheme.primaryColor 
-                              : AppTheme.secondaryTextColor,
-                            size: 24,
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'Settings',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: _currentIndex == 1 
-                                ? AppTheme.primaryColor 
-                                : AppTheme.secondaryTextColor,
-                              fontWeight: _currentIndex == 1 
-                                ? FontWeight.w600 
-                                : FontWeight.normal,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
-          ),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BottomAppBar(
+                color: Colors.transparent,
+                elevation: 0,
+                height: 70,
+                shape: const CircularNotchedRectangle(),
+                notchMargin: 8,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 0;
+                          });
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Icon(
+                                  _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
+                                  key: ValueKey(_currentIndex == 0),
+                                  color: _currentIndex == 0 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _currentIndex == 0 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  fontWeight: _currentIndex == 0 
+                                    ? FontWeight.w600 
+                                    : FontWeight.normal,
+                                ),
+                                child: const Text('Alarm'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 80), // Space for FAB
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 1;
+                          });
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Icon(
+                                  _currentIndex == 1 ? Icons.settings : Icons.settings_outlined,
+                                  key: ValueKey(_currentIndex == 1),
+                                  color: _currentIndex == 1 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _currentIndex == 1 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  fontWeight: _currentIndex == 1 
+                                    ? FontWeight.w600 
+                                    : FontWeight.normal,
+                                ),
+                                child: const Text('Settings'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
