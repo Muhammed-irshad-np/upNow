@@ -323,8 +323,17 @@ class AlarmScreen extends StatelessWidget {
   }
 
   Widget _buildAlarmList(BuildContext context, List<dynamic> alarms) {
-    // Define vibrant colors for the stacked cards
-    final List<Color> cardColors = [
+    // Sort alarms: active alarms first, inactive alarms last
+    final sortedAlarms = List<dynamic>.from(alarms);
+    sortedAlarms.sort((a, b) {
+      // Active alarms (isEnabled = true) come first
+      if (a.isEnabled && !b.isEnabled) return -1;
+      if (!a.isEnabled && b.isEnabled) return 1;
+      return 0; // Keep original order for alarms with same status
+    });
+
+    // Define vibrant colors for active alarms
+    final List<Color> activeCardColors = [
       const Color(0xFF4A90E2), // Blue
       const Color(0xFF7ED321), // Green
       const Color(0xFFF5A623), // Orange/Yellow
@@ -335,10 +344,13 @@ class AlarmScreen extends StatelessWidget {
       const Color(0xFFB8E986), // Light Green
     ];
 
+    // Grey color for inactive alarms
+    final Color inactiveCardColor = Colors.grey.shade600;
+
     // Calculate the height needed for stacked cards
     final double cardHeight = 150.h;
     final double stackOffset = 120.h; // Show more of each card while keeping stacked effect
-    final double totalHeight = (alarms.length - 1) * stackOffset + cardHeight + 40.h;
+    final double totalHeight = (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -347,29 +359,31 @@ class AlarmScreen extends StatelessWidget {
         child: Stack(
           children: [
             // Build cards from bottom to top (reverse order for proper stacking)
-            for (int i = alarms.length - 1; i >= 0; i--)
+            for (int i = sortedAlarms.length - 1; i >= 0; i--)
               Positioned(
                 top: i * stackOffset,
                 left: 0,
                 right: 0,
                 child: AlarmCard(
-                  alarm: alarms[i],
-                  cardColor: cardColors[i % cardColors.length],
+                  alarm: sortedAlarms[i],
+                  cardColor: sortedAlarms[i].isEnabled 
+                    ? activeCardColors[i % activeCardColors.length]
+                    : inactiveCardColor,
                   stackOffset: 0,
                   onDelete: () {
                     Provider.of<AlarmProvider>(context, listen: false)
-                        .deleteAlarm(alarms[i].id);
+                        .deleteAlarm(sortedAlarms[i].id);
                   },
                   onToggle: (value) {
                     Provider.of<AlarmProvider>(context, listen: false)
-                        .toggleAlarm(alarms[i].id, value);
+                        .toggleAlarm(sortedAlarms[i].id, value);
                   },
                   onTap: () async {
                     // Navigate to edit alarm screen
                     await Navigator.pushNamed(
                       context,
                       '/edit_alarm',
-                      arguments: alarms[i],
+                      arguments: sortedAlarms[i],
                     );
                     // AlarmProvider will automatically reload alarms
                   },
