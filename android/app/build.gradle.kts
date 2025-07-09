@@ -56,17 +56,12 @@ android {
     buildTypes {
         release {
             // Enable code shrinking and resource shrinking for smaller APK
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
             
             // Use the release signing configuration
             signingConfig = signingConfigs.getByName("release")
             
-            // Use default ProGuard rules + Flutter rules
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
         debug {
             isDebuggable = true
