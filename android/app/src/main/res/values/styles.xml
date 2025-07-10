@@ -16,7 +16,7 @@
         <item name="android:windowBackground">?android:colorBackground</item>
     </style>
     
-    <!-- Custom theme for alarm activity -->
+    <!-- Custom theme for alarm activity matching Flutter theme -->
     <style name="AlarmTheme" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowBackground">@color/dark_background</item>
         <item name="colorPrimary">@color/primary</item>
@@ -25,18 +25,22 @@
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
         <item name="android:windowFullscreen">true</item>
+        <item name="android:statusBarColor">@color/dark_background</item>
+        <item name="android:navigationBarColor">@color/dark_background</item>
     </style>
     
-    <!-- Style for the gradient button -->
+    <!-- Style for buttons matching Flutter ElevatedButton theme -->
     <style name="GradientButton">
-        <item name="android:background">@drawable/ripple_button_background</item>
-        <item name="android:textColor">@color/white</item>
-        <item name="android:textSize">18sp</item>
+        <item name="android:background">@drawable/gradient_button_background</item>
+        <item name="android:textColor">@color/text_primary</item>
+        <item name="android:textSize">16sp</item>
         <item name="android:textStyle">bold</item>
-        <item name="android:paddingTop">16dp</item>
-        <item name="android:paddingBottom">16dp</item>
-        <item name="android:paddingLeft">32dp</item>
-        <item name="android:paddingRight">32dp</item>
+        <item name="android:fontFamily">sans-serif-medium</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:paddingLeft">24dp</item>
+        <item name="android:paddingRight">24dp</item>
         <item name="android:elevation">4dp</item>
+        <item name="android:layout_height">48dp</item>
     </style>
 </resources>

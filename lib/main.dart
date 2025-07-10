@@ -5,6 +5,7 @@ import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
+import 'package:upnow/screens/alarm/congratulations_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 import 'package:upnow/screens/onboarding/onboarding_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
@@ -76,6 +77,7 @@ class MyApp extends StatelessWidget {
                     ModalRoute.of(context)?.settings.arguments as AlarmModel;
                 return CreateAlarmScreen(alarm: alarm);
               },
+              '/congratulations': (context) => const CongratulationsScreen(),
             },
           ),
         );

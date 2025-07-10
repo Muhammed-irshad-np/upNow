@@ -1,23 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Primary and accent colors from Flutter app theme -->
-    <color name="primary">#6C63FF</color>
-    <color name="primary_dark">#5A52E0</color>
-    <color name="primary_light">#7E77FF</color>
-    <color name="accent">#FF5C8D</color>
+    <!-- Primary colors - Red theme matching Flutter -->
+    <color name="primary">#E53935</color>
+    <color name="primary_light">#FF6659</color>
+    <color name="primary_dark">#AB000D</color>
     
-    <!-- Background colors for dark theme -->
-    <color name="dark_background">#121212</color>
-    <color name="dark_surface">#1E1E1E</color>
-    <color name="dark_card">#2A2A2A</color>
+    <!-- Secondary colors -->
+    <color name="accent">#FF5722</color>
+    <color name="accent_light">#FF8A50</color>
+    <color name="accent_dark">#BF360C</color>
     
-    <!-- Text colors -->
+    <!-- Background colors - Pure black theme matching Flutter -->
+    <color name="dark_background">#000000</color>
+    <color name="dark_surface">#0A0A0A</color>
+    <color name="dark_surface_light">#1A1A1A</color>
+    <color name="dark_card">#151515</color>
+    
+    <!-- Text colors matching Flutter -->
     <color name="text_primary">#FFFFFF</color>
-    <color name="text_secondary">#B3FFFFFF</color> <!-- 70% white -->
+    <color name="text_secondary">#B3B3B3</color>
+    <color name="text_color">#EEEEEE</color>
     
-    <!-- Button gradient colors -->
-    <color name="gradient_start">#6C63FF</color>
-    <color name="gradient_end">#FF5C8D</color>
+    <!-- Status colors -->
+    <color name="success_color">#4CAF50</color>
+    <color name="error_color">#E53935</color>
+    <color name="warning_color">#FFB300</color>
+    <color name="info_color">#2196F3</color>
     
     <!-- System colors -->
     <color name="black">#000000</color>

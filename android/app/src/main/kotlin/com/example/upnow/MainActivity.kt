@@ -90,6 +90,12 @@ class MainActivity : FlutterActivity() {
                     val permissionsResult = checkAlarmPermissions()
                     result.success(permissionsResult)
                 }
+                "openCongratulationsScreen" -> {
+                    // Open congratulations screen in Flutter
+                    Log.d("MainActivity", "Opening congratulations screen")
+                    openCongratulationsScreen()
+                    result.success("Congratulations screen opened")
+                }
                 "registerTerminatedStateAlarm" -> {
                     try {
                         // Extract alarm data from the call
@@ -329,5 +335,45 @@ class MainActivity : FlutterActivity() {
             Log.e("MainActivity", "Failed to register system alarm: ${e.message}")
             throw e
         }
+    }
+    
+    /**
+     * Opens the congratulations screen in Flutter
+     */
+    private fun openCongratulationsScreen() {
+        try {
+            Log.d("MainActivity", "Triggering congratulations screen via method channel")
+            
+            // Use the Flutter engine to call the method channel
+            flutterEngine?.dartExecutor?.binaryMessenger?.let { messenger ->
+                val channel = MethodChannel(messenger, CHANNEL)
+                channel.invokeMethod("openCongratulationsScreen", null)
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error opening congratulations screen: ${e.message}")
+        }
+    }
+    
+    companion object {
+        private var instance: MainActivity? = null
+        
+        fun getInstance(): MainActivity? = instance
+        
+        /**
+         * Static method to open congratulations screen from anywhere in the app
+         */
+        fun openCongratulationsScreenStatic() {
+            instance?.openCongratulationsScreen()
+        }
+    }
+    
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        instance = this
+    }
+    
+    override fun onDestroy() {
+        super.onDestroy()
+        instance = null
     }
 }

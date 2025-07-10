@@ -95,7 +95,7 @@ class AlarmActivity : AppCompatActivity() {
                     if (userAnswer == correctAnswer) {
                         // Correct answer
                         Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
-                        stopAlarmAndFinish()
+                        stopAlarmAndOpenCongratulations()
                     } else {
                         // Wrong answer
                         Toast.makeText(this, "Wrong answer, try again!", Toast.LENGTH_SHORT).show()
@@ -109,12 +109,6 @@ class AlarmActivity : AppCompatActivity() {
             } else {
                 Toast.makeText(this, "Please enter an answer", Toast.LENGTH_SHORT).show()
             }
-        }
-        
-        // Set up snooze button
-        val snoozeButton = findViewById<Button>(R.id.snooze_button)
-        snoozeButton.setOnClickListener {
-            snoozeAlarm()
         }
 
         // Use the modern way to handle back presses
@@ -156,46 +150,6 @@ class AlarmActivity : AppCompatActivity() {
         // Update AM/PM indicator
         val isAm = calendar.get(Calendar.AM_PM) == Calendar.AM
         amPmIndicator.text = if (isAm) "AM" else "PM"
-    }
-    
-    private fun snoozeAlarm() {
-        // Create an intent to trigger the alarm again after 10 minutes
-        val intent = Intent(this, AlarmReceiver::class.java).apply {
-            action = "com.example.upnow.ALARM_TRIGGER"
-            putExtra(EXTRA_ALARM_ID, alarmId)
-            putExtra(EXTRA_ALARM_LABEL, findViewById<TextView>(R.id.alarm_title).text.toString())
-        }
-        
-        // Create a pending intent
-        val pendingIntent = android.app.PendingIntent.getBroadcast(
-            this,
-            alarmId.hashCode() + 1000, // Use a different request code than the original alarm
-            intent,
-            android.app.PendingIntent.FLAG_UPDATE_CURRENT or android.app.PendingIntent.FLAG_IMMUTABLE
-        )
-        
-        // Get the alarm manager
-        val alarmManager = getSystemService(Context.ALARM_SERVICE) as android.app.AlarmManager
-        
-        // Set the alarm to trigger after 10 minutes
-        val snoozeTimeInMillis = System.currentTimeMillis() + (10 * 60 * 1000)
-        
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
-            alarmManager.setExactAndAllowWhileIdle(
-                android.app.AlarmManager.RTC_WAKEUP,
-                snoozeTimeInMillis,
-                pendingIntent
-            )
-        } else {
-            alarmManager.setExact(
-                android.app.AlarmManager.RTC_WAKEUP,
-                snoozeTimeInMillis,
-                pendingIntent
-            )
-        }
-        
-        Toast.makeText(this, "Alarm snoozed for 10 minutes", Toast.LENGTH_SHORT).show()
-        stopAlarmAndFinish()
     }
     
     private fun generateMathProblem() {
@@ -347,6 +301,45 @@ class AlarmActivity : AppCompatActivity() {
         
         // Finish the activity
         finish()
+    }
+    
+    private fun stopAlarmAndOpenCongratulations() {
+        isAlarmActive = false // Set flag to false when alarm is dismissed
+        
+        // Stop media player
+        mediaPlayer?.apply {
+            if (isPlaying) {
+                stop()
+            }
+            release()
+        }
+        mediaPlayer = null
+        
+        // Stop vibration
+        vibrator?.cancel()
+        vibrator = null
+        
+        // Release wake lock
+        wakeLock?.release()
+        wakeLock = null
+        
+        // Stop time updates
+        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
+        
+        Log.d(TAG, "Alarm stopped, opening congratulations screen")
+        
+        // Open congratulations screen in Flutter
+        MainActivity.openCongratulationsScreenStatic()
+        
+        // Notify Flutter through broadcast (optional, implement if needed)
+        val intent = Intent("com.example.upnow.ALARM_DISMISSED")
+        intent.putExtra("alarm_id", alarmId)
+        sendBroadcast(intent)
+        
+        // Finish the activity after a short delay to allow Flutter navigation
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+            finish()
+        }, 500) // 500ms delay
     }
     
     // Prevent volume keys and other system keys from dismissing

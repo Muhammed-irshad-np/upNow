@@ -170,7 +170,7 @@ class AppTheme {
           color: primaryTextColor,
         ),
       ),
-      cardTheme: CardTheme(
+      cardTheme: CardThemeData(
         color: darkSurface,
         elevation: 4,
         shape: RoundedRectangleBorder(

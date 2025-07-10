@@ -62,6 +62,9 @@ class AlarmService {
     
     debugPrint('ALARM SERVICE: Initializing alarm service...');
     
+    // Set up method channel handler for native calls
+    _platformChannel.setMethodCallHandler(_handleMethodCall);
+    
     // Initialize timezone
     tz_data.initializeTimeZones();
     
@@ -188,6 +191,25 @@ class AlarmService {
     }
   }
   
+  // Method channel handler for native calls to Flutter
+  static Future<void> _handleMethodCall(MethodCall call) async {
+    debugPrint('📱 ALARM SERVICE: Received method call from native: ${call.method}');
+    
+    switch (call.method) {
+      case 'openCongratulationsScreen':
+        try {
+          // Navigate to congratulations screen using global navigator key
+          navigatorKey.currentState?.pushNamed('/congratulations');
+          debugPrint('📱 ALARM SERVICE: Opened congratulations screen');
+        } catch (e) {
+          debugPrint('📱 ALARM SERVICE: Error opening congratulations screen: $e');
+        }
+        break;
+      default:
+        debugPrint('📱 ALARM SERVICE: Unknown method call: ${call.method}');
+    }
+  }
+
   // Method to update the pending alarms flag in the native platform
   static Future<void> _updatePendingAlarmsFlag(bool hasPendingAlarms) async {
     try {

@@ -5,15 +5,17 @@
     android:orientation="vertical"
     android:gravity="center"
     android:padding="40dp"
-    android:background="#DD000000">
+    android:background="@color/dark_background">
 
     <TextView
         android:id="@+id/overlay_label"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Alarm!"
-        android:textSize="32sp"
-        android:textColor="#FFFFFF"
+        android:textSize="28sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_color"
+        android:fontFamily="sans-serif"
         android:layout_marginBottom="40dp" />
 
     <TextView
@@ -21,17 +23,24 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Complete the task to dismiss the alarm."
-        android:textSize="18sp"
-        android:textColor="#FFFFFF"
+        android:textSize="16sp"
+        android:textColor="@color/text_secondary"
+        android:fontFamily="sans-serif"
         android:gravity="center"
         android:layout_marginBottom="40dp" />
 
     <Button
         android:id="@+id/overlay_dismiss_button"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Dismiss (Task Placeholder)"
-        android:padding="20dp"
-        android:textSize="20sp" />
+        android:layout_height="48dp"
+        android:text="Open Alarm"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+        android:paddingHorizontal="24dp"
+        android:paddingVertical="12dp"
+        android:background="@drawable/gradient_button_background"
+        android:elevation="4dp" />
 
 </LinearLayout> 
