@@ -10,6 +10,11 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:upnow/screens/alarm/alarm_screen.dart';
+import 'package:flutter/cupertino.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:upnow/screens/settings/feedback_screen.dart';
+import 'package:provider/provider.dart';
+import 'package:upnow/providers/settings_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -19,243 +24,181 @@ class SettingsScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
-        title: const Text('Settings'),
-        backgroundColor: Colors.transparent,
+        title: Text(
+          'Settings',
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: AppTheme.darkBackground,
         elevation: 0,
+        centerTitle: true,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildSection(
-              title: 'App Settings',
-              children: [
-                _buildSettingTile(
-                  icon: Icons.notifications_outlined,
-                  title: 'Notifications',
-                  subtitle: 'Manage notification settings',
-                  onTap: () {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.color_lens_outlined,
-                  title: 'Theme',
-                  subtitle: 'Dark mode',
-                  onTap: () {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.volume_up_outlined,
-                  title: 'Sound',
-                  subtitle: 'Alarm sounds and volume',
-                  onTap: () {},
-                ),
-              ],
-            ),
-            _buildSection(
-              title: 'Sleep Tracking',
-              children: [
-                _buildSettingTile(
-                  icon: Icons.bedtime_outlined,
-                  title: 'Sleep Detection',
-                  subtitle: 'Sensitivity: Medium',
-                  onTap: () {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.watch_outlined,
-                  title: 'Sleep Schedule',
-                  subtitle: 'Set your ideal sleep times',
-                  onTap: () {},
-                ),
-                _buildSwitchTile(
-                  icon: Icons.health_and_safety_outlined,
-                  title: 'Sleep Reminders',
-                  subtitle: 'Remind you to go to sleep',
-                  value: true,
-                  onChanged: (value) {},
-                ),
-              ],
-            ),
-            _buildSection(
-              title: 'Alarm Settings',
-              children: [
-                _buildSwitchTile(
-                  icon: Icons.vibration_outlined,
-                  title: 'Vibration',
-                  subtitle: 'Vibrate when alarm sounds',
-                  value: true,
-                  onChanged: (value) {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.auto_awesome_outlined,
-                  title: 'Dismissal Tasks',
-                  subtitle: 'Configure wake-up tasks',
-                  onTap: () {},
-                ),
-                _buildSwitchTile(
-                  icon: Icons.snooze_outlined,
-                  title: 'Snooze',
-                  subtitle: '5 minutes',
-                  value: true,
-                  onChanged: (value) {},
-                ),
-              ],
-            ),
-            _buildSection(
-              title: 'App Info',
-              children: [
-                _buildSettingTile(
-                  icon: Icons.info_outline,
-                  title: 'About',
-                  subtitle: 'Version 1.0.0',
-                  onTap: () {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.help_outline,
-                  title: 'Help & Support',
-                  subtitle: 'FAQs and contact info',
-                  onTap: () {},
-                ),
-                _buildSettingTile(
-                  icon: Icons.privacy_tip_outlined,
-                  title: 'Privacy Policy',
-                  subtitle: 'Data usage and permissions',
-                  onTap: () {},
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            GradientButton(
-              gradient: AppTheme.morningGradient,
-              text: 'Reset All Settings',
-              onPressed: () {
-                // Show confirmation dialog
-                showDialog(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    backgroundColor: AppTheme.darkCardColor,
-                    title: const Text(
-                      'Reset Settings?',
-                      style: TextStyle(color: AppTheme.textColor),
-                    ),
-                    content: const Text(
-                      'This will reset all settings to default values. This action cannot be undone.',
-                      style: TextStyle(color: AppTheme.secondaryTextColor),
-                    ),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context),
-                        child: const Text('Cancel'),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          // Reset settings logic would go here
-                          Navigator.pop(context);
-                        },
-                        child: const Text('Reset'),
-                      ),
-                    ],
+      body: ListView(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+        children: [
+          _buildSectionTitle('General'),
+          _buildSettingGroup(
+            children: [
+              _buildTimeFormatSetting(context),
+              _buildSettingTile(
+                icon: Icons.language_outlined,
+                title: 'Language',
+                trailing: Text(
+                  'English',
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppTheme.secondaryTextColor,
                   ),
-                );
-              },
+                ),
+                onTap: () {
+                  // Future: Show language picker
+                },
+                isLast: true,
+              ),
+            ],
+          ),
+          SizedBox(height: 32.h),
+          _buildSectionTitle('Feedback'),
+          _buildSettingGroup(
+            children: [
+              _buildSettingTile(
+                icon: Icons.feedback_outlined,
+                title: 'Send Feedback',
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    CupertinoPageRoute(builder: (_) => const FeedbackScreen()),
+                  );
+                },
+              ),
+              _buildSettingTile(
+                icon: Icons.share_outlined,
+                title: 'Share App',
+                onTap: () {
+                  // Future: Implement share functionality
+                },
+                isLast: true,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTimeFormatSetting(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return _buildSettingTile(
+          icon: Icons.schedule_outlined,
+          title: 'Time Format',
+          trailing: DropdownButton<bool>(
+            value: settings.is24HourFormat,
+            onChanged: (bool? newValue) {
+              if (newValue != null) {
+                settings.updateTimeFormat(newValue);
+              }
+            },
+            items: const [
+              DropdownMenuItem(
+                value: false,
+                child: Text('12-hour'),
+              ),
+              DropdownMenuItem(
+                value: true,
+                child: Text('24-hour'),
+              ),
+            ],
+            underline: Container(),
+            dropdownColor: AppTheme.darkSurface,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppTheme.secondaryTextColor,
             ),
-            const SizedBox(height: 40),
-          ],
+          ),
+          isLast: false, // The language tile is now the last one in this group
+        );
+      },
+    );
+  }
+
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: EdgeInsets.only(bottom: 12.h),
+      child: Text(
+        title.toUpperCase(),
+        style: TextStyle(
+          fontSize: 12.sp,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.secondaryTextColor,
+          letterSpacing: 0.5,
         ),
       ),
     );
   }
 
-  Widget _buildSection({required String title, required List<Widget> children}) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 24, bottom: 16),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.primaryColor,
-            ),
-          ),
-        ),
-        Container(
-          decoration: BoxDecoration(
-            color: AppTheme.darkCardColor,
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: children,
-          ),
-        ),
-      ],
+  Widget _buildSettingGroup({required List<Widget> children}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.darkSurface,
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      child: Column(
+        children: children,
+      ),
     );
   }
 
   Widget _buildSettingTile({
     required IconData icon,
     required String title,
-    required String subtitle,
-    required VoidCallback onTap,
+    Widget? trailing,
+    VoidCallback? onTap,
+    bool isLast = false,
   }) {
-    return ListTile(
-      leading: Icon(
-        icon,
-        color: AppTheme.primaryColor,
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: AppTheme.textColor,
-          fontWeight: FontWeight.w500,
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: isLast
+            ? BorderRadius.vertical(bottom: Radius.circular(16.r))
+            : BorderRadius.zero,
+        child: Container(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: AppTheme.darkBackground.withOpacity(0.5),
+                      width: 1,
+                    ),
+                  ),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: AppTheme.primaryColor.withOpacity(0.8), size: 22.sp),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 16.sp,
+                    color: AppTheme.primaryTextColor,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing,
+              if (trailing == null && onTap != null)
+                Icon(
+                  Icons.arrow_forward_ios,
+                  size: 14.sp,
+                  color: AppTheme.secondaryTextColor,
+                ),
+            ],
+          ),
         ),
       ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          color: AppTheme.secondaryTextColor,
-          fontSize: 12,
-        ),
-      ),
-      trailing: const Icon(
-        Icons.arrow_forward_ios,
-        size: 16,
-        color: AppTheme.secondaryTextColor,
-      ),
-      onTap: onTap,
-    );
-  }
-
-  Widget _buildSwitchTile({
-    required IconData icon,
-    required String title,
-    required String subtitle,
-    required bool value,
-    required ValueChanged<bool> onChanged,
-  }) {
-    return SwitchListTile(
-      secondary: Icon(
-        icon,
-        color: AppTheme.primaryColor,
-      ),
-      title: Text(
-        title,
-        style: const TextStyle(
-          color: AppTheme.textColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        subtitle,
-        style: const TextStyle(
-          color: AppTheme.secondaryTextColor,
-          fontSize: 12,
-        ),
-      ),
-      value: value,
-      activeColor: AppTheme.primaryColor,
-      onChanged: onChanged,
     );
   }
 } 

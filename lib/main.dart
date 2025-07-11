@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/alarm_provider.dart';
+import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:upnow/screens/alarm/congratulations_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
@@ -62,6 +63,7 @@ class MyApp extends StatelessWidget {
         return MultiProvider(
           providers: [
             ChangeNotifierProvider(create: (_) => AlarmProvider()),
+            ChangeNotifierProvider(create: (_) => SettingsProvider()),
             // ChangeNotifierProvider(create: (_) => SleepProvider()), // Commented out for first phase
           ],
           child: MaterialApp(

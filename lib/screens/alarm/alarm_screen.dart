@@ -10,6 +10,8 @@ import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:upnow/providers/settings_provider.dart';
+import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 
 class AlarmScreen extends StatelessWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -118,16 +120,21 @@ class AlarmScreen extends StatelessWidget {
     }
   }
 
-  // Format time to 12-hour format with AM/PM
-  String _formatTo12Hour(int hour, int minute) {
-    final period = hour >= 12 ? 'PM' : 'AM';
-    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final minuteStr = minute.toString().padLeft(2, '0');
-    return '$displayHour:$minuteStr $period';
+  // Format time based on user preference
+  String _formatTime(int hour, int minute, bool is24Hour) {
+    if (is24Hour) {
+      return '${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}';
+    } else {
+      final period = hour >= 12 ? 'PM' : 'AM';
+      final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+      final minuteStr = minute.toString().padLeft(2, '0');
+      return '$displayHour:$minuteStr $period';
+    }
   }
 
   // Build the next alarm section
   Widget _buildNextAlarmSection(BuildContext context, List<dynamic> alarms) {
+    final settings = Provider.of<SettingsProvider>(context);
     final nextAlarm = _findNextAlarm(alarms);
     
     if (nextAlarm == null) {
@@ -136,7 +143,7 @@ class AlarmScreen extends StatelessWidget {
 
     final nextAlarmTime = _getNextAlarmDateTime(nextAlarm, DateTime.now());
     final timeRemaining = _formatTimeRemaining(nextAlarmTime);
-    final alarmTimeString = _formatTo12Hour(nextAlarm.hour, nextAlarm.minute);
+    final alarmTimeString = _formatTime(nextAlarm.hour, nextAlarm.minute, settings.is24HourFormat);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -397,10 +404,15 @@ class AlarmScreen extends StatelessWidget {
   }
 
   void _skipAlarmOnce(BuildContext context, AlarmModel alarm) {
+    final settings = Provider.of<SettingsProvider>(context, listen: false);
     Provider.of<AlarmProvider>(context, listen: false).skipAlarmOnce(alarm.id);
+
+    final timeString = alarm.getFormattedTime(settings.is24HourFormat);
+    final message = alarm.label.isNotEmpty ? alarm.label : timeString;
+
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${alarm.labelOrTimeString} alarm skipped for next time.'),
+        content: Text('$message alarm skipped for next time.'),
         backgroundColor: AppTheme.darkSurface,
         duration: const Duration(seconds: 2),
       ),

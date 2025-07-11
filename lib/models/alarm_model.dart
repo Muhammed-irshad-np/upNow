@@ -87,14 +87,14 @@ class AlarmModel {
   }) : id = id ?? const Uuid().v4(),
        weekdays = weekdays ?? List.filled(7, false);
 
-  String get timeString {
-    final hourDisplay = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
-    final minuteDisplay = minute.toString().padLeft(2, '0');
-    final period = hour < 12 ? 'AM' : 'PM';
-    return '$hourDisplay:$minuteDisplay $period';
+  String getFormattedTime(bool is24HourFormat) {
+    final time = DateTime(2023, 1, 1, hour, minute);
+    if (is24HourFormat) {
+      return DateFormat.Hm().format(time); // HH:mm
+    } else {
+      return DateFormat.jm().format(time); // h:mm a
+    }
   }
-
-  String get labelOrTimeString => label.isNotEmpty ? label : timeString;
 
   String get repeatString {
     switch (repeat) {
@@ -273,12 +273,12 @@ class AlarmModel {
     
     // Check if it's today, tomorrow, or another day
     if (nextTime.year == now.year && nextTime.month == now.month && nextTime.day == now.day) {
-      return 'Today at $timeString';
+      return 'Today at $getFormattedTime(false)';
     } else if (nextTime.year == tomorrow.year && nextTime.month == tomorrow.month && nextTime.day == tomorrow.day) {
-      return 'Tomorrow at $timeString';
+      return 'Tomorrow at $getFormattedTime(false)';
     } else {
       // Format with day name, month and date
-      return '${formatter.format(nextTime)} at $timeString';
+      return '${formatter.format(nextTime)} at $getFormattedTime(false)';
     }
   }
 } 

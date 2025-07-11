@@ -2,6 +2,18 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class PreferencesHelper {
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
+  static const String _is24HourFormatKey = 'is_24_hour_format';
+
+  // Time Format
+  static Future<bool> is24HourFormat() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_is24HourFormatKey) ?? false; // Default to 12-hour
+  }
+
+  static Future<void> set24HourFormat(bool is24Hour) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_is24HourFormatKey, is24Hour);
+  }
 
   // Check if the user has completed onboarding
   static Future<bool> hasCompletedOnboarding() async {

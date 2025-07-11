@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:upnow/models/alarm_model.dart';
+import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -25,6 +27,8 @@ class AlarmCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+
     return Container(
       height: 130.h, // Responsive height
       margin: EdgeInsets.symmetric(horizontal: 0.w, vertical: 2.h),
@@ -154,7 +158,7 @@ class AlarmCard extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          alarm.timeString,
+                          alarm.getFormattedTime(settings.is24HourFormat),
                           style: TextStyle(
                             fontSize: 30.sp,
                             fontWeight: FontWeight.bold,

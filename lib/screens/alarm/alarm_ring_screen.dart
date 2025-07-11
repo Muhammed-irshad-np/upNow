@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:upnow/models/alarm_model.dart';
+import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/gradient_button.dart';
+import 'package:intl/intl.dart';
 
 class AlarmRingScreen extends StatefulWidget {
   final AlarmModel alarm;
@@ -47,9 +50,15 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
   }
   
   Widget _buildTimeDisplay() {
-    final now = TimeOfDay.now();
+    final settings = Provider.of<SettingsProvider>(context);
+    final now = DateTime.now();
+    
+    final formattedTime = settings.is24HourFormat 
+        ? DateFormat.Hm().format(now) // HH:mm
+        : DateFormat.jm().format(now); // h:mm a
+    
     return Text(
-      '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}',
+      formattedTime,
       style: const TextStyle(
         fontSize: 80,
         fontWeight: FontWeight.bold,

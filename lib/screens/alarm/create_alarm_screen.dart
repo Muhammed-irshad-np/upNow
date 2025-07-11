@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:upnow/models/alarm_model.dart';
+import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/gradient_button.dart';
@@ -7,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:path/path.dart' as p;
+import 'package:intl/intl.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -110,9 +112,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Widget _buildTimeSelector() {
-    // Convert 24-hour format to 12-hour format for display only
-    final int displayHour = _selectedTime.hour > 12 ? _selectedTime.hour - 12 : _selectedTime.hour == 0 ? 12 : _selectedTime.hour;
-    final String amPm = _selectedTime.hour >= 12 ? 'PM' : 'AM';
+    final settings = Provider.of<SettingsProvider>(context);
+    
+    // Create a DateTime object for formatting
+    final time = DateTime(2023, 1, 1, _selectedTime.hour, _selectedTime.minute);
+    final formattedTime = settings.is24HourFormat 
+        ? DateFormat.Hm().format(time) // HH:mm
+        : DateFormat.jm().format(time); // h:mm a
     
     return Center(
       child: GestureDetector(
@@ -125,29 +131,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           ),
           child: Column(
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.baseline,
-                textBaseline: TextBaseline.alphabetic,
-                children: [
-                  Text(
-                    '$displayHour:${_selectedTime.minute.toString().padLeft(2, '0')}',
-                    style: const TextStyle(
-                      fontSize: 60,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    amPm,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.textColor,
-                    ),
-                  ),
-                ],
+              Text(
+                formattedTime,
+                style: const TextStyle(
+                  fontSize: 60,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textColor,
+                ),
               ),
               const SizedBox(height: 8),
               const Text(
