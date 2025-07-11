@@ -94,7 +94,7 @@
                 android:id="@+id/answer_input"
                 android:layout_width="match_parent"
                 android:layout_height="56dp"
-                android:inputType="number"
+                android:inputType="none"
                 android:textSize="24sp"
                 android:gravity="center"
                 android:textColor="@color/text_primary"
@@ -102,7 +102,179 @@
                 android:textColorHint="@color/text_secondary"
                 android:background="@drawable/rounded_edit_text_background"
                 android:fontFamily="sans-serif"
-                android:layout_marginBottom="24dp" />
+                android:focusable="false"
+                android:clickable="false"
+                android:layout_marginBottom="16dp" />
+
+            <!-- Custom Numpad -->
+            <GridLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:columnCount="3"
+                android:rowCount="4"
+                android:layout_marginBottom="16dp">
+
+                <!-- Row 1: 1, 2, 3 -->
+                <Button
+                    android:id="@+id/num_1"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="1"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_2"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="2"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_3"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="3"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <!-- Row 2: 4, 5, 6 -->
+                <Button
+                    android:id="@+id/num_4"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="4"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_5"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="5"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_6"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="6"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <!-- Row 3: 7, 8, 9 -->
+                <Button
+                    android:id="@+id/num_7"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="7"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_8"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="8"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_9"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="9"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <!-- Row 4: Backspace, 0, Clear -->
+                <Button
+                    android:id="@+id/num_backspace"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="⌫"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/primary"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_0"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="0"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/dark_surface_light"
+                    android:fontFamily="sans-serif" />
+
+                <Button
+                    android:id="@+id/num_clear"
+                    android:layout_width="0dp"
+                    android:layout_height="60dp"
+                    android:layout_columnWeight="1"
+                    android:layout_margin="4dp"
+                    android:text="C"
+                    android:textSize="20sp"
+                    android:textStyle="bold"
+                    android:textColor="@color/text_primary"
+                    android:background="@color/primary"
+                    android:fontFamily="sans-serif" />
+
+            </GridLayout>
 
             <Button
                 android:id="@+id/verify_button"

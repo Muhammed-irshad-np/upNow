@@ -12,6 +12,7 @@ import android.os.Vibrator
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
+import android.widget.GridLayout
 import android.widget.Button
 import android.widget.EditText
 import android.widget.TextView
@@ -83,9 +84,12 @@ class AlarmActivity : AppCompatActivity() {
         // Generate math problem
         generateMathProblem()
         
-        // Set up verification button
+        // Set up verification button and answer input
         val verifyButton = findViewById<Button>(R.id.verify_button)
         val answerInput = findViewById<EditText>(R.id.answer_input)
+        
+        // Set up numpad
+        setupNumpad(answerInput)
         
         verifyButton.setOnClickListener {
             val userAnswerStr = answerInput.text.toString()
@@ -182,6 +186,46 @@ class AlarmActivity : AppCompatActivity() {
         mathProblemView.text = "$num1 ${operators[operatorIndex]} $num2 = ?"
         
         Log.d(TAG, "Generated math problem: $num1 ${operators[operatorIndex]} $num2 = $correctAnswer")
+    }
+    
+    private fun setupNumpad(answerInput: EditText) {
+        // Number buttons (0-9)
+        val numberButtons = listOf(
+            findViewById<Button>(R.id.num_0),
+            findViewById<Button>(R.id.num_1),
+            findViewById<Button>(R.id.num_2),
+            findViewById<Button>(R.id.num_3),
+            findViewById<Button>(R.id.num_4),
+            findViewById<Button>(R.id.num_5),
+            findViewById<Button>(R.id.num_6),
+            findViewById<Button>(R.id.num_7),
+            findViewById<Button>(R.id.num_8),
+            findViewById<Button>(R.id.num_9)
+        )
+        
+        // Set up number button listeners
+        numberButtons.forEachIndexed { index, button ->
+            button.setOnClickListener {
+                val currentText = answerInput.text.toString()
+                // Limit input to reasonable number length (max 5 digits)
+                if (currentText.length < 5) {
+                    answerInput.setText(currentText + index.toString())
+                }
+            }
+        }
+        
+        // Backspace button
+        findViewById<Button>(R.id.num_backspace).setOnClickListener {
+            val currentText = answerInput.text.toString()
+            if (currentText.isNotEmpty()) {
+                answerInput.setText(currentText.dropLast(1))
+            }
+        }
+        
+        // Clear button
+        findViewById<Button>(R.id.num_clear).setOnClickListener {
+            answerInput.setText("")
+        }
     }
     
     private fun acquireWakeLock() {
