@@ -94,6 +94,8 @@ class AlarmModel {
     return '$hourDisplay:$minuteDisplay $period';
   }
 
+  String get labelOrTimeString => label.isNotEmpty ? label : timeString;
+
   String get repeatString {
     switch (repeat) {
       case AlarmRepeat.once:

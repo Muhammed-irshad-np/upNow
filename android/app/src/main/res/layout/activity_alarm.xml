@@ -15,7 +15,7 @@
         android:textStyle="bold"
         android:textColor="@color/text_color"
         android:fontFamily="sans-serif"
-        android:layout_marginTop="80dp"
+        android:layout_marginTop="60dp"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -33,9 +33,11 @@
         app:layout_constraintBottom_toBottomOf="@id/current_time"
         app:layout_constraintBaseline_toBaselineOf="@id/current_time" />
 
+
+
     <TextView
         android:id="@+id/alarm_title"
-        android:layout_width="0dp"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Wake Up!"
         android:textColor="@color/text_color"
@@ -43,7 +45,7 @@
         android:textStyle="bold"
         android:fontFamily="sans-serif"
         android:gravity="center"
-        android:layout_marginTop="32dp"
+        android:layout_marginTop="16dp"
         app:layout_constraintTop_toBottomOf="@id/current_time"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />
@@ -52,13 +54,11 @@
         android:id="@+id/math_card"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="48dp"
-        android:layout_marginBottom="48dp"
+        android:layout_marginTop="32dp"
         app:cardBackgroundColor="@color/dark_surface"
         app:cardCornerRadius="16dp"
         app:cardElevation="4dp"
         app:layout_constraintTop_toBottomOf="@id/alarm_title"
-        app:layout_constraintBottom_toTopOf="@id/alarm_message"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent">
 
@@ -127,7 +127,9 @@
         android:textSize="16sp"
         android:fontFamily="sans-serif"
         android:gravity="center"
+        android:layout_marginTop="24dp"
         android:layout_marginBottom="32dp"
+        app:layout_constraintTop_toBottomOf="@id/math_card"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent" />

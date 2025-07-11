@@ -6,6 +6,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class AlarmCard extends StatelessWidget {
   final AlarmModel alarm;
   final VoidCallback onDelete;
+  final VoidCallback? onSkipOnce;
   final Function(bool) onToggle;
   final VoidCallback onTap;
   final Color cardColor;
@@ -15,6 +16,7 @@ class AlarmCard extends StatelessWidget {
     Key? key,
     required this.alarm,
     required this.onDelete,
+    this.onSkipOnce,
     required this.onToggle,
     required this.onTap,
     required this.cardColor,
@@ -48,98 +50,164 @@ class AlarmCard extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(20.r),
           child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
-            child: Row(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 14.h),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Time and label
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      // Time display
-                      Text(
-                        alarm.timeString,
-                        style: TextStyle(
-                          fontSize: 28.sp,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: -1,
+                // First row - Label and More button
+                Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: Colors.white.withOpacity(0.85),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      SizedBox(height: 4.h),
-                      // Label or repeat info
-                      Text(
-                        alarm.label.isNotEmpty ? alarm.label : alarm.repeatString,
-                        style: TextStyle(
-                          fontSize: 14.sp,
-                          color: Colors.white.withOpacity(0.85),
-                          fontWeight: FontWeight.w500,
+                    ),
+                    // More options button aligned with label
+                    PopupMenuButton<String>(
+                      icon: Icon(
+                        Icons.more_horiz,
+                        color: Colors.white.withOpacity(0.7),
+                        size: 18.sp,
+                      ),
+                      onSelected: (String value) {
+                        switch (value) {
+                          case 'delete':
+                            onDelete();
+                            break;
+                          case 'skip_once':
+                            if (onSkipOnce != null) {
+                              onSkipOnce!();
+                            }
+                            break;
+                        }
+                      },
+                      color: cardColor,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                      ),
+                      padding: EdgeInsets.zero,
+                      splashRadius: 16.r,
+                      itemBuilder: (BuildContext context) => [
+                        PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.delete_outline,
+                                color: Colors.red,
+                                size: 18.sp,
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                'Delete',
+                                style: TextStyle(
+                                  color: Colors.red,
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                        if (alarm.repeat != AlarmRepeat.once && onSkipOnce != null)
+                          const PopupMenuDivider(),
+                        if (alarm.repeat != AlarmRepeat.once && onSkipOnce != null)
+                          PopupMenuItem<String>(
+                            value: 'skip_once',
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.skip_next_outlined,
+                                  color: AppTheme.primaryTextColor,
+                                  size: 18.sp,
+                                ),
+                                SizedBox(width: 8.w),
+                                Text(
+                                  'Skip once',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryTextColor,
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+                // Second row - Time and Toggle
+                Row(
+                  children: [
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          alarm.timeString,
+                          style: TextStyle(
+                            fontSize: 30.sp,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Toggle switch aligned with time
+                    Transform.scale(
+                      scale: 1.0,
+                      child: Switch(
+                        value: alarm.isEnabled,
+                        onChanged: onToggle,
+                        activeColor: Colors.white,
+                        activeTrackColor: Colors.white.withOpacity(0.3),
+                        inactiveThumbColor: Colors.white.withOpacity(0.7),
+                        inactiveTrackColor: Colors.white.withOpacity(0.2),
+                      ),
+                    ),
+                  ],
+                ),
+                // Third row - Mission, Vibrate, and Frequency
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Mission/Dismiss type indicator
+                      _buildInfoIcon(
+                        _getDismissTypeIcon(alarm.dismissType),
+                        _getDismissTypeLabel(alarm.dismissType),
+                      ),
+                      SizedBox(width: 8.w),
+                      // Vibration indicator
+                      if (alarm.vibrate) ...[
+                        _buildInfoIcon(
+                          Icons.vibration,
+                          'VIBRATE',
+                        ),
+                        SizedBox(width: 8.w),
+                      ],
+                      // Frequency/Repeat indicator
+                      _buildInfoIcon(
+                        _getFrequencyIcon(alarm.repeat),
+                        alarm.repeatString.toUpperCase(),
                       ),
                     ],
                   ),
                 ),
-                                  // Right side - Controls and info
-                  Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      // Toggle switch
-                      Transform.scale(
-                        scale: 1.0,
-                        child: Switch(
-                          value: alarm.isEnabled,
-                          onChanged: onToggle,
-                          activeColor: Colors.white,
-                          activeTrackColor: Colors.white.withOpacity(0.3),
-                          inactiveThumbColor: Colors.white.withOpacity(0.7),
-                          inactiveTrackColor: Colors.white.withOpacity(0.2),
-                        ),
-                      ),
-                      // Info chips row
-                      Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Alarm type indicator
-                          _buildInfoIcon(
-                            _getDismissTypeIcon(alarm.dismissType),
-                            _getDismissTypeLabel(alarm.dismissType),
-                          ),
-                          SizedBox(width: 6.w),
-                          // Vibration indicator
-                          if (alarm.vibrate)
-                            _buildInfoIcon(
-                              Icons.vibration,
-                              'VIBRATE',
-                            ),
-                          SizedBox(width: 6.w),
-                          // Delete button
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: IconButton(
-                              icon: Icon(
-                                Icons.delete_outline,
-                                color: Colors.white,
-                                size: 16.sp,
-                              ),
-                              onPressed: onDelete,
-                              constraints: BoxConstraints(
-                                minWidth: 28.w,
-                                minHeight: 28.h,
-                              ),
-                              padding: EdgeInsets.all(2.w),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
               ],
             ),
           ),
@@ -217,6 +285,23 @@ class AlarmCard extends StatelessWidget {
         return 'BARCODE';
       default:
         return 'TAP';
+    }
+  }
+
+  IconData _getFrequencyIcon(AlarmRepeat repeat) {
+    switch (repeat) {
+      case AlarmRepeat.once:
+        return Icons.looks_one;
+      case AlarmRepeat.daily:
+        return Icons.repeat;
+      case AlarmRepeat.weekdays:
+        return Icons.work;
+      case AlarmRepeat.weekends:
+        return Icons.weekend;
+      case AlarmRepeat.custom:
+        return Icons.date_range;
+      default:
+        return Icons.repeat;
     }
   }
 } 

@@ -1180,4 +1180,21 @@ class AlarmService {
       return {'error': e.toString()};
     }
   }
+
+  static Future<void> skipNextAlarm(AlarmModel alarm) async {
+    // This is a placeholder.
+    // The actual implementation will depend on how alarms are stored and scheduled
+    // on the native side. It might involve:
+    // 1. Finding the next scheduled alarm instance.
+    // 2. Cancelling it.
+    // 3. Scheduling the *following* alarm instance.
+    // For now, we'll just log it.
+    debugPrint("Skipping next occurrence of alarm: ${alarm.id}");
+
+    // Example of what it might look like:
+    // final nextTime = alarm.getNextAlarmTime(skip: 1); // Get time after next
+    // await cancelAlarm(alarm.id);
+    // alarm.reschedule(nextTime);
+    // await scheduleAlarm(alarm);
+  }
 } 

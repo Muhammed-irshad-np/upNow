@@ -81,4 +81,17 @@ class AlarmProvider extends ChangeNotifier {
     // If no alarm found for today, return the first alarm for tomorrow
     return activeAlarms.first;
   }
+
+  Future<void> skipAlarmOnce(String alarmId) async {
+    final alarm = _alarms.firstWhere((a) => a.id == alarmId);
+    // Logic to skip the next occurrence will be in the service
+    await AlarmService.skipNextAlarm(alarm);
+    notifyListeners();
+  }
+
+  // Quick Alarm
+  Future<void> addQuickAlarm(Duration duration) async {
+    final now = DateTime.now();
+    // ... existing code ...
+  }
 } 

@@ -387,10 +387,22 @@ class AlarmScreen extends StatelessWidget {
                     );
                     // AlarmProvider will automatically reload alarms
                   },
+                  onSkipOnce: () => _skipAlarmOnce(context, sortedAlarms[i]),
                 ),
               ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _skipAlarmOnce(BuildContext context, AlarmModel alarm) {
+    Provider.of<AlarmProvider>(context, listen: false).skipAlarmOnce(alarm.id);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${alarm.labelOrTimeString} alarm skipped for next time.'),
+        backgroundColor: AppTheme.darkSurface,
+        duration: const Duration(seconds: 2),
       ),
     );
   }
