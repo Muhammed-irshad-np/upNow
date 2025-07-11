@@ -91,7 +91,7 @@ class AlarmCard extends StatelessWidget {
                             break;
                         }
                       },
-                      color: cardColor,
+                      color: AppTheme.darkSurface,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12.r),
                       ),
@@ -120,8 +120,6 @@ class AlarmCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        if (alarm.repeat != AlarmRepeat.once && onSkipOnce != null)
-                          const PopupMenuDivider(),
                         if (alarm.repeat != AlarmRepeat.once && onSkipOnce != null)
                           PopupMenuItem<String>(
                             value: 'skip_once',
