@@ -77,6 +77,16 @@ class AlarmActivity : AppCompatActivity() {
         // Acquire wake lock to keep CPU running
         acquireWakeLock()
         
+        // Stop any Flutter audio players that might be playing
+        try {
+            // Send a message to Flutter to stop any audio players
+            val methodChannel = MethodChannel(flutterEngine?.dartExecutor?.binaryMessenger, "com.example.upnow/alarm_overlay")
+            methodChannel.invokeMethod("stopFlutterAudio", null)
+            Log.d(TAG, "Requested Flutter to stop audio players")
+        } catch (e: Exception) {
+            Log.d(TAG, "Could not communicate with Flutter to stop audio: ${e.message}")
+        }
+        
         // Start sound and vibration
         startAlarmSound(soundName)
         startVibration()
@@ -239,11 +249,38 @@ class AlarmActivity : AppCompatActivity() {
     
     private fun startAlarmSound(soundName: String) {
         try {
+            Log.d(TAG, "Starting alarm sound with name: '$soundName'")
+            
+            // Stop any existing MediaPlayer first
+            mediaPlayer?.apply {
+                if (isPlaying) {
+                    stop()
+                }
+                release()
+            }
+            mediaPlayer = null
+            
             var soundUri: android.net.Uri? = null
             
             // Try to get resource ID for the custom sound name
             if (soundName != "alarm_sound" && soundName.isNotEmpty()) {
-                val resourceId = resources.getIdentifier(soundName, "raw", packageName)
+                // First try with the exact sound name as provided
+                var resourceId = resources.getIdentifier(soundName, "raw", packageName)
+                Log.d(TAG, "Looking for resource ID for '$soundName': $resourceId")
+                
+                // If not found, try with common sound names that might be in the raw folder
+                if (resourceId == 0) {
+                    val commonSounds = listOf("stardust", "simplified", "lofi")
+                    for (commonSound in commonSounds) {
+                        resourceId = resources.getIdentifier(commonSound, "raw", packageName)
+                        Log.d(TAG, "Trying common sound '$commonSound': $resourceId")
+                        if (resourceId != 0) {
+                            Log.d(TAG, "Found matching sound resource: $commonSound (ID: $resourceId)")
+                            break
+                        }
+                    }
+                }
+                
                 if (resourceId != 0) { 
                     soundUri = android.net.Uri.parse("android.resource://$packageName/$resourceId")
                     Log.d(TAG, "Using custom sound resource: $soundName (ID: $resourceId)")

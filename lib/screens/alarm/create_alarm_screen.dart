@@ -41,6 +41,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   void initState() {
     super.initState();
     
+    // Register audio player with global manager
+    GlobalAudioManager.registerAudioPlayer(_audioPlayer);
+    
     if (widget.alarm != null) {
       _selectedTime = TimeOfDay(hour: widget.alarm!.hour, minute: widget.alarm!.minute);
       _label = widget.alarm!.label;
@@ -66,9 +69,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   @override
   void dispose() {
     _labelController.dispose();
+    GlobalAudioManager.unregisterAudioPlayer(_audioPlayer);
     _audioPlayer.dispose();
     super.dispose();
   }
+
+
 
   @override
   Widget build(BuildContext context) {
