@@ -2,11 +2,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/models/sleep_data_model.dart';
+import 'package:upnow/models/habit_model.dart';
 import 'dart:io';
 
 class HiveDatabase {
   static const String alarmBox = 'alarms';
   static const String sleepDataBox = 'sleepData';
+  static const String habitBox = 'habits';
+  static const String habitEntryBox = 'habitEntries';
   
   static Future<void> init() async {
     Directory appDocDir = await getApplicationDocumentsDirectory();
@@ -19,6 +22,8 @@ class HiveDatabase {
     // Open boxes
     await Hive.openBox(alarmBox);
     await Hive.openBox(sleepDataBox);
+    await Hive.openBox(habitBox);
+    await Hive.openBox(habitEntryBox);
   }
   
   // Alarm operations
@@ -122,6 +127,121 @@ class HiveDatabase {
     }
     
     return null;
+  }
+
+  // Habit operations
+  static Future<void> saveHabit(HabitModel habit) async {
+    final box = Hive.box(habitBox);
+    await box.put(habit.id, habit.toJson());
+  }
+  
+  static Future<void> deleteHabit(String id) async {
+    final box = Hive.box(habitBox);
+    await box.delete(id);
+    
+    // Also delete all entries for this habit
+    final entryBox = Hive.box(habitEntryBox);
+    final keysToDelete = <dynamic>[];
+    for (var key in entryBox.keys) {
+      final data = entryBox.get(key);
+      if (data != null && data['habitId'] == id) {
+        keysToDelete.add(key);
+      }
+    }
+    for (var key in keysToDelete) {
+      await entryBox.delete(key);
+    }
+  }
+  
+  static List<HabitModel> getAllHabits() {
+    final box = Hive.box(habitBox);
+    final List<HabitModel> habits = [];
+    
+    for (var key in box.keys) {
+      final data = box.get(key);
+      if (data != null) {
+        try {
+          final Map<String, dynamic> jsonData = Map<String, dynamic>.from(data);
+          habits.add(HabitModel.fromJson(jsonData));
+        } catch (e) {
+          print('Error deserializing habit: $e');
+        }
+      }
+    }
+    
+    return habits;
+  }
+  
+  static HabitModel? getHabit(String id) {
+    final box = Hive.box(habitBox);
+    final data = box.get(id);
+    
+    if (data != null) {
+      try {
+        final Map<String, dynamic> jsonData = Map<String, dynamic>.from(data);
+        return HabitModel.fromJson(jsonData);
+      } catch (e) {
+        print('Error deserializing habit: $e');
+      }
+    }
+    
+    return null;
+  }
+
+  // Habit entry operations
+  static Future<void> saveHabitEntry(HabitEntry entry) async {
+    final box = Hive.box(habitEntryBox);
+    await box.put(entry.id, entry.toJson());
+  }
+  
+  static Future<void> deleteHabitEntry(String id) async {
+    final box = Hive.box(habitEntryBox);
+    await box.delete(id);
+  }
+  
+  static List<HabitEntry> getAllHabitEntries() {
+    final box = Hive.box(habitEntryBox);
+    final List<HabitEntry> entries = [];
+    
+    for (var key in box.keys) {
+      final data = box.get(key);
+      if (data != null) {
+        try {
+          final Map<String, dynamic> jsonData = Map<String, dynamic>.from(data);
+          entries.add(HabitEntry.fromJson(jsonData));
+        } catch (e) {
+          print('Error deserializing habit entry: $e');
+        }
+      }
+    }
+    
+    return entries;
+  }
+  
+  static List<HabitEntry> getHabitEntries(String habitId) {
+    final allEntries = getAllHabitEntries();
+    return allEntries.where((entry) => entry.habitId == habitId).toList();
+  }
+  
+  static HabitEntry? getHabitEntryForDate(String habitId, DateTime date) {
+    final entries = getHabitEntries(habitId);
+    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+    
+    for (var entry in entries) {
+      if (entry.dateKey == dateKey) {
+        return entry;
+      }
+    }
+    
+    return null;
+  }
+  
+  static List<HabitEntry> getHabitEntriesForDateRange(String habitId, DateTime start, DateTime end) {
+    final entries = getHabitEntries(habitId);
+    return entries.where((entry) => 
+      entry.date.isAfter(start.subtract(const Duration(days: 1))) &&
+      entry.date.isBefore(end.add(const Duration(days: 1)))
+    ).toList();
   }
 }
 

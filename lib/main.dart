@@ -10,7 +10,10 @@ import 'package:upnow/screens/alarm/congratulations_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 import 'package:upnow/screens/onboarding/onboarding_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
+import 'package:upnow/screens/habit_home_screen.dart';
 import 'package:upnow/services/alarm_service.dart';
+import 'package:upnow/services/habit_service.dart';
+import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/preferences_helper.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -35,6 +38,9 @@ void main() async {
 
   // Initialize alarm service
   await AlarmService.init();
+
+  // Initialize habit alarm service
+  await HabitAlarmService.initialize();
 
   runApp(const MyApp());
 }
@@ -64,6 +70,7 @@ class MyApp extends StatelessWidget {
           providers: [
             ChangeNotifierProvider(create: (_) => AlarmProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
+            ChangeNotifierProvider(create: (_) => HabitService()),
             // ChangeNotifierProvider(create: (_) => SleepProvider()), // Commented out for first phase
           ],
           child: MaterialApp(
@@ -143,6 +150,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
 
   final List<Widget> _screens = [
     const AlarmScreen(),
+    const HabitHomeScreen(),
     const SettingsScreen(),
   ];
 
@@ -228,16 +236,16 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
         ),
         child: Stack(
           children: [
-            // Animated background indicator (switch-like) - covers entire container half
+            // Animated background indicator (switch-like) - covers entire container third
             AnimatedPositioned(
               duration: const Duration(milliseconds: 300),
               curve: Curves.easeInOut,
-              left: _currentIndex == 0 ? 0 : null,
-              right: _currentIndex == 1 ? 0 : null,
+              left: _currentIndex == 0 ? 0 : (_currentIndex == 1 ? (MediaQuery.of(context).size.width - 32) / 3 : null),
+              right: _currentIndex == 2 ? 0 : null,
               top: 0,
               bottom: 0,
               child: Container(
-                width: (MediaQuery.of(context).size.width - 32) / 2, // Half of container width
+                width: (MediaQuery.of(context).size.width - 32) / 3, // Third of container width
                 decoration: BoxDecoration(
                   gradient: AppTheme.primaryGradient,
                   borderRadius: BorderRadius.circular(24), // Match container radius
@@ -299,14 +307,13 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     ? FontWeight.w600 
                                     : FontWeight.normal,
                                 ),
-                                child: const Text('Alarm'),
+                                child: const Text('Alarms'),
                               ),
                             ],
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: 80), // Space for FAB
                     Expanded(
                       child: GestureDetector(
                         onTap: () {
@@ -324,7 +331,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               AnimatedSwitcher(
                                 duration: const Duration(milliseconds: 200),
                                 child: Icon(
-                                  _currentIndex == 1 ? Icons.settings : Icons.settings_outlined,
+                                  _currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
                                   key: ValueKey(_currentIndex == 1),
                                   color: _currentIndex == 1 
                                     ? Colors.white 
@@ -341,6 +348,50 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                                     ? Colors.white 
                                     : AppTheme.secondaryTextColor,
                                   fontWeight: _currentIndex == 1 
+                                    ? FontWeight.w600 
+                                    : FontWeight.normal,
+                                ),
+                                child: const Text('Habits'),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = 2;
+                          });
+                        },
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              AnimatedSwitcher(
+                                duration: const Duration(milliseconds: 200),
+                                child: Icon(
+                                  _currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
+                                  key: ValueKey(_currentIndex == 2),
+                                  color: _currentIndex == 2 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              AnimatedDefaultTextStyle(
+                                duration: const Duration(milliseconds: 200),
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: _currentIndex == 2 
+                                    ? Colors.white 
+                                    : AppTheme.secondaryTextColor,
+                                  fontWeight: _currentIndex == 2 
                                     ? FontWeight.w600 
                                     : FontWeight.normal,
                                 ),
