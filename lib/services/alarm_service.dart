@@ -13,9 +13,35 @@ import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 import 'package:upnow/providers/alarm_provider.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 // Define a global variable to hold the current app lifecycle state
 AppLifecycleState currentAppState = AppLifecycleState.resumed;
+
+// Global audio player manager
+class GlobalAudioManager {
+  static final List<AudioPlayer> _audioPlayers = [];
+  
+  static void registerAudioPlayer(AudioPlayer player) {
+    _audioPlayers.add(player);
+  }
+  
+  static void unregisterAudioPlayer(AudioPlayer player) {
+    _audioPlayers.remove(player);
+  }
+  
+  static Future<void> stopAllAudioPlayers() async {
+    debugPrint('🎵 Stopping all registered audio players');
+    for (final player in _audioPlayers) {
+      try {
+        await player.stop();
+        debugPrint('🎵 Stopped audio player');
+      } catch (e) {
+        debugPrint('🎵 Error stopping audio player: $e');
+      }
+    }
+  }
+}
 
 class AlarmService {
   static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
@@ -86,7 +112,7 @@ class AlarmService {
         description: 'Channel for alarm notifications',
         importance: Importance.max,
         enableVibration: true,
-        playSound: true,
+        playSound: false, // Disable notification sound to avoid conflicts with MediaPlayer
         enableLights: true,
       ),
       const AndroidNotificationChannel(
@@ -94,9 +120,9 @@ class AlarmService {
         'Test Notifications',
         description: 'Channel for test notifications',
         importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
+        sound: null, // Don't play sound in notification since MediaPlayer handles it
         enableVibration: true,
-        playSound: true,
+        playSound: false, // Disable notification sound to avoid conflicts
         enableLights: true,
       ),
       const AndroidNotificationChannel(
@@ -104,10 +130,11 @@ class AlarmService {
         'Alarm Focus',
         description: 'High priority alarm notifications',
         importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
+        sound: null, // Don't play sound in notification since MediaPlayer handles it
         enableVibration: true,
         enableLights: true,
         showBadge: true,
+        playSound: false, // Disable notification sound to avoid conflicts
       ),
       const AndroidNotificationChannel(
         'simple_channel',
@@ -115,16 +142,16 @@ class AlarmService {
         description: 'Channel for ultra-simple notifications',
         importance: Importance.max,
         enableVibration: true,
-        playSound: true,
+        playSound: false, // Disable notification sound to avoid conflicts
       ),
       const AndroidNotificationChannel(
         'immediate_channel',
         'Immediate Test',
         description: 'Channel for immediate test notifications',
         importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
+        sound: null, // Don't play sound in notification since MediaPlayer handles it
         enableVibration: true,
-        playSound: true,
+        playSound: false, // Disable notification sound to avoid conflicts
         enableLights: true,
       ),
     ];
@@ -203,6 +230,15 @@ class AlarmService {
           debugPrint('📱 ALARM SERVICE: Opened congratulations screen');
         } catch (e) {
           debugPrint('📱 ALARM SERVICE: Error opening congratulations screen: $e');
+        }
+        break;
+      case 'stopFlutterAudio':
+        try {
+          // Stop any Flutter audio players that might be playing
+          debugPrint('📱 ALARM SERVICE: Stopping Flutter audio players');
+          await GlobalAudioManager.stopAllAudioPlayers();
+        } catch (e) {
+          debugPrint('📱 ALARM SERVICE: Error stopping Flutter audio: $e');
         }
         break;
       default:
@@ -373,8 +409,9 @@ class AlarmService {
       String soundName = 'alarm_sound'; // Default sound
       if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
          try {
-           // Extract filename without extension
-           soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+           // Extract the filename without extension from the full path
+           final fileName = p.basename(alarm.soundPath!);
+           soundName = p.basenameWithoutExtension(fileName);
          } catch (e) {
            debugPrint('Error extracting sound name: $e. Using default.');
            // Keep the default 'alarm_sound'
@@ -401,8 +438,8 @@ class AlarmService {
             channelDescription: 'Channel for alarm notifications',
             importance: Importance.max,
             priority: Priority.max,
-            sound: RawResourceAndroidNotificationSound(soundName),
-            playSound: true,
+            sound: null, // Don't play sound in notification since MediaPlayer handles it
+            playSound: false, // Disable notification sound to avoid conflicts
             enableVibration: alarm.vibrate,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
@@ -426,9 +463,9 @@ class AlarmService {
               'Alarm Notifications',
               description: 'Channel for alarm notifications',
               importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              sound: null, // Don't play sound in notification since MediaPlayer handles it
               enableVibration: true,
-              playSound: true,
+              playSound: false, // Disable notification sound to avoid conflicts
               enableLights: true,
               showBadge: true,
             ),
@@ -442,9 +479,9 @@ class AlarmService {
               'Alarm Focus', 
               description: 'High priority alarm notifications',
               importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              sound: null, // Don't play sound in notification since MediaPlayer handles it
               enableVibration: true,
-              playSound: true,
+              playSound: false, // Disable notification sound to avoid conflicts
             ),
           );
           
@@ -473,8 +510,8 @@ class AlarmService {
         channelDescription: 'Channel for alarm notifications',
         importance: Importance.max,
         priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound(soundName),
-        playSound: true,
+        sound: null, // Don't play sound in notification since MediaPlayer handles it
+        playSound: false, // Disable notification sound to avoid conflicts
         enableVibration: alarm.vibrate,
         fullScreenIntent: true,
         category: AndroidNotificationCategory.alarm,
@@ -562,7 +599,11 @@ class AlarmService {
     String soundName = 'alarm_sound'; // Default
     if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
       try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+        // Extract the filename without extension from the full path
+        // e.g., "assets/sounds/stardust.mp3" -> "stardust"
+        final fileName = p.basename(alarm.soundPath!);
+        soundName = p.basenameWithoutExtension(fileName);
+        debugPrint('🎵 Extracted sound name from path: ${alarm.soundPath} -> $soundName');
       } catch (e) {
         debugPrint('Error extracting sound name for broadcast: $e. Using default.');
       }
@@ -1035,7 +1076,9 @@ class AlarmService {
     String soundName = 'alarm_sound'; // Default
     if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
       try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+        // Extract the filename without extension from the full path
+        final fileName = p.basename(alarm.soundPath!);
+        soundName = p.basenameWithoutExtension(fileName);
       } catch (e) {
         debugPrint('Error extracting sound name for launch: $e. Using default.');
       }
