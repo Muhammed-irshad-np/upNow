@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/services/alarm_service.dart';
+import 'package:flutter/material.dart'; // Added for TimeOfDay
 
 class AlarmProvider extends ChangeNotifier {
   List<AlarmModel> _alarms = [];
@@ -93,5 +94,87 @@ class AlarmProvider extends ChangeNotifier {
   Future<void> addQuickAlarm(Duration duration) async {
     final now = DateTime.now();
     // ... existing code ...
+  }
+
+  // Morning alarm specific methods
+  List<AlarmModel> getMorningAlarms() {
+    return _alarms.where((alarm) => alarm.isMorningAlarm).toList();
+  }
+  
+  AlarmModel? getActiveMorningAlarm() {
+    final morningAlarms = getMorningAlarms()
+        .where((alarm) => alarm.isEnabled)
+        .toList();
+    
+    if (morningAlarms.isEmpty) return null;
+    
+    // Sort by time to get the earliest morning alarm
+    morningAlarms.sort((a, b) {
+      if (a.hour != b.hour) {
+        return a.hour.compareTo(b.hour);
+      }
+      return a.minute.compareTo(b.minute);
+    });
+    
+    return morningAlarms.first;
+  }
+  
+  Future<void> setMorningAlarm(int hour, int minute) async {
+    // Remove any existing morning alarm
+    final existingMorningAlarms = getMorningAlarms();
+    for (final alarm in existingMorningAlarms) {
+      await deleteAlarm(alarm.id);
+    }
+    
+    // Create new morning alarm
+    final morningAlarm = AlarmModel(
+      hour: hour,
+      minute: minute,
+      label: 'Wake Up',
+      isMorningAlarm: true,
+      repeat: AlarmRepeat.daily,
+    );
+    
+    await addAlarm(morningAlarm);
+  }
+  
+  Future<void> updateMorningAlarm(int hour, int minute) async {
+    final existingMorningAlarm = getActiveMorningAlarm();
+    
+    if (existingMorningAlarm != null) {
+      // Update existing morning alarm
+      final updatedAlarm = existingMorningAlarm.copyWith(
+        hour: hour,
+        minute: minute,
+      );
+      await updateAlarm(updatedAlarm);
+    } else {
+      // Create new morning alarm if none exists
+      await setMorningAlarm(hour, minute);
+    }
+  }
+  
+  Future<void> toggleMorningAlarm(bool isEnabled) async {
+    final morningAlarm = getActiveMorningAlarm();
+    if (morningAlarm != null) {
+      await toggleAlarm(morningAlarm.id, isEnabled);
+    }
+  }
+  
+  bool get hasMorningAlarm {
+    return getMorningAlarms().isNotEmpty;
+  }
+  
+  bool get isMorningAlarmEnabled {
+    final morningAlarm = getActiveMorningAlarm();
+    return morningAlarm?.isEnabled ?? false;
+  }
+  
+  TimeOfDay get morningAlarmTime {
+    final morningAlarm = getActiveMorningAlarm();
+    if (morningAlarm != null) {
+      return TimeOfDay(hour: morningAlarm.hour, minute: morningAlarm.minute);
+    }
+    return const TimeOfDay(hour: 7, minute: 0); // Default to 7:00 AM
   }
 } 

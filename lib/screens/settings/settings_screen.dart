@@ -15,6 +15,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/screens/settings/feedback_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/settings_provider.dart';
+import 'package:upnow/providers/alarm_provider.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -56,6 +57,9 @@ class SettingsScreen extends StatelessWidget {
               ),
             ],
           ),
+          SizedBox(height: 32.h),
+          _buildSectionTitle('Morning Alarm'),
+          _buildMorningAlarmSection(context),
           SizedBox(height: 32.h),
           _buildSectionTitle('Feedback'),
           _buildSettingGroup(
@@ -119,6 +123,82 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
+  }
+
+  Widget _buildMorningAlarmSection(BuildContext context) {
+    return Consumer<AlarmProvider>(
+      builder: (context, alarmProvider, child) {
+        final hasMorningAlarm = alarmProvider.hasMorningAlarm;
+        final isMorningAlarmEnabled = alarmProvider.isMorningAlarmEnabled;
+        final morningAlarmTime = alarmProvider.morningAlarmTime;
+        
+        return _buildSettingGroup(
+          children: [
+            _buildSettingTile(
+              icon: Icons.alarm_on_outlined,
+              title: 'Morning Wake-Up Alarm',
+              trailing: Switch(
+                value: isMorningAlarmEnabled,
+                onChanged: (bool value) async {
+                  if (value && !hasMorningAlarm) {
+                    // Create new morning alarm with default time
+                    await alarmProvider.setMorningAlarm(7, 0);
+                  } else {
+                    await alarmProvider.toggleMorningAlarm(value);
+                  }
+                },
+                activeColor: AppTheme.primaryColor,
+                activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
+              ),
+              isLast: !isMorningAlarmEnabled,
+            ),
+            if (isMorningAlarmEnabled)
+              _buildSettingTile(
+                icon: Icons.access_time_outlined,
+                title: 'Wake-Up Time',
+                trailing: Text(
+                  morningAlarmTime.format(context),
+                  style: TextStyle(
+                    fontSize: 14.sp,
+                    color: AppTheme.secondaryTextColor,
+                  ),
+                ),
+                onTap: () => _showMorningAlarmTimePicker(context, alarmProvider),
+                isLast: true,
+              ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _showMorningAlarmTimePicker(BuildContext context, AlarmProvider alarmProvider) async {
+    final currentTime = alarmProvider.morningAlarmTime;
+    
+    final TimeOfDay? pickedTime = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: AppTheme.darkSurface,
+              dialBackgroundColor: AppTheme.darkBackground,
+              hourMinuteTextColor: AppTheme.primaryTextColor,
+              hourMinuteColor: AppTheme.primaryColor.withOpacity(0.1),
+              dialHandColor: AppTheme.primaryColor,
+              dialTextColor: AppTheme.primaryTextColor,
+              helpTextStyle: TextStyle(color: AppTheme.primaryTextColor),
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    
+    if (pickedTime != null) {
+      await alarmProvider.updateMorningAlarm(pickedTime.hour, pickedTime.minute);
+    }
   }
 
   Widget _buildSectionTitle(String title) {

@@ -27,6 +27,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   late List<bool> _weekdays;
   late bool _vibrate;
   late String? _selectedSoundPath;
+  late bool _isMorningAlarm;
   
   final TextEditingController _labelController = TextEditingController();
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -49,6 +50,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       _weekdays = List.from(widget.alarm!.weekdays);
       _vibrate = widget.alarm!.vibrate;
       _selectedSoundPath = widget.alarm!.soundPath;
+      _isMorningAlarm = widget.alarm!.isMorningAlarm;
     } else {
       final now = TimeOfDay.now();
       _selectedTime = TimeOfDay(hour: now.hour, minute: now.minute);
@@ -58,6 +60,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       _weekdays = List.filled(7, false);
       _vibrate = true;
       _selectedSoundPath = _availableSounds.isNotEmpty ? _availableSounds[0] : null;
+      _isMorningAlarm = false;
     }
     
     _labelController.text = _label;
@@ -100,6 +103,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             _buildSoundSelector(),
             const SizedBox(height: 24),
             _buildVibrationOption(),
+            const SizedBox(height: 16),
+            _buildMorningAlarmOption(),
             const SizedBox(height: 36),
             GradientButton(
               text: 'Save Alarm',
@@ -623,6 +628,42 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
+  Widget _buildMorningAlarmOption() {
+    return SwitchListTile(
+      title: const Text(
+        'Morning Wake-Up Alarm',
+        style: TextStyle(
+          color: AppTheme.textColor,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: const Text(
+        'Set as your daily wake-up alarm',
+        style: TextStyle(
+          color: AppTheme.secondaryTextColor,
+          fontSize: 12,
+        ),
+      ),
+      value: _isMorningAlarm,
+      activeColor: Colors.orange,
+      onChanged: (value) {
+        setState(() {
+          _isMorningAlarm = value;
+          if (value) {
+            // When setting as morning alarm, suggest daily repeat
+            if (_repeat == AlarmRepeat.once) {
+              _repeat = AlarmRepeat.daily;
+            }
+          }
+        });
+      },
+      tileColor: AppTheme.darkCardColor,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+    );
+  }
+
   Future<void> _showTimePicker() async {
     final pickedTime = await showTimePicker(
       context: context,
@@ -683,6 +724,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     alarm.weekdays = _weekdays;
     alarm.vibrate = _vibrate;
     alarm.soundPath = _selectedSoundPath ?? '';
+    alarm.isMorningAlarm = _isMorningAlarm;
     
     debugPrint('Setting alarm for ${_selectedTime.hour}:${_selectedTime.minute} (${alarm.hour}:${alarm.minute})');
     
