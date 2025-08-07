@@ -72,6 +72,9 @@ class AlarmModel {
   @HiveField(10)
   bool vibrate;
 
+  @HiveField(11)
+  bool isMorningAlarm;
+
   AlarmModel({
     String? id,
     required this.hour,
@@ -84,6 +87,7 @@ class AlarmModel {
     this.soundPath = 'alarm_sound',
     this.volume = 70,
     this.vibrate = true,
+    this.isMorningAlarm = false,
   }) : id = id ?? const Uuid().v4(),
        weekdays = weekdays ?? List.filled(7, false);
 
@@ -149,6 +153,7 @@ class AlarmModel {
     String? soundPath,
     int? volume,
     bool? vibrate,
+    bool? isMorningAlarm,
   }) {
     return AlarmModel(
       id: id ?? this.id,
@@ -162,6 +167,7 @@ class AlarmModel {
       soundPath: soundPath ?? this.soundPath,
       volume: volume ?? this.volume,
       vibrate: vibrate ?? this.vibrate,
+      isMorningAlarm: isMorningAlarm ?? this.isMorningAlarm,
     );
   }
   
@@ -179,6 +185,7 @@ class AlarmModel {
       'soundPath': soundPath,
       'volume': volume,
       'vibrate': vibrate,
+      'isMorningAlarm': isMorningAlarm,
     };
   }
   
@@ -195,6 +202,7 @@ class AlarmModel {
       soundPath: json['soundPath'],
       volume: json['volume'],
       vibrate: json['vibrate'],
+      isMorningAlarm: json['isMorningAlarm'] ?? false,
     );
   }
 

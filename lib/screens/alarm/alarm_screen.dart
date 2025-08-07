@@ -60,6 +60,8 @@ class AlarmScreen extends StatelessWidget {
         children: [
           _buildNextAlarmSection(context, alarms),
           const SizedBox(height: 8),
+          _buildMorningAlarmSection(context),
+          const SizedBox(height: 8),
           _buildQuickAlarmButtons(context),
           const SizedBox(height: 8),
           Expanded(
@@ -225,6 +227,113 @@ class AlarmScreen extends StatelessWidget {
                     fontSize: 13.sp,
                     fontWeight: FontWeight.w600,
                   ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Build the morning alarm section
+  Widget _buildMorningAlarmSection(BuildContext context) {
+    final settings = Provider.of<SettingsProvider>(context);
+    final alarmProvider = Provider.of<AlarmProvider>(context);
+    final morningAlarm = alarmProvider.getActiveMorningAlarm();
+
+    if (morningAlarm == null || !morningAlarm.isEnabled) {
+      return const SizedBox.shrink(); // Don't show anything if no morning alarm
+    }
+
+    final morningAlarmTime = _getNextAlarmDateTime(morningAlarm, DateTime.now());
+    final timeRemaining = _formatTimeRemaining(morningAlarmTime);
+    final alarmTimeString = _formatTime(morningAlarm.hour, morningAlarm.minute, settings.is24HourFormat);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Colors.orange.withOpacity(0.1),
+            Colors.orange.withOpacity(0.05),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.orange.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.orange.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                Icons.wb_sunny,
+                color: Colors.orange,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Wake-Up Alarm',
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    alarmTimeString,
+                    style: TextStyle(
+                      color: AppTheme.textColor,
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Daily Wake-Up',
+                    style: TextStyle(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 11.sp,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  timeRemaining,
+                  style: TextStyle(
+                    color: Colors.orange,
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Icon(
+                  Icons.alarm_on,
+                  color: Colors.orange.withOpacity(0.7),
+                  size: 16,
                 ),
               ],
             ),
