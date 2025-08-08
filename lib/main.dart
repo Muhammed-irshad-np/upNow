@@ -174,236 +174,125 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint("App Lifecycle State Changed: $state");
   }
 
-  Future<void> _requestPermissions() async {
-    await AlarmService.requestPermissions();
-  }
+  // Removed unused _requestPermissions to keep lints clean
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: _screens[_currentIndex],
-      floatingActionButton: Container(
-        width: 64,
-        height: 64,
-        decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.3),
-              blurRadius: 16,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 8,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-                 child: FloatingActionButton(
-           onPressed: () async {
-             // Navigate to create alarm screen  
-             await Navigator.pushNamed(context, '/create_alarm');
-           },
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          child: const Icon(
-            Icons.add,
-            color: Colors.white,
-            size: 28,
+      bottomNavigationBar: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        child: Container(
+          height: 72,
+          decoration: BoxDecoration(
+            color: AppTheme.darkSurface,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final double segmentWidth = constraints.maxWidth / 3;
+              return Stack(
+                children: [
+                  // Switch-like full block indicator
+                  AnimatedPositioned(
+                    duration: const Duration(milliseconds: 280),
+                    curve: Curves.easeInOut,
+                    left: _currentIndex * segmentWidth,
+                    top: 6,
+                    bottom: 6,
+                    child: Container(
+                      width: segmentWidth,
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor,
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppTheme.primaryColor.withOpacity(0.35),
+                            blurRadius: 16,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      _NavItem(
+                        width: segmentWidth,
+                        icon: _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
+                        label: 'Alarms',
+                        selected: _currentIndex == 0,
+                        onTap: () => setState(() => _currentIndex = 0),
+                      ),
+                      _NavItem(
+                        width: segmentWidth,
+                        icon: _currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
+                        label: 'Habits',
+                        selected: _currentIndex == 1,
+                        onTap: () => setState(() => _currentIndex = 1),
+                      ),
+                      _NavItem(
+                        width: segmentWidth,
+                        icon: _currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
+                        label: 'Settings',
+                        selected: _currentIndex == 2,
+                        onTap: () => setState(() => _currentIndex = 2),
+                      ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: Container(
-        margin: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        decoration: BoxDecoration(
-          color: AppTheme.darkSurface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.1),
-              blurRadius: 40,
-              offset: const Offset(0, 16),
-            ),
-          ],
-        ),
-        child: Stack(
+    );
+  }
+}
+
+class _NavItem extends StatelessWidget {
+  final double width;
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.width,
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final Color foreground = selected ? Colors.white : AppTheme.secondaryTextColor;
+    return SizedBox(
+      width: width,
+      height: double.infinity,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: Colors.white.withOpacity(0.05),
+        highlightColor: Colors.transparent,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Animated background indicator (switch-like) - covers entire container third
-            AnimatedPositioned(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              left: _currentIndex == 0 ? 0 : (_currentIndex == 1 ? (MediaQuery.of(context).size.width - 32) / 3 : null),
-              right: _currentIndex == 2 ? 0 : null,
-              top: 0,
-              bottom: 0,
-              child: Container(
-                width: (MediaQuery.of(context).size.width - 32) / 3, // Third of container width
-                decoration: BoxDecoration(
-                  gradient: AppTheme.primaryGradient,
-                  borderRadius: BorderRadius.circular(24), // Match container radius
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryColor.withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(24),
-              child: BottomAppBar(
-                color: Colors.transparent,
-                elevation: 0,
-                height: 70,
-                shape: const CircularNotchedRectangle(),
-                notchMargin: 8,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _currentIndex = 0;
-                          });
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Icon(
-                                  _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
-                                  key: ValueKey(_currentIndex == 0),
-                                  color: _currentIndex == 0 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _currentIndex == 0 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  fontWeight: _currentIndex == 0 
-                                    ? FontWeight.w600 
-                                    : FontWeight.normal,
-                                ),
-                                child: const Text('Alarms'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _currentIndex = 1;
-                          });
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Icon(
-                                  _currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
-                                  key: ValueKey(_currentIndex == 1),
-                                  color: _currentIndex == 1 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _currentIndex == 1 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  fontWeight: _currentIndex == 1 
-                                    ? FontWeight.w600 
-                                    : FontWeight.normal,
-                                ),
-                                child: const Text('Habits'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                    Expanded(
-                      child: GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _currentIndex = 2;
-                          });
-                        },
-                        behavior: HitTestBehavior.opaque,
-                        child: Container(
-                          width: double.infinity,
-                          height: double.infinity,
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              AnimatedSwitcher(
-                                duration: const Duration(milliseconds: 200),
-                                child: Icon(
-                                  _currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
-                                  key: ValueKey(_currentIndex == 2),
-                                  color: _currentIndex == 2 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: _currentIndex == 2 
-                                    ? Colors.white 
-                                    : AppTheme.secondaryTextColor,
-                                  fontWeight: _currentIndex == 2 
-                                    ? FontWeight.w600 
-                                    : FontWeight.normal,
-                                ),
-                                child: const Text('Settings'),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+            Icon(icon, color: foreground, size: 24),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: foreground,
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
           ],

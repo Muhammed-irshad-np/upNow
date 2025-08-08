@@ -3,7 +3,6 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
-import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/widgets/habit_grid_widget.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
 import 'package:upnow/screens/habit_detail_screen.dart';
@@ -63,11 +62,11 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           );
         },
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateToAddHabit(context),
-        icon: const Icon(Icons.add),
-        label: const Text('Add Habit'),
         backgroundColor: Theme.of(context).primaryColor,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }

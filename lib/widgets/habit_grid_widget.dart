@@ -214,7 +214,7 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
     
     return Column(
       children: [
-        const SizedBox(height: widget.cellSize + widget.cellSpacing), // Monday
+        SizedBox(height: widget.cellSize + widget.cellSpacing), // Monday
         ...days.map((day) => Container(
           height: widget.cellSize + widget.cellSpacing,
           width: 20,

@@ -334,13 +334,13 @@ extension HabitAlarmActions on HabitAlarmService {
     switch (action) {
       case 'mark_completed':
         await habitService.markHabitCompleted(habitId, DateTime.now());
-        await showHabitReminder(
+        await HabitAlarmService.showHabitReminder(
           habitService.habits.firstWhere((h) => h.id == habitId),
           customMessage: 'Great job! Habit completed! 🎉',
         );
         break;
       case 'snooze':
-        await snoozeHabitAlarm(habitId, 15);
+        await HabitAlarmService.snoozeHabitAlarm(habitId, 15);
         break;
     }
   }

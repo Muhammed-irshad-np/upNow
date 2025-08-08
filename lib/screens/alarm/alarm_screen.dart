@@ -11,7 +11,6 @@ import 'package:upnow/database/hive_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/providers/settings_provider.dart';
-import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 
 class AlarmScreen extends StatelessWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -70,6 +69,16 @@ class AlarmScreen extends StatelessWidget {
                 : _buildAlarmList(context, alarms),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        heroTag: 'alarmFab',
+        onPressed: () async {
+          if (!await _checkCriticalPermissions(context)) return;
+          await Navigator.pushNamed(context, '/create_alarm');
+        },
+        backgroundColor: AppTheme.primaryColor,
+        foregroundColor: Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
