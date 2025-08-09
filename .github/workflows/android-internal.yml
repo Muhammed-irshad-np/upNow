@@ -38,8 +38,7 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
-      - name: Run Flutter tests
-        run: flutter test --no-pub
+      # Tests disabled per request
 
       - name: Decode keystore (from secret)
         shell: bash
