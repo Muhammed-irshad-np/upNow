@@ -16,17 +16,17 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="07:30"
-            android:textSize="48sp"
+            android:textSize="40sp"
             android:textStyle="bold"
             android:textColor="@color/text_color"
             android:fontFamily="sans-serif"
-            android:layout_marginTop="60dp"
+            android:layout_marginTop="24dp"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:autoSizeTextType="uniform"
             app:autoSizeMinTextSize="28sp"
-            app:autoSizeMaxTextSize="48sp"
+            app:autoSizeMaxTextSize="40sp"
             app:autoSizeStepGranularity="2sp" />
 
         <TextView
@@ -50,7 +50,7 @@
             android:layout_height="wrap_content"
             android:text="Wake Up!"
             android:textColor="@color/text_color"
-            android:textSize="28sp"
+            android:textSize="22sp"
             android:textStyle="bold"
             android:fontFamily="sans-serif"
             android:gravity="center"
@@ -59,15 +59,15 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:autoSizeTextType="uniform"
-            app:autoSizeMinTextSize="18sp"
-            app:autoSizeMaxTextSize="28sp"
+            app:autoSizeMinTextSize="16sp"
+            app:autoSizeMaxTextSize="22sp"
             app:autoSizeStepGranularity="1sp" />
 
         <androidx.cardview.widget.CardView
             android:id="@+id/math_card"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="32dp"
+            android:layout_marginTop="16dp"
             app:cardBackgroundColor="@color/dark_surface"
             app:cardCornerRadius="16dp"
             app:cardElevation="4dp"
@@ -79,7 +79,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="24dp">
+                android:padding="16dp">
 
                 <TextView
                     android:id="@+id/task_description"
@@ -87,9 +87,9 @@
                     android:layout_height="wrap_content"
                     android:text="Solve this problem to dismiss:"
                     android:textColor="@color/text_secondary"
-                    android:textSize="18sp"
+                    android:textSize="16sp"
                     android:fontFamily="sans-serif-medium"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
                 <TextView
                     android:id="@+id/math_problem"
@@ -97,22 +97,22 @@
                     android:layout_height="wrap_content"
                     android:text="4 × 7 = ?"
                     android:textColor="@color/text_primary"
-                    android:textSize="32sp"
+                    android:textSize="26sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif"
                     android:gravity="center"
-                    android:layout_marginBottom="24dp"
+                    android:layout_marginBottom="16dp"
                     app:autoSizeTextType="uniform"
                     app:autoSizeMinTextSize="18sp"
-                    app:autoSizeMaxTextSize="32sp"
+                    app:autoSizeMaxTextSize="26sp"
                     app:autoSizeStepGranularity="1sp" />
 
                 <EditText
                     android:id="@+id/answer_input"
                     android:layout_width="match_parent"
-                    android:layout_height="56dp"
+                    android:layout_height="52dp"
                     android:inputType="none"
-                    android:textSize="24sp"
+                    android:textSize="22sp"
                     android:gravity="center"
                     android:textColor="@color/text_primary"
                     android:hint="Enter Answer"
@@ -121,7 +121,7 @@
                     android:fontFamily="sans-serif"
                     android:focusable="false"
                     android:clickable="false"
-                    android:layout_marginBottom="16dp" />
+                    android:layout_marginBottom="12dp" />
 
                 <!-- Custom Numpad -->
                 <GridLayout
@@ -129,17 +129,17 @@
                     android:layout_height="wrap_content"
                     android:columnCount="3"
                     android:rowCount="4"
-                    android:layout_marginBottom="16dp">
+                    android:layout_marginBottom="12dp">
 
                     <!-- Row 1: 1, 2, 3 -->
                     <Button
                         android:id="@+id/num_1"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="1"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -148,11 +148,11 @@
                     <Button
                         android:id="@+id/num_2"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="2"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -161,11 +161,11 @@
                     <Button
                         android:id="@+id/num_3"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="3"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -175,11 +175,11 @@
                     <Button
                         android:id="@+id/num_4"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="4"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -188,11 +188,11 @@
                     <Button
                         android:id="@+id/num_5"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="5"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -201,11 +201,11 @@
                     <Button
                         android:id="@+id/num_6"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="6"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -215,11 +215,11 @@
                     <Button
                         android:id="@+id/num_7"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="7"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -228,11 +228,11 @@
                     <Button
                         android:id="@+id/num_8"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="8"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -241,11 +241,11 @@
                     <Button
                         android:id="@+id/num_9"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="9"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -255,11 +255,11 @@
                     <Button
                         android:id="@+id/num_backspace"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="⌫"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/primary"
@@ -268,11 +268,11 @@
                     <Button
                         android:id="@+id/num_0"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="0"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/dark_surface_light"
@@ -281,11 +281,11 @@
                     <Button
                         android:id="@+id/num_clear"
                         android:layout_width="0dp"
-                        android:layout_height="60dp"
+                        android:layout_height="52dp"
                         android:layout_columnWeight="1"
                         android:layout_margin="4dp"
                         android:text="C"
-                        android:textSize="20sp"
+                        android:textSize="18sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:background="@color/primary"
@@ -296,10 +296,10 @@
                 <Button
                     android:id="@+id/verify_button"
                     android:layout_width="match_parent"
-                    android:layout_height="48dp"
+                    android:layout_height="44dp"
                     android:text="Verify Answer"
                     android:textColor="@color/text_primary"
-                    android:textSize="16sp"
+                    android:textSize="15sp"
                     android:textStyle="bold"
                     android:fontFamily="sans-serif-medium"
                     android:background="@drawable/gradient_button_background"
@@ -307,17 +307,18 @@
             </LinearLayout>
         </androidx.cardview.widget.CardView>
 
+        <!-- Keep bottom message small so important actions stay above fold -->
         <TextView
             android:id="@+id/alarm_message"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:text="Complete the math problem to stop the alarm"
             android:textColor="@color/text_secondary"
-            android:textSize="16sp"
+            android:textSize="14sp"
             android:fontFamily="sans-serif"
             android:gravity="center"
-            android:layout_marginTop="24dp"
-            android:layout_marginBottom="32dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginBottom="8dp"
             app:layout_constraintTop_toBottomOf="@id/math_card"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
