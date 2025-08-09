@@ -25,6 +25,36 @@ class AlarmService {
   static const MethodChannel _platformChannel = 
       MethodChannel('com.example.upnow/alarm_overlay');
   
+  // Helper method to extract and validate sound name from sound path
+  static String _extractSoundName(String? soundPath) {
+    String soundName = 'alarm_sound'; // Default sound
+    if (soundPath != null && soundPath.isNotEmpty) {
+      try {
+        // Handle both asset paths and direct sound names
+        String cleanPath = soundPath;
+        
+        // If it's an asset path, extract the filename
+        if (cleanPath.startsWith('assets/sounds/')) {
+          cleanPath = cleanPath.replaceFirst('assets/sounds/', '');
+        }
+        
+        // Remove extension to get the raw resource name
+        soundName = p.basenameWithoutExtension(cleanPath);
+        
+        // Validate that the sound file exists in raw resources
+        final validSounds = ['stardust', 'simplified', 'lofi', 'alarm_sound'];
+        if (!validSounds.contains(soundName)) {
+          debugPrint('⚠️ Invalid sound name: $soundName. Falling back to default.');
+          soundName = 'alarm_sound';
+        }
+      } catch (e) {
+        debugPrint('❌ Error extracting sound name: $e. Using default.');
+        soundName = 'alarm_sound';
+      }
+    }
+    return soundName;
+  }
+  
   // Method to show the overlay via platform channel
   static Future<void> _showOverlay(AlarmModel alarm) async {
     try {
@@ -370,16 +400,7 @@ class AlarmService {
       debugPrint('🔔 Generated notification ID: $notificationId');
 
       // --- Dynamic Notification Details ---
-      String soundName = 'alarm_sound'; // Default sound
-      if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
-         try {
-           // Extract filename without extension
-           soundName = p.basenameWithoutExtension(alarm.soundPath!); 
-         } catch (e) {
-           debugPrint('Error extracting sound name: $e. Using default.');
-           // Keep the default 'alarm_sound'
-         }
-      }
+      final soundName = _extractSoundName(alarm.soundPath);
       debugPrint('🎵 Selected sound for notification: $soundName');
       
       // --- REMOVED Future.delayed timer here which doesn't work in terminated state ---
@@ -419,14 +440,14 @@ class AlarmService {
             ],
           );
           
-          // The broadcast action to launch our AlarmReceiver for automatic fullscreen
+          // Create dynamic notification channel with the specific sound for this alarm
           await androidImplementation.createNotificationChannel(
-            const AndroidNotificationChannel(
-              'alarm_channel',
-              'Alarm Notifications',
-              description: 'Channel for alarm notifications',
+            AndroidNotificationChannel(
+              'alarm_channel_$soundName', // Dynamic channel ID based on sound
+              'Alarm Notifications ($soundName)',
+              description: 'Channel for alarm notifications with custom sound',
               importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              sound: RawResourceAndroidNotificationSound(soundName),
               enableVibration: true,
               playSound: true,
               enableLights: true,
@@ -434,15 +455,40 @@ class AlarmService {
             ),
           );
           
+          // Update the notification details to use the specific channel
+          enhancedAndroidDetails = AndroidNotificationDetails(
+            'alarm_channel_$soundName', // Use the specific channel
+            'Alarm Notifications',
+            channelDescription: 'Channel for alarm notifications with custom sound',
+            importance: Importance.max,
+            priority: Priority.max,
+            sound: RawResourceAndroidNotificationSound(soundName),
+            playSound: true,
+            enableVibration: alarm.vibrate,
+            fullScreenIntent: true,
+            category: AndroidNotificationCategory.alarm,
+            autoCancel: false,
+            additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
+            ongoing: true,
+            actions: [
+              const AndroidNotificationAction(
+                'show_alarm',
+                'Show Alarm',
+                showsUserInterface: true,
+                cancelNotification: false,
+              ),
+            ],
+          );
+          
           // Add intent to directly launch the full alarm activity
           // This is critical for terminated state functionality
           await androidImplementation.createNotificationChannel(
-            const AndroidNotificationChannel(
-              'alarm_focus',
-              'Alarm Focus', 
-              description: 'High priority alarm notifications',
+            AndroidNotificationChannel(
+              'alarm_focus_$soundName',
+              'Alarm Focus ($soundName)', 
+              description: 'High priority alarm notifications with custom sound',
               importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
+              sound: RawResourceAndroidNotificationSound(soundName),
               enableVibration: true,
               playSound: true,
             ),
@@ -460,7 +506,7 @@ class AlarmService {
           // Register the alarm with the platform for terminated state
           await _platformChannel.invokeMethod('registerTerminatedStateAlarm', alarmIntent);
           
-          debugPrint('🔔 Enhanced notification details created successfully');
+          debugPrint('🔔 Enhanced notification details created successfully with sound: $soundName');
         } catch (e) {
           debugPrint('❌ Error creating enhanced notification details: $e');
         }
@@ -559,14 +605,7 @@ class AlarmService {
   
   // Helper to send a broadcast to the native side to launch alarm activity
   static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
-    String soundName = 'alarm_sound'; // Default
-    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
-      try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
-      } catch (e) {
-        debugPrint('Error extracting sound name for broadcast: $e. Using default.');
-      }
-    }
+    final soundName = _extractSoundName(alarm.soundPath);
     debugPrint('🎵 Using sound name for broadcast: $soundName');
 
     try {
@@ -1032,14 +1071,7 @@ class AlarmService {
       return;
     }
     
-    String soundName = 'alarm_sound'; // Default
-    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
-      try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
-      } catch (e) {
-        debugPrint('Error extracting sound name for launch: $e. Using default.');
-      }
-    }
+    final soundName = _extractSoundName(alarm.soundPath);
     debugPrint('🎵 Using sound name for launch: $soundName');
 
     try {
