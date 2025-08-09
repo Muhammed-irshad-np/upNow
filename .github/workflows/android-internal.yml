@@ -18,6 +18,7 @@ jobs:
     env:
       PACKAGE_NAME: com.appweavers.upnow
       AAB_PATH: build/app/outputs/bundle/release/app-release.aab
+      VERSION_CODE_OFFSET: ${{ secrets.VERSION_CODE_OFFSET }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -61,7 +62,14 @@ jobs:
           EOF
 
       - name: Build Android App Bundle (release)
-        run: flutter build appbundle --release
+        shell: bash
+        run: |
+          # Always produce a versionCode > 6 and unique per run
+          BASE=${VERSION_CODE_BASE:-1000}
+          OFFSET=${VERSION_CODE_OFFSET:-0}
+          BUILD_NUMBER=$((BASE + GITHUB_RUN_NUMBER + OFFSET))
+          echo "Using build number (Android versionCode): ${BUILD_NUMBER}"
+          flutter build appbundle --release --build-number ${BUILD_NUMBER}
 
       - name: Upload to Google Play - Internal testing
         uses: r0adkll/upload-google-play@v1
