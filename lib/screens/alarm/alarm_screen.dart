@@ -11,6 +11,7 @@ import 'package:upnow/database/hive_database.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/providers/settings_provider.dart';
+import 'package:upnow/utils/global_error_handler.dart';
 
 class AlarmScreen extends StatelessWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -73,8 +74,13 @@ class AlarmScreen extends StatelessWidget {
       floatingActionButton: FloatingActionButton(
         heroTag: 'alarmFab',
         onPressed: () async {
-          if (!await _checkCriticalPermissions(context)) return;
-          await Navigator.pushNamed(context, '/create_alarm');
+          try {
+            if (!await _checkCriticalPermissions(context)) return;
+            await Navigator.pushNamed(context, '/create_alarm');
+          } catch (e, s) {
+            // Ensure any navigation-related errors surface visibly
+            GlobalErrorHandler.onException(e, s);
+          }
         },
         backgroundColor: AppTheme.primaryColor,
         foregroundColor: Colors.white,

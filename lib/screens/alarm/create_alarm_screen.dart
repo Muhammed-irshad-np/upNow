@@ -8,6 +8,7 @@ import 'package:upnow/providers/alarm_provider.dart';
 import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
 import 'package:upnow/providers/alarm_form_provider.dart';
+import 'package:upnow/utils/global_error_handler.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -482,11 +483,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                         });
 
                       } catch (e, stackTrace) { // Add stackTrace here
-                        print("Error playing sound preview for path: $soundPath");
-                        // Now relativePath is accessible here
-                        print("Relative path attempted: $relativePath"); 
-                        print("ERROR DETAILS: $e"); // Log the error
-                        print("STACK TRACE: $stackTrace"); // Log the full stack trace
+                        GlobalErrorHandler.onException(e, stackTrace);
                       }
                       // DO NOT pop navigator here
                       // DO NOT set the main screen state here
@@ -624,13 +621,17 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Future<void> _saveAlarm(BuildContext context, AlarmFormProvider form) async {
-    final alarm = form.buildOrUpdate(widget.alarm);
-    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
-    if (widget.alarm != null) {
-      await alarmProvider.updateAlarm(alarm);
-    } else {
-      await alarmProvider.addAlarm(alarm);
+    try {
+      final alarm = form.buildOrUpdate(widget.alarm);
+      final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
+      if (widget.alarm != null) {
+        await alarmProvider.updateAlarm(alarm);
+      } else {
+        await alarmProvider.addAlarm(alarm);
+      }
+      if (mounted) Navigator.pop(context, true);
+    } catch (e, s) {
+      await GlobalErrorHandler.onException(e, s);
     }
-    if (mounted) Navigator.pop(context, true);
   }
 } 
