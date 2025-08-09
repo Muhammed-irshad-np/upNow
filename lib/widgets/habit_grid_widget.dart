@@ -64,8 +64,8 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
                 borderRadius: BorderRadius.circular(4),
               ),
               child: habit.icon != null 
-                ? Icon(
-                    IconData(int.parse(habit.icon!), fontFamily: 'MaterialIcons'),
+                ? const Icon(
+                    Icons.check_circle,
                     size: 12,
                     color: Colors.white,
                   )

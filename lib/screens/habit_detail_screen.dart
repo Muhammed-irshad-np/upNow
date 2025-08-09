@@ -106,8 +106,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                           color: Colors.white.withOpacity(0.2),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: Icon(
-                          IconData(int.parse(habit.icon!), fontFamily: 'MaterialIcons'),
+                        child: const Icon(
+                          Icons.check_circle,
                           color: Colors.white,
                           size: 28,
                         ),
