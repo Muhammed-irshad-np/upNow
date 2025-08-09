@@ -110,10 +110,14 @@
                 <EditText
                     android:id="@+id/answer_input"
                     android:layout_width="match_parent"
-                    android:layout_height="52dp"
+
+                    android:layout_height="64dp"
+
+                   
                     android:inputType="none"
                     android:textSize="22sp"
                     android:gravity="center"
+                    android:includeFontPadding="true"
                     android:textColor="@color/text_primary"
                     android:hint="Enter Answer"
                     android:textColorHint="@color/text_secondary"
