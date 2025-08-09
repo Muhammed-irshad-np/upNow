@@ -164,30 +164,35 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           child: Row(
             children: [
               _buildDismissOption(
+                form: form,
                 type: DismissType.math,
                 icon: Icons.calculate_outlined,
                 title: 'Math Problem',
                 color: Colors.orange,
               ),
               _buildDismissOption(
+                form: form,
                 type: DismissType.typing,
                 icon: Icons.keyboard_alt_outlined,
                 title: 'Type Text',
                 color: Colors.green,
               ),
               _buildDismissOption(
+                form: form,
                 type: DismissType.shake,
                 icon: Icons.vibration,
                 title: 'Shake Phone',
                 color: Colors.purple,
               ),
               _buildDismissOption(
+                form: form,
                 type: DismissType.memory,
                 icon: Icons.psychology_outlined,
                 title: 'Memory Game',
                 color: Colors.blue,
               ),
               _buildDismissOption(
+                form: form,
                 type: DismissType.barcode,
                 icon: Icons.qr_code_scanner,
                 title: 'Scan Barcode',
@@ -201,12 +206,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Widget _buildDismissOption({
+    required AlarmFormProvider form,
     required DismissType type,
     required IconData icon,
     required String title,
     required Color color,
   }) {
-    final form = context.read<AlarmFormProvider>();
     final isSelected = form.dismissType == type;
     final bool isComingSoon = type != DismissType.math && type != DismissType.normal;
     // Create a global key for the tooltip
@@ -387,15 +392,14 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
-            return _buildDayToggle(index, dayLabels[index]);
+            return _buildDayToggle(form, index, dayLabels[index]);
           }),
         ),
       ],
     );
   }
 
-  Widget _buildDayToggle(int dayIndex, String label) {
-    final form = context.read<AlarmFormProvider>();
+  Widget _buildDayToggle(AlarmFormProvider form, int dayIndex, String label) {
     final isSelected = form.weekdays[dayIndex];
     
     return GestureDetector(
