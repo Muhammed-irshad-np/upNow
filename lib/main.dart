@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -19,6 +20,7 @@ import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/preferences_helper.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:upnow/utils/global_error_handler.dart';
 
 // Global navigator key for accessing Navigator from outside the widget tree
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -44,7 +46,15 @@ void main() async {
   // Initialize habit alarm service
   await HabitAlarmService.initialize();
 
-  runApp(const MyApp());
+  // Initialize global error handler before the app starts
+  GlobalErrorHandler.initialize(navigatorKey: navigatorKey);
+
+  // Wrap the app in a guarded zone to catch any uncaught errors and show dialog
+  runZonedGuarded(() {
+    runApp(const MyApp());
+  }, (Object error, StackTrace stack) {
+    GlobalErrorHandler.recordError(error, stack);
+  });
 }
 
 /// Migrates any alarms with 'default' sound path to 'alarm_sound'
