@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/services/habit_alarm_service.dart';
+import 'package:upnow/providers/habit_form_provider.dart';
 
 class AddHabitScreen extends StatefulWidget {
   const AddHabitScreen({Key? key}) : super(key: key);
@@ -12,94 +13,62 @@ class AddHabitScreen extends StatefulWidget {
 }
 
 class _AddHabitScreenState extends State<AddHabitScreen> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  
-  HabitFrequency _selectedFrequency = HabitFrequency.daily;
-  Color _selectedColor = Colors.blue;
-  String? _selectedIcon;
-  bool _hasAlarm = false;
-  TimeOfDay _alarmTime = TimeOfDay.now();
-  List<int> _selectedDays = [1, 2, 3, 4, 5, 6, 7]; // All days by default
-  
-  final List<Color> _habitColors = [
-    Colors.blue,
-    Colors.green,
-    Colors.orange,
-    Colors.purple,
-    Colors.red,
-    Colors.teal,
-    Colors.pink,
-    Colors.indigo,
-    Colors.amber,
-    Colors.cyan,
-  ];
-
-  final List<Map<String, dynamic>> _habitIcons = [
-    {'icon': Icons.fitness_center, 'code': '0xe3a7', 'name': 'Fitness'},
-    {'icon': Icons.book, 'code': '0xe0bb', 'name': 'Reading'},
-    {'icon': Icons.water_drop, 'code': '0xe798', 'name': 'Water'},
-    {'icon': Icons.bedtime, 'code': '0xe3e4', 'name': 'Sleep'},
-    {'icon': Icons.self_improvement, 'code': '0xe4ba', 'name': 'Meditation'},
-    {'icon': Icons.restaurant, 'code': '0xe57a', 'name': 'Diet'},
-    {'icon': Icons.directions_run, 'code': '0xe566', 'name': 'Running'},
-    {'icon': Icons.psychology, 'code': '0xe4cd', 'name': 'Learning'},
-    {'icon': Icons.music_note, 'code': '0xe405', 'name': 'Music'},
-    {'icon': Icons.brush, 'code': '0xe3a9', 'name': 'Art'},
-  ];
-
   @override
   void dispose() {
-    _nameController.dispose();
-    _descriptionController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Add New Habit'),
-        backgroundColor: _selectedColor,
-        foregroundColor: Colors.white,
-        actions: [
-          TextButton(
-            onPressed: _saveHabit,
-            child: const Text(
-              'Save',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
+    return ChangeNotifierProvider(
+      create: (_) => HabitFormProvider(),
+      child: Consumer<HabitFormProvider>(
+        builder: (context, habitFormProvider, child) {
+          return Scaffold(
+            appBar: AppBar(
+              title: const Text('Add New Habit'),
+              backgroundColor: habitFormProvider.selectedColor,
+              foregroundColor: Colors.white,
+              actions: [
+                TextButton(
+                  onPressed: () => _saveHabit(context, habitFormProvider),
+                  child: const Text(
+                    'Save',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            body: Form(
+              key: habitFormProvider.formKey,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildBasicInfoSection(habitFormProvider),
+                    const SizedBox(height: 24),
+                    _buildFrequencySection(habitFormProvider),
+                    const SizedBox(height: 24),
+                    _buildCustomizationSection(habitFormProvider),
+                    const SizedBox(height: 24),
+                    _buildAlarmSection(habitFormProvider),
+                    const SizedBox(height: 32),
+                    _buildSaveButton(habitFormProvider),
+                  ],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildBasicInfoSection(),
-              const SizedBox(height: 24),
-              _buildFrequencySection(),
-              const SizedBox(height: 24),
-              _buildCustomizationSection(),
-              const SizedBox(height: 24),
-              _buildAlarmSection(),
-              const SizedBox(height: 32),
-              _buildSaveButton(),
-            ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildBasicInfoSection() {
+  Widget _buildBasicInfoSection(HabitFormProvider habitFormProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -115,7 +84,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _nameController,
+              controller: habitFormProvider.nameController,
               decoration: const InputDecoration(
                 labelText: 'Habit Name *',
                 hintText: 'e.g., Drink 8 glasses of water',
@@ -131,7 +100,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             ),
             const SizedBox(height: 16),
             TextFormField(
-              controller: _descriptionController,
+              controller: habitFormProvider.descriptionController,
               decoration: const InputDecoration(
                 labelText: 'Description (Optional)',
                 hintText: 'Add more details about this habit...',
@@ -146,7 +115,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     );
   }
 
-  Widget _buildFrequencySection() {
+  Widget _buildFrequencySection(HabitFormProvider habitFormProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -164,31 +133,29 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             Wrap(
               spacing: 8,
               children: HabitFrequency.values.map((frequency) {
-                final isSelected = _selectedFrequency == frequency;
+                final isSelected = habitFormProvider.selectedFrequency == frequency;
                 return ChoiceChip(
                   label: Text(_getFrequencyText(frequency)),
                   selected: isSelected,
                   onSelected: (selected) {
-                    setState(() {
-                      _selectedFrequency = frequency;
-                    });
+                    habitFormProvider.setFrequency(frequency);
                   },
-                  selectedColor: _selectedColor.withOpacity(0.2),
+                  selectedColor: habitFormProvider.selectedColor.withOpacity(0.2),
                   labelStyle: TextStyle(
-                    color: isSelected ? _selectedColor : null,
+                    color: isSelected ? habitFormProvider.selectedColor : null,
                     fontWeight: isSelected ? FontWeight.bold : null,
                   ),
                 );
               }).toList(),
             ),
-            if (_selectedFrequency == HabitFrequency.custom) ...[
+            if (habitFormProvider.selectedFrequency == HabitFrequency.custom) ...[
               const SizedBox(height: 16),
               const Text(
                 'Select Days:',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
               const SizedBox(height: 8),
-              _buildDaySelector(),
+              _buildDaySelector(habitFormProvider),
             ],
           ],
         ),
@@ -196,30 +163,24 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     );
   }
 
-  Widget _buildDaySelector() {
+  Widget _buildDaySelector(HabitFormProvider habitFormProvider) {
     final days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     return Wrap(
       spacing: 8,
       children: List.generate(7, (index) {
         final dayNumber = index + 1;
-        final isSelected = _selectedDays.contains(dayNumber);
+        final isSelected = habitFormProvider.selectedDays.contains(dayNumber);
         
         return FilterChip(
           label: Text(days[index]),
           selected: isSelected,
           onSelected: (selected) {
-            setState(() {
-              if (selected) {
-                _selectedDays.add(dayNumber);
-              } else {
-                _selectedDays.remove(dayNumber);
-              }
-            });
+            habitFormProvider.toggleDay(dayNumber);
           },
-          selectedColor: _selectedColor.withOpacity(0.2),
+          selectedColor: habitFormProvider.selectedColor.withOpacity(0.2),
           labelStyle: TextStyle(
-            color: isSelected ? _selectedColor : null,
+            color: isSelected ? habitFormProvider.selectedColor : null,
             fontWeight: isSelected ? FontWeight.bold : null,
           ),
         );
@@ -227,7 +188,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     );
   }
 
-  Widget _buildCustomizationSection() {
+  Widget _buildCustomizationSection(HabitFormProvider habitFormProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -249,10 +210,10 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             const SizedBox(height: 8),
             Wrap(
               spacing: 8,
-              children: _habitColors.map((color) {
-                final isSelected = _selectedColor == color;
+              children: habitFormProvider.habitColors.map((color) {
+                final isSelected = habitFormProvider.selectedColor == color;
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedColor = color),
+                  onTap: () => habitFormProvider.setColor(color),
                   child: Container(
                     width: 40,
                     height: 40,
@@ -279,20 +240,20 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: _habitIcons.map((iconData) {
-                final isSelected = _selectedIcon == iconData['code'];
+              children: habitFormProvider.habitIcons.map((iconData) {
+                final isSelected = habitFormProvider.selectedIcon == iconData['code'];
                 return GestureDetector(
-                  onTap: () => setState(() => _selectedIcon = iconData['code']),
+                  onTap: () => habitFormProvider.setIcon(iconData['code']),
                   child: Container(
                     width: 60,
                     height: 60,
                     decoration: BoxDecoration(
                       color: isSelected 
-                        ? _selectedColor.withOpacity(0.2)
+                        ? habitFormProvider.selectedColor.withOpacity(0.2)
                         : Colors.grey.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: isSelected 
-                        ? Border.all(color: _selectedColor, width: 2)
+                        ? Border.all(color: habitFormProvider.selectedColor, width: 2)
                         : Border.all(color: Colors.grey.withOpacity(0.3)),
                     ),
                     child: Column(
@@ -300,7 +261,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                       children: [
                         Icon(
                           iconData['icon'],
-                          color: isSelected ? _selectedColor : Colors.grey[600],
+                          color: isSelected ? habitFormProvider.selectedColor : Colors.grey[600],
                           size: 24,
                         ),
                         const SizedBox(height: 2),
@@ -308,7 +269,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                           iconData['name'],
                           style: TextStyle(
                             fontSize: 8,
-                            color: isSelected ? _selectedColor : Colors.grey[600],
+                            color: isSelected ? habitFormProvider.selectedColor : Colors.grey[600],
                           ),
                         ),
                       ],
@@ -323,7 +284,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     );
   }
 
-  Widget _buildAlarmSection() {
+  Widget _buildAlarmSection(HabitFormProvider habitFormProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -341,25 +302,23 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             SwitchListTile(
               title: const Text('Set Reminder'),
               subtitle: Text(
-                _hasAlarm 
-                  ? 'Daily reminder at ${_alarmTime.format(context)}'
+                habitFormProvider.hasAlarm 
+                  ? 'Daily reminder at ${habitFormProvider.alarmTime.format(context)}'
                   : 'No reminder set',
               ),
-              value: _hasAlarm,
+              value: habitFormProvider.hasAlarm,
               onChanged: (value) {
-                setState(() {
-                  _hasAlarm = value;
-                });
+                habitFormProvider.setHasAlarm(value);
               },
-              activeColor: _selectedColor,
+              activeColor: habitFormProvider.selectedColor,
             ),
-            if (_hasAlarm) ...[
+            if (habitFormProvider.hasAlarm) ...[
               const SizedBox(height: 8),
               ListTile(
                 title: const Text('Reminder Time'),
-                subtitle: Text(_alarmTime.format(context)),
+                subtitle: Text(habitFormProvider.alarmTime.format(context)),
                 trailing: const Icon(Icons.access_time),
-                onTap: _selectTime,
+                onTap: () => habitFormProvider.selectTime(context),
               ),
             ],
           ],
@@ -368,19 +327,19 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     );
   }
 
-  Widget _buildSaveButton() {
+  Widget _buildSaveButton(HabitFormProvider habitFormProvider) {
     return SizedBox(
       width: double.infinity,
       height: 50,
       child: ElevatedButton.icon(
-        onPressed: _saveHabit,
+        onPressed: () => _saveHabit(context, habitFormProvider),
         icon: const Icon(Icons.save),
         label: const Text(
           'Create Habit',
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: _selectedColor,
+          backgroundColor: habitFormProvider.selectedColor,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -403,25 +362,12 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     }
   }
 
-  Future<void> _selectTime() async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: _alarmTime,
-    );
-    
-    if (picked != null && picked != _alarmTime) {
-      setState(() {
-        _alarmTime = picked;
-      });
-    }
-  }
-
-  Future<void> _saveHabit() async {
-    if (!_formKey.currentState!.validate()) {
+  Future<void> _saveHabit(BuildContext context, HabitFormProvider habitFormProvider) async {
+    if (!habitFormProvider.formKey.currentState!.validate()) {
       return;
     }
 
-    if (_selectedFrequency == HabitFrequency.custom && _selectedDays.isEmpty) {
+    if (habitFormProvider.selectedFrequency == HabitFrequency.custom && habitFormProvider.selectedDays.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Please select at least one day for custom frequency'),
@@ -434,38 +380,38 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       final habitService = context.read<HabitService>();
       
       DateTime? targetTime;
-      if (_hasAlarm) {
+      if (habitFormProvider.hasAlarm) {
         final now = DateTime.now();
         targetTime = DateTime(
           now.year,
           now.month,
           now.day,
-          _alarmTime.hour,
-          _alarmTime.minute,
+          habitFormProvider.alarmTime.hour,
+          habitFormProvider.alarmTime.minute,
         );
       }
 
       final habit = HabitModel(
-        name: _nameController.text.trim(),
-        description: _descriptionController.text.trim().isNotEmpty 
-          ? _descriptionController.text.trim() 
+        name: habitFormProvider.nameController.text.trim(),
+        description: habitFormProvider.descriptionController.text.trim().isNotEmpty 
+          ? habitFormProvider.descriptionController.text.trim() 
           : null,
-        frequency: _selectedFrequency,
-        color: _selectedColor,
-        icon: _selectedIcon,
-        hasAlarm: _hasAlarm,
+        frequency: habitFormProvider.selectedFrequency,
+        color: habitFormProvider.selectedColor,
+        icon: habitFormProvider.selectedIcon,
+        hasAlarm: habitFormProvider.hasAlarm,
         targetTime: targetTime,
-        daysOfWeek: _selectedDays,
+        daysOfWeek: habitFormProvider.selectedDays,
       );
 
       await habitService.createHabit(habit);
 
       // Schedule alarm if enabled
-      if (_hasAlarm) {
+      if (habitFormProvider.hasAlarm) {
         await HabitAlarmService.scheduleHabitAlarm(habit);
       }
 
-      if (mounted) {
+      if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Habit "${habit.name}" created successfully!'),

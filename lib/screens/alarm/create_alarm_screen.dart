@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/settings_provider.dart';
-import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/gradient_button.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
+import 'package:upnow/providers/alarm_form_provider.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -20,62 +19,18 @@ class CreateAlarmScreen extends StatefulWidget {
 }
 
 class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
-  late TimeOfDay _selectedTime;
-  late String _label;
-  late DismissType _dismissType;
-  late AlarmRepeat _repeat;
-  late List<bool> _weekdays;
-  late bool _vibrate;
-  late String? _selectedSoundPath;
-  late bool _isMorningAlarm;
-  
   final TextEditingController _labelController = TextEditingController();
-  final AudioPlayer _audioPlayer = AudioPlayer();
-
-  final List<String> _availableSounds = [
-    'assets/sounds/stardust.mp3',
-    'assets/sounds/simplified.mp3',
-    'assets/sounds/lofi.mp3',
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    
-    if (widget.alarm != null) {
-      _selectedTime = TimeOfDay(hour: widget.alarm!.hour, minute: widget.alarm!.minute);
-      _label = widget.alarm!.label;
-      _dismissType = widget.alarm!.dismissType;
-      _repeat = widget.alarm!.repeat;
-      _weekdays = List.from(widget.alarm!.weekdays);
-      _vibrate = widget.alarm!.vibrate;
-      _selectedSoundPath = widget.alarm!.soundPath;
-      _isMorningAlarm = widget.alarm!.isMorningAlarm;
-    } else {
-      final now = TimeOfDay.now();
-      _selectedTime = TimeOfDay(hour: now.hour, minute: now.minute);
-      _label = 'Alarm';
-      _dismissType = DismissType.math;
-      _repeat = AlarmRepeat.once;
-      _weekdays = List.filled(7, false);
-      _vibrate = true;
-      _selectedSoundPath = _availableSounds.isNotEmpty ? _availableSounds[0] : null;
-      _isMorningAlarm = false;
-    }
-    
-    _labelController.text = _label;
-  }
-
-  @override
-  void dispose() {
-    _labelController.dispose();
-    _audioPlayer.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ChangeNotifierProvider(
+      create: (_) => AlarmFormProvider(initial: widget.alarm),
+      child: Consumer<AlarmFormProvider>(builder: (context, form, _) {
+        _labelController.value = _labelController.value.copyWith(
+          text: form.label,
+          selection: TextSelection.collapsed(offset: form.label.length),
+        );
+        return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       appBar: AppBar(
         title: Text(widget.alarm == null ? 'Add Alarm' : 'Edit Alarm'),
@@ -87,47 +42,49 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTimeSelector(),
+            _buildTimeSelector(form),
             const SizedBox(height: 24),
-            _buildLabelInput(),
+            _buildLabelInput(form),
             const SizedBox(height: 24),
-            _buildDismissTypeSelector(),
+            _buildDismissTypeSelector(form),
             const SizedBox(height: 24),
-            _buildRepeatSelector(),
-            if (_repeat == AlarmRepeat.custom) 
+            _buildRepeatSelector(form),
+            if (form.repeat == AlarmRepeat.custom) 
               Padding(
                 padding: const EdgeInsets.only(top: 16),
-                child: _buildWeekdaySelector(),
+                child: _buildWeekdaySelector(form),
               ),
             const SizedBox(height: 24),
-            _buildSoundSelector(),
+            _buildSoundSelector(form),
             const SizedBox(height: 24),
-            _buildVibrationOption(),
+            _buildVibrationOption(form),
             const SizedBox(height: 16),
-            _buildMorningAlarmOption(),
+            _buildMorningAlarmOption(form),
             const SizedBox(height: 36),
             GradientButton(
               text: 'Save Alarm',
-              onPressed: _saveAlarm,
+              onPressed: () => _saveAlarm(context, form),
             ),
           ],
         ),
       ),
     );
+      }),
+    );
   }
 
-  Widget _buildTimeSelector() {
+  Widget _buildTimeSelector(AlarmFormProvider form) {
     final settings = Provider.of<SettingsProvider>(context);
     
     // Create a DateTime object for formatting
-    final time = DateTime(2023, 1, 1, _selectedTime.hour, _selectedTime.minute);
+    final time = DateTime(2023, 1, 1, form.selectedTime.hour, form.selectedTime.minute);
     final formattedTime = settings.is24HourFormat 
         ? DateFormat.Hm().format(time) // HH:mm
         : DateFormat.jm().format(time); // h:mm a
     
     return Center(
       child: GestureDetector(
-        onTap: _showTimePicker,
+        onTap: () => _showTimePicker(context, form),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 24),
           decoration: BoxDecoration(
@@ -158,7 +115,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildLabelInput() {
+  Widget _buildLabelInput(AlarmFormProvider form) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -181,17 +138,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             ),
             prefixIcon: const Icon(Icons.label_outline, color: AppTheme.secondaryTextColor),
           ),
-          onChanged: (value) {
-            setState(() {
-              _label = value;
-            });
-          },
+          onChanged: (value) => form.setLabel(value),
         ),
       ],
     );
   }
 
-  Widget _buildDismissTypeSelector() {
+  Widget _buildDismissTypeSelector(AlarmFormProvider form) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -252,7 +205,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     required String title,
     required Color color,
   }) {
-    final isSelected = _dismissType == type;
+    final form = context.read<AlarmFormProvider>();
+    final isSelected = form.dismissType == type;
     final bool isComingSoon = type != DismissType.math && type != DismissType.normal;
     // Create a global key for the tooltip
     final GlobalKey tooltipKey = GlobalKey();
@@ -367,16 +321,14 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           );
           // Don't change the selected option
         } else {
-          setState(() {
-            _dismissType = type;
-          });
+          form.setDismissType(type);
         }
       },
       child: optionWidget,
     );
   }
 
-  Widget _buildRepeatSelector() {
+  Widget _buildRepeatSelector(AlarmFormProvider form) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -388,26 +340,22 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         Wrap(
           spacing: 8,
           children: [
-            _buildRepeatOption(AlarmRepeat.once, 'Once'),
-            _buildRepeatOption(AlarmRepeat.daily, 'Every Day'),
-            _buildRepeatOption(AlarmRepeat.weekdays, 'Weekdays'),
-            _buildRepeatOption(AlarmRepeat.weekends, 'Weekends'),
-            _buildRepeatOption(AlarmRepeat.custom, 'Custom'),
+            _buildRepeatOption(form, AlarmRepeat.once, 'Once'),
+            _buildRepeatOption(form, AlarmRepeat.daily, 'Every Day'),
+            _buildRepeatOption(form, AlarmRepeat.weekdays, 'Weekdays'),
+            _buildRepeatOption(form, AlarmRepeat.weekends, 'Weekends'),
+            _buildRepeatOption(form, AlarmRepeat.custom, 'Custom'),
           ],
         ),
       ],
     );
   }
 
-  Widget _buildRepeatOption(AlarmRepeat repeat, String label) {
-    final isSelected = _repeat == repeat;
+  Widget _buildRepeatOption(AlarmFormProvider form, AlarmRepeat repeat, String label) {
+    final isSelected = form.repeat == repeat;
     
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _repeat = repeat;
-        });
-      },
+      onTap: () => form.setRepeat(repeat),
       child: Chip(
         backgroundColor: isSelected ? AppTheme.primaryColor : AppTheme.darkCardColor,
         label: Text(
@@ -421,7 +369,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildWeekdaySelector() {
+  Widget _buildWeekdaySelector(AlarmFormProvider form) {
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     
     return Column(
@@ -446,14 +394,11 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Widget _buildDayToggle(int dayIndex, String label) {
-    final isSelected = _weekdays[dayIndex];
+    final form = context.read<AlarmFormProvider>();
+    final isSelected = form.weekdays[dayIndex];
     
     return GestureDetector(
-      onTap: () {
-        setState(() {
-          _weekdays[dayIndex] = !_weekdays[dayIndex];
-        });
-      },
+      onTap: () => form.toggleWeekday(dayIndex),
       child: Container(
         width: 40,
         height: 40,
@@ -474,9 +419,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildSoundSelector() {
-    String displaySound = _selectedSoundPath != null && _selectedSoundPath!.isNotEmpty
-        ? p.basename(_selectedSoundPath!)
+  Widget _buildSoundSelector(AlarmFormProvider form) {
+    String displaySound = form.selectedSoundPath != null && form.selectedSoundPath!.isNotEmpty
+        ? p.basename(form.selectedSoundPath!)
         : 'Default'; 
 
     return ListTile(
@@ -494,13 +439,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.secondaryTextColor),
         ],
       ),
-      onTap: _showSoundSelectionDialog,
+      onTap: () => _showSoundSelectionDialog(context, form),
     );
   }
 
-  void _showSoundSelectionDialog() {
+  void _showSoundSelectionDialog(BuildContext context, AlarmFormProvider form) {
     // Store the initially selected path to manage temporary selection in the dialog
-    String? tempSelectedPath = _selectedSoundPath; 
+    String? tempSelectedPath = form.selectedSoundPath; 
 
     showDialog(
       context: context,
@@ -517,7 +462,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               children: [
                 // Map sounds to dialog options
-                ..._availableSounds.map((soundPath) {
+                ...form.availableSounds.map((soundPath) {
                   final fileName = p.basename(soundPath);
                   // Check if this sound is the one temporarily selected in the dialog
                   final isTemporarilySelected = tempSelectedPath == soundPath; 
@@ -526,11 +471,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                     onPressed: () async {
                       String relativePath = ''; // Declare outside try
                       try {
-                        await _audioPlayer.stop(); // Stop previous sound
-                        await _audioPlayer.setReleaseMode(ReleaseMode.loop); // Loop the sound until user decides
+                        await form.stopPreview(); // Stop previous sound
                         relativePath = soundPath.replaceFirst('assets/', ''); // Assign inside try
                         debugPrint('Previewing sound: $relativePath'); 
-                        await _audioPlayer.play(AssetSource(relativePath)); // Play preview
+                        await form.previewSound(soundPath); // Play preview
                         
                         // Update the temporary selection within the dialog ONLY
                         dialogSetState(() { 
@@ -578,7 +522,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                       TextButton(
                         child: const Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor)),
                         onPressed: () async {
-                          await _audioPlayer.stop(); // Stop preview on cancel
+                          await form.stopPreview(); // Stop preview on cancel
                           Navigator.pop(context); // Close dialog
                         },
                       ),
@@ -586,11 +530,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                       TextButton(
                         child: Text('OK', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
                         onPressed: () async {
-                           await _audioPlayer.stop(); // Stop preview on OK
-                           // Update the main screen state with the temporary selection
-                           setState(() {
-                             _selectedSoundPath = tempSelectedPath;
-                           });
+                            await form.stopPreview(); // Stop preview on OK
+                            form.setSelectedSoundPath(tempSelectedPath);
                            Navigator.pop(context); // Close dialog
                         },
                       ),
@@ -605,7 +546,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     ); // Removed .then() as stopping is handled by buttons now
   }
 
-  Widget _buildVibrationOption() {
+  Widget _buildVibrationOption(AlarmFormProvider form) {
     return SwitchListTile(
       title: const Text(
         'Vibrate',
@@ -614,13 +555,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
-      value: _vibrate,
+      value: form.vibrate,
       activeColor: AppTheme.primaryColor,
-      onChanged: (value) {
-        setState(() {
-          _vibrate = value;
-        });
-      },
+      onChanged: (value) => form.setVibrate(value),
       tileColor: AppTheme.darkCardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -628,7 +565,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildMorningAlarmOption() {
+  Widget _buildMorningAlarmOption(AlarmFormProvider form) {
     return SwitchListTile(
       title: const Text(
         'Morning Wake-Up Alarm',
@@ -644,19 +581,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           fontSize: 12,
         ),
       ),
-      value: _isMorningAlarm,
+      value: form.isMorningAlarm,
       activeColor: Colors.orange,
-      onChanged: (value) {
-        setState(() {
-          _isMorningAlarm = value;
-          if (value) {
-            // When setting as morning alarm, suggest daily repeat
-            if (_repeat == AlarmRepeat.once) {
-              _repeat = AlarmRepeat.daily;
-            }
-          }
-        });
-      },
+      onChanged: (value) => form.setMorningAlarm(value),
       tileColor: AppTheme.darkCardColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(12),
@@ -664,10 +591,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Future<void> _showTimePicker() async {
+  Future<void> _showTimePicker(BuildContext context, AlarmFormProvider form) async {
     final pickedTime = await showTimePicker(
       context: context,
-      initialTime: _selectedTime,
+      initialTime: form.selectedTime,
       initialEntryMode: TimePickerEntryMode.dial,
       builder: (BuildContext context, Widget? child) {
         // Wrap with MediaQuery to use 12-hour format
@@ -692,51 +619,18 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
     
     if (pickedTime != null) {
-      setState(() {
-        _selectedTime = pickedTime;
-      });
+      form.setSelectedTime(pickedTime);
     }
   }
 
-  Future<void> _saveAlarm() async {
-    if (_label.isEmpty) {
-      _label = 'Alarm';
-    }
-    
-    // Ensure we're using a supported dismiss type
-    if (_dismissType != DismissType.math && _dismissType != DismissType.normal) {
-      // Force to math problem as other types aren't implemented yet
-      _dismissType = DismissType.math;
-    }
-    
-    final alarm = widget.alarm != null
-        ? widget.alarm!
-        : AlarmModel(
-            hour: _selectedTime.hour,
-            minute: _selectedTime.minute,
-          );
-    
-    alarm.hour = _selectedTime.hour;
-    alarm.minute = _selectedTime.minute;
-    alarm.label = _label;
-    alarm.dismissType = _dismissType;
-    alarm.repeat = _repeat;
-    alarm.weekdays = _weekdays;
-    alarm.vibrate = _vibrate;
-    alarm.soundPath = _selectedSoundPath ?? '';
-    alarm.isMorningAlarm = _isMorningAlarm;
-    
-    debugPrint('Setting alarm for ${_selectedTime.hour}:${_selectedTime.minute} (${alarm.hour}:${alarm.minute})');
-    
+  Future<void> _saveAlarm(BuildContext context, AlarmFormProvider form) async {
+    final alarm = form.buildOrUpdate(widget.alarm);
     final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
     if (widget.alarm != null) {
       await alarmProvider.updateAlarm(alarm);
     } else {
       await alarmProvider.addAlarm(alarm);
     }
-    
-    if (mounted) {
-      Navigator.pop(context, true);
-    }
+    if (mounted) Navigator.pop(context, true);
   }
 } 

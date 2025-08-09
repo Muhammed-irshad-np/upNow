@@ -5,6 +5,8 @@ import 'package:upnow/database/hive_database.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:upnow/providers/settings_provider.dart';
+import 'package:upnow/providers/navigation_provider.dart';
+import 'package:upnow/providers/onboarding_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:upnow/screens/alarm/congratulations_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
@@ -71,6 +73,8 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => AlarmProvider()),
             ChangeNotifierProvider(create: (_) => SettingsProvider()),
             ChangeNotifierProvider(create: (_) => HabitService()),
+            ChangeNotifierProvider(create: (_) => NavigationProvider()),
+            ChangeNotifierProvider(create: (_) => OnboardingProvider()),
             // ChangeNotifierProvider(create: (_) => SleepProvider()), // Commented out for first phase
           ],
           child: MaterialApp(
@@ -103,9 +107,6 @@ class StartupScreen extends StatefulWidget {
 }
 
 class _StartupScreenState extends State<StartupScreen> {
-  bool _isLoading = true;
-  bool _hasCompletedOnboarding = false;
-
   @override
   void initState() {
     super.initState();
@@ -113,28 +114,30 @@ class _StartupScreenState extends State<StartupScreen> {
   }
 
   Future<void> _checkOnboardingStatus() async {
-    final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
-    // final hasCompleted = false;
-    setState(() {
-      _hasCompletedOnboarding = hasCompleted;
-      _isLoading = false;
-    });
+    final onboardingProvider = Provider.of<OnboardingProvider>(context, listen: false);
+    await onboardingProvider.checkOnboardingStatus();
   }
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: AppTheme.darkBackground,
-        body: Center(
-          child: CircularProgressIndicator(
-            color: AppTheme.primaryColor,
-          ),
-        ),
-      );
-    }
-    
-    return _hasCompletedOnboarding ? const MainScreen() : const OnboardingScreen();
+    return Consumer<OnboardingProvider>(
+      builder: (context, onboardingProvider, child) {
+        if (onboardingProvider.isLoading) {
+          return Scaffold(
+            backgroundColor: AppTheme.darkBackground,
+            body: Center(
+              child: CircularProgressIndicator(
+                color: AppTheme.primaryColor,
+              ),
+            ),
+          );
+        }
+        
+        return onboardingProvider.hasCompletedOnboarding 
+            ? const MainScreen() 
+            : const OnboardingScreen();
+      },
+    );
   }
 }
 
@@ -146,8 +149,6 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
-  int _currentIndex = 0;
-
   final List<Widget> _screens = [
     const AlarmScreen(),
     const HabitHomeScreen(),
@@ -174,85 +175,87 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint("App Lifecycle State Changed: $state");
   }
 
-  // Removed unused _requestPermissions to keep lints clean
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _screens[_currentIndex],
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        child: Container(
-          height: 72,
-          decoration: BoxDecoration(
-            color: AppTheme.darkSurface,
-            borderRadius: BorderRadius.circular(24),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
+    return Consumer<NavigationProvider>(
+      builder: (context, navigationProvider, child) {
+        return Scaffold(
+          body: _screens[navigationProvider.currentIndex],
+          bottomNavigationBar: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: Container(
+              height: 72,
+              decoration: BoxDecoration(
+                color: AppTheme.darkSurface,
+                borderRadius: BorderRadius.circular(24),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final double segmentWidth = constraints.maxWidth / 3;
-              return Stack(
-                children: [
-                  // Switch-like full block indicator
-                  AnimatedPositioned(
-                    duration: const Duration(milliseconds: 280),
-                    curve: Curves.easeInOut,
-                    left: _currentIndex * segmentWidth,
-                    top: 6,
-                    bottom: 6,
-                    child: Container(
-                      width: segmentWidth,
-                      decoration: BoxDecoration(
-                        color: AppTheme.primaryColor,
-                        borderRadius: BorderRadius.circular(18),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.35),
-                            blurRadius: 16,
-                            offset: const Offset(0, 6),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final double segmentWidth = constraints.maxWidth / 3;
+                  return Stack(
+                    children: [
+                      // Switch-like full block indicator
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 280),
+                        curve: Curves.easeInOut,
+                        left: navigationProvider.currentIndex * segmentWidth,
+                        top: 6,
+                        bottom: 6,
+                        child: Container(
+                          width: segmentWidth,
+                          decoration: BoxDecoration(
+                            color: AppTheme.primaryColor,
+                            borderRadius: BorderRadius.circular(18),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppTheme.primaryColor.withOpacity(0.35),
+                                blurRadius: 16,
+                                offset: const Offset(0, 6),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          _NavItem(
+                            width: segmentWidth,
+                            icon: navigationProvider.currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
+                            label: 'Alarms',
+                            selected: navigationProvider.currentIndex == 0,
+                            onTap: () => navigationProvider.setCurrentIndex(0),
+                          ),
+                          _NavItem(
+                            width: segmentWidth,
+                            icon: navigationProvider.currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
+                            label: 'Habits',
+                            selected: navigationProvider.currentIndex == 1,
+                            onTap: () => navigationProvider.setCurrentIndex(1),
+                          ),
+                          _NavItem(
+                            width: segmentWidth,
+                            icon: navigationProvider.currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
+                            label: 'Settings',
+                            selected: navigationProvider.currentIndex == 2,
+                            onTap: () => navigationProvider.setCurrentIndex(2),
                           ),
                         ],
                       ),
-                    ),
-                  ),
-                  Row(
-                    children: [
-                      _NavItem(
-                        width: segmentWidth,
-                        icon: _currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
-                        label: 'Alarms',
-                        selected: _currentIndex == 0,
-                        onTap: () => setState(() => _currentIndex = 0),
-                      ),
-                      _NavItem(
-                        width: segmentWidth,
-                        icon: _currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
-                        label: 'Habits',
-                        selected: _currentIndex == 1,
-                        onTap: () => setState(() => _currentIndex = 1),
-                      ),
-                      _NavItem(
-                        width: segmentWidth,
-                        icon: _currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
-                        label: 'Settings',
-                        selected: _currentIndex == 2,
-                        onTap: () => setState(() => _currentIndex = 2),
-                      ),
                     ],
-                  ),
-                ],
-              );
-            },
+                  );
+                },
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

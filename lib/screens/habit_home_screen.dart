@@ -7,6 +7,7 @@ import 'package:upnow/widgets/habit_grid_widget.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
 import 'package:upnow/screens/habit_detail_screen.dart';
 import 'package:upnow/screens/habit_analytics_screen.dart';
+import 'package:upnow/providers/habit_view_provider.dart';
 
 class HabitHomeScreen extends StatefulWidget {
   const HabitHomeScreen({Key? key}) : super(key: key);
@@ -16,8 +17,6 @@ class HabitHomeScreen extends StatefulWidget {
 }
 
 class _HabitHomeScreenState extends State<HabitHomeScreen> {
-  bool showWeeklyView = true;
-
   @override
   void initState() {
     super.initState();
@@ -28,45 +27,48 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: Consumer<HabitService>(
-        builder: (context, habitService, child) {
+    return ChangeNotifierProvider(
+      create: (_) => HabitViewProvider(),
+      child: Consumer2<HabitService, HabitViewProvider>(
+        builder: (context, habitService, habitViewProvider, child) {
           final activeHabits = habitService.getActiveHabits();
           
-          return CustomScrollView(
-            slivers: [
-              _buildAppBar(context, activeHabits.length),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildTodayOverview(context, habitService, activeHabits),
-                      const SizedBox(height: 24),
-                      _buildViewToggle(),
-                      const SizedBox(height: 16),
-                    ],
+          return Scaffold(
+            backgroundColor: Theme.of(context).scaffoldBackgroundColor,
+            body: CustomScrollView(
+              slivers: [
+                _buildAppBar(context, activeHabits.length),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTodayOverview(context, habitService, activeHabits),
+                        const SizedBox(height: 24),
+                        _buildViewToggle(habitViewProvider),
+                        const SizedBox(height: 16),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-              if (activeHabits.isEmpty)
-                _buildEmptyState(context)
-              else
-                _buildHabitsList(context, habitService, activeHabits),
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 100), // Bottom padding
-              ),
-            ],
+                if (activeHabits.isEmpty)
+                  _buildEmptyState(context)
+                else
+                  _buildHabitsList(context, habitService, activeHabits, habitViewProvider),
+                const SliverToBoxAdapter(
+                  child: SizedBox(height: 100), // Bottom padding
+                ),
+              ],
+            ),
+            floatingActionButton: FloatingActionButton(
+              onPressed: () => _navigateToAddHabit(context),
+              backgroundColor: Theme.of(context).primaryColor,
+              foregroundColor: Colors.white,
+              child: const Icon(Icons.add),
+            ),
           );
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _navigateToAddHabit(context),
-        backgroundColor: Theme.of(context).primaryColor,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -273,7 +275,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     });
   }
 
-  Widget _buildViewToggle() {
+  Widget _buildViewToggle(HabitViewProvider habitViewProvider) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.grey[200],
@@ -284,13 +286,13 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         children: [
           _buildToggleButton(
             'Week',
-            showWeeklyView,
-            () => setState(() => showWeeklyView = true),
+            habitViewProvider.showWeeklyView,
+            () => habitViewProvider.setShowWeeklyView(true),
           ),
           _buildToggleButton(
             'Year',
-            !showWeeklyView,
-            () => setState(() => showWeeklyView = false),
+            !habitViewProvider.showWeeklyView,
+            () => habitViewProvider.setShowWeeklyView(false),
           ),
         ],
       ),
@@ -368,14 +370,14 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     );
   }
 
-  Widget _buildHabitsList(BuildContext context, HabitService habitService, List<HabitModel> habits) {
+  Widget _buildHabitsList(BuildContext context, HabitService habitService, List<HabitModel> habits, HabitViewProvider habitViewProvider) {
     return SliverList(
       delegate: SliverChildBuilderDelegate(
         (context, index) {
           final habit = habits[index];
           return Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: _buildHabitCard(context, habitService, habit),
+            child: _buildHabitCard(context, habitService, habit, habitViewProvider),
           );
         },
         childCount: habits.length,
@@ -383,7 +385,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     );
   }
 
-  Widget _buildHabitCard(BuildContext context, HabitService habitService, HabitModel habit) {
+  Widget _buildHabitCard(BuildContext context, HabitService habitService, HabitModel habit, HabitViewProvider habitViewProvider) {
     final stats = habitService.getHabitStats(habit.id);
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(habit.id, today);
@@ -486,7 +488,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (showWeeklyView)
+              if (habitViewProvider.showWeeklyView)
                 HabitWeeklyGridWidget(
                   habitId: habit.id,
                   startDate: _getWeekStart(today),

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/widgets/habit_grid_widget.dart';
+import 'package:upnow/providers/habit_analytics_provider.dart';
 
 class HabitAnalyticsScreen extends StatefulWidget {
   const HabitAnalyticsScreen({Key? key}) : super(key: key);
@@ -14,19 +15,19 @@ class HabitAnalyticsScreen extends StatefulWidget {
 }
 
 class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
-  String selectedPeriod = 'week';
-  HabitModel? selectedHabit;
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return ChangeNotifierProvider(
+      create: (_) => HabitAnalyticsProvider(),
+      child: Scaffold(
       appBar: AppBar(
         title: const Text('Habit Analytics'),
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: Consumer<HabitService>(
-        builder: (context, habitService, child) {
+      body: Consumer2<HabitService, HabitAnalyticsProvider>(
+        builder: (context, habitService, analytics, child) {
           final habits = habitService.getActiveHabits();
           
           if (habits.isEmpty) {
@@ -40,16 +41,16 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
               children: [
                 _buildOverallStats(habitService, habits),
                 const SizedBox(height: 24),
-                _buildHabitSelector(habits),
+                _buildHabitSelector(analytics, habits),
                 const SizedBox(height: 24),
-                _buildPeriodSelector(),
+                _buildPeriodSelector(analytics),
                 const SizedBox(height: 24),
-                if (selectedHabit != null) ...[
-                  _buildHabitAnalytics(habitService, selectedHabit!),
+                if (analytics.selectedHabit != null) ...[
+                  _buildHabitAnalytics(habitService, analytics.selectedHabit!),
                   const SizedBox(height: 24),
-                  _buildProgressChart(habitService, selectedHabit!),
+                  _buildProgressChart(habitService, analytics.selectedHabit!, analytics.selectedPeriod),
                   const SizedBox(height: 24),
-                  _buildStreakAnalysis(habitService, selectedHabit!),
+                  _buildStreakAnalysis(habitService, analytics.selectedHabit!),
                 ] else
                   _buildAllHabitsOverview(habitService, habits),
               ],
@@ -57,6 +58,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
           );
         },
       ),
+    ),
     );
   }
 
@@ -96,14 +98,14 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
     int totalStreaks = 0;
     double avgCompletionRate = 0;
     int totalCompletions = 0;
-    int activeDays = 0;
+    // int activeDays = 0; // removed (unused)
 
     for (final habit in habits) {
       final stats = habitService.getHabitStats(habit.id);
       totalStreaks += stats.currentStreak;
       avgCompletionRate += stats.completionRate;
       totalCompletions += stats.totalCompletions;
-      activeDays = DateTime.now().difference(habit.createdAt).inDays + 1;
+      // previously tracked activeDays; removed as unused
     }
 
     if (habits.isNotEmpty) {
@@ -206,7 +208,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
     );
   }
 
-  Widget _buildHabitSelector(List<HabitModel> habits) {
+  Widget _buildHabitSelector(HabitAnalyticsProvider analytics, List<HabitModel> habits) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -222,7 +224,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
             ),
             const SizedBox(height: 16),
             DropdownButtonFormField<HabitModel?>(
-              value: selectedHabit,
+              value: analytics.selectedHabit,
               decoration: const InputDecoration(
                 labelText: 'Select Habit',
                 border: OutlineInputBorder(),
@@ -250,11 +252,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
                   ),
                 )),
               ],
-              onChanged: (habit) {
-                setState(() {
-                  selectedHabit = habit;
-                });
-              },
+              onChanged: (habit) => analytics.setSelectedHabit(habit),
             ),
           ],
         ),
@@ -262,7 +260,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
     );
   }
 
-  Widget _buildPeriodSelector() {
+  Widget _buildPeriodSelector(HabitAnalyticsProvider analytics) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -279,11 +277,11 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
             const SizedBox(height: 16),
             Row(
               children: [
-                _buildPeriodChip('Week', 'week'),
+                _buildPeriodChip(analytics, 'Week', 'week'),
                 const SizedBox(width: 8),
-                _buildPeriodChip('Month', 'month'),
+                _buildPeriodChip(analytics, 'Month', 'month'),
                 const SizedBox(width: 8),
-                _buildPeriodChip('Year', 'year'),
+                _buildPeriodChip(analytics, 'Year', 'year'),
               ],
             ),
           ],
@@ -292,16 +290,14 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
     );
   }
 
-  Widget _buildPeriodChip(String label, String value) {
-    final isSelected = selectedPeriod == value;
+  Widget _buildPeriodChip(HabitAnalyticsProvider analytics, String label, String value) {
+    final isSelected = analytics.selectedPeriod == value;
     return ChoiceChip(
       label: Text(label),
       selected: isSelected,
       onSelected: (selected) {
         if (selected) {
-          setState(() {
-            selectedPeriod = value;
-          });
+          analytics.setSelectedPeriod(value);
         }
       },
       selectedColor: Theme.of(context).primaryColor.withOpacity(0.2),
@@ -415,7 +411,7 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
     );
   }
 
-  Widget _buildProgressChart(HabitService habitService, HabitModel habit) {
+  Widget _buildProgressChart(HabitService habitService, HabitModel habit, String selectedPeriod) {
     final entries = habitService.getHabitEntries(habit.id);
     final now = DateTime.now();
     final days = selectedPeriod == 'week' ? 7 : (selectedPeriod == 'month' ? 30 : 365);

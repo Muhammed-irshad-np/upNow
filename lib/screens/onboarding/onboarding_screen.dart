@@ -3,6 +3,8 @@ import 'package:upnow/screens/onboarding/onboarding_pages.dart';
 import 'package:upnow/screens/onboarding/permissions_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/preferences_helper.dart';
+import 'package:provider/provider.dart';
+import 'package:upnow/providers/onboarding_provider.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,7 +15,6 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
-  int _currentPage = 0;
   final int _totalPages = onboardingPages.length;
 
   @override
@@ -22,8 +23,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     super.dispose();
   }
 
-  void _onNextPage() {
-    if (_currentPage < _totalPages - 1) {
+  void _onNextPage(OnboardingProvider p) {
+    if (p.currentPage < _totalPages - 1) {
       _pageController.nextPage(
         duration: const Duration(milliseconds: 300),
         curve: Curves.easeInOut,
@@ -48,7 +49,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return Scaffold(
       backgroundColor: AppTheme.darkBackground,
       body: SafeArea(
-        child: Column(
+        child: Consumer<OnboardingProvider>(builder: (context, provider, _) {
+          return Column(
           children: [
             // Skip button
             Align(
@@ -73,11 +75,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               child: PageView.builder(
                 controller: _pageController,
                 itemCount: _totalPages,
-                onPageChanged: (int page) {
-                  setState(() {
-                    _currentPage = page;
-                  });
-                },
+                onPageChanged: (int page) => provider.setCurrentPage(page),
                 itemBuilder: (context, index) {
                   return onboardingPages[index];
                 },
@@ -100,7 +98,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         height: 10,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: _currentPage == index
+                          color: provider.currentPage == index
                               ? AppTheme.primaryColor
                               : AppTheme.secondaryTextColor.withOpacity(0.3),
                         ),
@@ -110,7 +108,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   
                   // Next button
                   ElevatedButton(
-                    onPressed: _onNextPage,
+                    onPressed: () => _onNextPage(provider),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppTheme.primaryColor,
                       shape: RoundedRectangleBorder(
@@ -122,7 +120,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                       ),
                     ),
                     child: Text(
-                      _currentPage == _totalPages - 1 ? 'Get Started' : 'Next',
+                      provider.currentPage == _totalPages - 1 ? 'Get Started' : 'Next',
                       style: const TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -134,7 +132,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
               ),
             ),
           ],
-        ),
+        );
+        }),
       ),
     );
   }

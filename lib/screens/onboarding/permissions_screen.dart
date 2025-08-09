@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:upnow/main.dart';
 import 'package:upnow/services/permissions_manager.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:provider/provider.dart';
+import 'package:upnow/providers/permissions_provider.dart';
 
 class PermissionsScreen extends StatefulWidget {
   const PermissionsScreen({super.key});
@@ -11,7 +13,6 @@ class PermissionsScreen extends StatefulWidget {
 }
 
 class _PermissionsScreenState extends State<PermissionsScreen> {
-  bool _isRequestingPermissions = false;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +21,10 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Column(
+          child: ChangeNotifierProvider(
+            create: (_) => PermissionsProvider(),
+            child: Consumer<PermissionsProvider>(builder: (context, provider, _) {
+              return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 40),
@@ -79,7 +83,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 children: [
                   Expanded(
                     child: TextButton(
-                      onPressed: _isRequestingPermissions
+                      onPressed: provider.isRequesting
                           ? null
                           : _skipPermissions,
                       child: Text(
@@ -94,9 +98,9 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                   const SizedBox(width: 16),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: _isRequestingPermissions
+                      onPressed: provider.isRequesting
                           ? null
-                          : _requestPermissions,
+                          : () => _requestPermissions(context, provider),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryColor,
                         padding: const EdgeInsets.symmetric(vertical: 16),
@@ -104,7 +108,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: _isRequestingPermissions
+                      child: provider.isRequesting
                           ? SizedBox(
                               height: 20,
                               width: 20,
@@ -126,6 +130,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 ],
               ),
             ],
+          );
+            }),
           ),
         ),
       ),
@@ -175,10 +181,8 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     );
   }
 
-  Future<void> _requestPermissions() async {
-    setState(() {
-      _isRequestingPermissions = true;
-    });
+  Future<void> _requestPermissions(BuildContext context, PermissionsProvider provider) async {
+    provider.startRequest();
 
     // Request permissions one by one with explanations
     await PermissionsManager.requestNotifications(context);
@@ -186,9 +190,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     await PermissionsManager.requestBatteryOptimization(context);
     await PermissionsManager.requestExactAlarm(context);
 
-    setState(() {
-      _isRequestingPermissions = false;
-    });
+    provider.finishRequest();
 
     if (mounted) {
       Navigator.of(context).pushReplacement(

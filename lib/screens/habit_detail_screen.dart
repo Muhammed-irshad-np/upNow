@@ -4,6 +4,7 @@ import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/widgets/habit_grid_widget.dart';
+import 'package:upnow/providers/habit_detail_provider.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final String habitId;
@@ -18,12 +19,13 @@ class HabitDetailScreen extends StatefulWidget {
 }
 
 class _HabitDetailScreenState extends State<HabitDetailScreen> {
-  int selectedYear = DateTime.now().year;
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<HabitService>(
-      builder: (context, habitService, child) {
+    return ChangeNotifierProvider(
+      create: (_) => HabitDetailProvider(initialYear: DateTime.now().year),
+      child: Consumer2<HabitService, HabitDetailProvider>(
+        builder: (context, habitService, detailProvider, child) {
         final habit = habitService.habits.firstWhere(
           (h) => h.id == widget.habitId,
           orElse: () => throw Exception('Habit not found'),
@@ -45,9 +47,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                       const SizedBox(height: 24),
                       _buildStatsSection(stats),
                       const SizedBox(height: 24),
-                      _buildYearSelector(),
+                      _buildYearSelector(detailProvider),
                       const SizedBox(height: 16),
-                      _buildGridSection(habit),
+                      _buildGridSection(habit, detailProvider),
                       const SizedBox(height: 24),
                       _buildQuickActions(context, habitService, habit),
                     ],
@@ -58,6 +60,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           ),
         );
       },
+      ),
     );
   }
 
@@ -312,7 +315,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildYearSelector() {
+  Widget _buildYearSelector(HabitDetailProvider detailProvider) {
     final currentYear = DateTime.now().year;
     final years = List.generate(5, (index) => currentYear - index);
     
@@ -327,12 +330,10 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         ),
         const SizedBox(width: 8),
         DropdownButton<int>(
-          value: selectedYear,
+          value: detailProvider.selectedYear,
           onChanged: (year) {
             if (year != null) {
-              setState(() {
-                selectedYear = year;
-              });
+              detailProvider.setSelectedYear(year);
             }
           },
           items: years.map((year) {
@@ -346,7 +347,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildGridSection(HabitModel habit) {
+  Widget _buildGridSection(HabitModel habit, HabitDetailProvider detailProvider) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -372,7 +373,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
             const SizedBox(height: 16),
             HabitGridWidget(
               habitId: widget.habitId,
-              year: selectedYear,
+              year: detailProvider.selectedYear,
               showHeader: false,
               onDayTapped: (date) => _toggleHabitCompletion(date),
             ),
@@ -525,7 +526,6 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           TextButton(
             onPressed: () async {
               if (entry != null) {
-                final updatedEntry = entry.copyWith(notes: controller.text.trim());
                 await habitService.markHabitCompleted(
                   widget.habitId,
                   date,
