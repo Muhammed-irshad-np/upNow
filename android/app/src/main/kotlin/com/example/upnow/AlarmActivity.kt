@@ -39,6 +39,7 @@ class AlarmActivity : AppCompatActivity() {
     private var isAlarmActive = true // Flag to track if the alarm is still active
     private var timeUpdateHandler: Handler? = null
     private var timeRunnable: Runnable? = null
+    private var selectedSoundName: String? = null
     
     // Math problem variables
     private var num1: Int = 0
@@ -64,6 +65,7 @@ class AlarmActivity : AppCompatActivity() {
         alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown"
         val alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!"
         val soundName = intent.getStringExtra(EXTRA_ALARM_SOUND) ?: "alarm_sound"
+        selectedSoundName = soundName
         
         Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
         
@@ -123,6 +125,17 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this@AlarmActivity, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    override fun onNewIntent(intent: Intent?) {
+        super.onNewIntent(intent)
+        if (intent == null) return
+        setIntent(intent)
+        // Keep track of the sound name if a new intent provides it
+        intent.getStringExtra(EXTRA_ALARM_SOUND)?.let {
+            selectedSoundName = it
+            Log.d(TAG, "Updated selectedSoundName from new intent: $it")
+        }
     }
     
     private fun setupTimeDisplay() {
@@ -409,6 +422,10 @@ class AlarmActivity : AppCompatActivity() {
             val relaunchIntent = Intent(this, AlarmActivity::class.java).apply {
                 // Add flags to reorder it to the front if it exists
                 addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                // Preserve original extras so custom sound is kept
+                alarmId?.let { putExtra(EXTRA_ALARM_ID, it) }
+                intent.getStringExtra(EXTRA_ALARM_LABEL)?.let { putExtra(EXTRA_ALARM_LABEL, it) }
+                selectedSoundName?.let { putExtra(EXTRA_ALARM_SOUND, it) }
             }
             startActivity(relaunchIntent)
         }
