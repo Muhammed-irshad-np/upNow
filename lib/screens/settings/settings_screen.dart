@@ -16,6 +16,7 @@ import 'package:upnow/screens/settings/feedback_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -53,8 +54,9 @@ class SettingsScreen extends StatelessWidget {
                 onTap: () {
                   // Future: Show language picker
                 },
-                isLast: true,
+                isLast: false,
               ),
+              _buildAppVersionTile(),
             ],
           ),
           SizedBox(height: 32.h),
@@ -199,6 +201,35 @@ class SettingsScreen extends StatelessWidget {
     if (pickedTime != null) {
       await alarmProvider.updateMorningAlarm(pickedTime.hour, pickedTime.minute);
     }
+  }
+
+  Widget _buildAppVersionTile() {
+    return FutureBuilder<PackageInfo>(
+      future: PackageInfo.fromPlatform(),
+      builder: (context, snapshot) {
+        final String displayText;
+        if (snapshot.hasData) {
+          final info = snapshot.data!;
+          // Example: 1.0.0 (6)
+          displayText = '${info.version} (${info.buildNumber})';
+        } else {
+          displayText = '—';
+        }
+
+        return _buildSettingTile(
+          icon: Icons.info_outline,
+          title: 'App Version',
+          trailing: Text(
+            displayText,
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          isLast: true,
+        );
+      },
+    );
   }
 
   Widget _buildSectionTitle(String title) {
