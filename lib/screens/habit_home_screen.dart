@@ -75,12 +75,14 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   Widget _buildAppBar(BuildContext context, int habitCount) {
     return SliverAppBar(
-      expandedHeight: 120,
+      expandedHeight: 180,
       floating: false,
       pinned: true,
       backgroundColor: Theme.of(context).primaryColor,
       elevation: 0,
       flexibleSpace: FlexibleSpaceBar(
+        titlePadding: const EdgeInsetsDirectional.only(start: 16, bottom: 16),
+        expandedTitleScale: 1.4,
         title: const Text(
           'Habits',
           style: TextStyle(
@@ -99,30 +101,32 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               ],
             ),
           ),
-          child: Padding(
-            padding: const EdgeInsets.only(left: 16, right: 16, bottom: 16),
-            child: Align(
-              alignment: Alignment.bottomLeft,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
-                  Text(
-                    DateFormat('EEEE, MMMM d').format(DateTime.now()),
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 16,
+          child: SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.only(left: 16, right: 16, top: 8),
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('EEEE, MMMM d').format(DateTime.now()),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 16,
+                      ),
                     ),
-                  ),
-                  Text(
-                    '$habitCount Active Habits',
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 14,
+                    Text(
+                      '$habitCount Active Habits',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
