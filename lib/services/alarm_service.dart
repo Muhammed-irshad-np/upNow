@@ -199,7 +199,10 @@ class AlarmService {
       case 'openCongratulationsScreen':
         try {
           // Navigate to congratulations screen using global navigator key
-          navigatorKey.currentState?.pushNamed('/congratulations');
+          navigatorKey.currentState?.pushNamedAndRemoveUntil(
+            '/congratulations',
+            (route) => route.isFirst || route.settings.name == '/',
+          );
           debugPrint('📱 ALARM SERVICE: Opened congratulations screen');
         } catch (e) {
           debugPrint('📱 ALARM SERVICE: Error opening congratulations screen: $e');

@@ -385,8 +385,21 @@ class AlarmActivity : AppCompatActivity() {
         
         Log.d(TAG, "Alarm stopped, opening congratulations screen")
         
-        // Open congratulations screen in Flutter
+        // Attempt to open congratulations screen via running Flutter instance (if available)
         MainActivity.openCongratulationsScreenStatic()
+        
+        // Also launch MainActivity with an extra so that if the app is terminated, it will start
+        // and then navigate to the congratulations screen once Flutter is ready.
+        try {
+            val mainIntent = Intent(this, MainActivity::class.java).apply {
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                putExtra("open_congratulations", true)
+            }
+            startActivity(mainIntent)
+            Log.d(TAG, "MainActivity launched with open_congratulations flag")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch MainActivity for congratulations: ${e.message}")
+        }
         
         // Notify Flutter through broadcast (optional, implement if needed)
         val intent = Intent("com.example.upnow.ALARM_DISMISSED")
