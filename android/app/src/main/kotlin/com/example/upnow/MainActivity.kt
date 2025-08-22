@@ -370,6 +370,28 @@ class MainActivity : FlutterActivity() {
     override fun onCreate(savedInstanceState: android.os.Bundle?) {
         super.onCreate(savedInstanceState)
         instance = this
+        // If launched with an instruction to open the congratulations screen, handle it.
+        handleOpenCongratulationsIntent(intent)
+    }
+    
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Handle cases where MainActivity is already running and receives a new intent
+        handleOpenCongratulationsIntent(intent)
+    }
+
+    private fun handleOpenCongratulationsIntent(startIntent: Intent?) {
+        try {
+            if (startIntent?.getBooleanExtra("open_congratulations", false) == true) {
+                Log.d("MainActivity", "Received request via intent to open congratulations screen")
+                // Defer slightly to ensure Flutter is attached
+                window?.decorView?.post {
+                    openCongratulationsScreen()
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error handling open_congratulations intent: ${e.message}")
+        }
     }
     
     override fun onDestroy() {
