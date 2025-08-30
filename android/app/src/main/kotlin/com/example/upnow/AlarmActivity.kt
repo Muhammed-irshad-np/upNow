@@ -69,6 +69,15 @@ class AlarmActivity : AppCompatActivity() {
         
         Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
         
+        // Cancel any active notifications to avoid duplicate audio from backup paths
+        try {
+            val nm = getSystemService(Context.NOTIFICATION_SERVICE) as android.app.NotificationManager
+            nm.cancelAll()
+            Log.d(TAG, "Canceled all notifications on alarm screen launch")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to cancel notifications on launch: ${e.message}")
+        }
+
         // Set alarm title
         val titleTextView = findViewById<TextView>(R.id.alarm_title)
         titleTextView.text = alarmLabel
