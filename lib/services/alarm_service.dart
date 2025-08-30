@@ -404,9 +404,9 @@ class AlarmService {
             channelDescription: 'Channel for alarm notifications',
             importance: Importance.max,
             priority: Priority.max,
-            sound: RawResourceAndroidNotificationSound(soundName),
-            playSound: true,
-            enableVibration: alarm.vibrate,
+            sound: null,
+            playSound: false,
+            enableVibration: false,
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
             autoCancel: false, // Changed to false to keep alarm notification visible
@@ -417,7 +417,13 @@ class AlarmService {
                 'show_alarm',
                 'Show Alarm',
                 showsUserInterface: true,
-                cancelNotification: false,
+                cancelNotification: true,
+              ),
+              const AndroidNotificationAction(
+                'dismiss_alarm',
+                'Dismiss',
+                showsUserInterface: true,
+                cancelNotification: true,
               ),
             ],
           );
@@ -476,9 +482,9 @@ class AlarmService {
         channelDescription: 'Channel for alarm notifications',
         importance: Importance.max,
         priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound(soundName),
-        playSound: true,
-        enableVibration: alarm.vibrate,
+        sound: null,
+        playSound: false,
+        enableVibration: false,
         fullScreenIntent: true,
         category: AndroidNotificationCategory.alarm,
         autoCancel: true,
@@ -488,6 +494,12 @@ class AlarmService {
           const AndroidNotificationAction(
             'show_alarm',
             'Show Alarm',
+            showsUserInterface: true,
+            cancelNotification: true,
+          ),
+          const AndroidNotificationAction(
+            'dismiss_alarm',
+            'Dismiss',
             showsUserInterface: true,
             cancelNotification: true,
           ),
@@ -504,33 +516,17 @@ class AlarmService {
         iOS: iosDetails,
       );
       
-      // Schedule the simple "Wake up!" notification - This is *only* for display
+      // Schedule the audible alarm notification so it rings even under background restrictions
       await _notifications.zonedSchedule(
         notificationId, // Use the consistent ID
         alarm.label.isNotEmpty ? alarm.label : 'Alarm', // Title
-        'Wake up!', // Simplified Body
+        'Wake up!', // Body
         tzScheduledDate, // Scheduled time
-        // Modify details for silent informational notification
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'alarm_channel', // Use the same channel ID
-            'Alarm Notifications',
-            channelDescription: 'Channel for alarm notifications',
-            importance: Importance.max, 
-            priority: Priority.high,
-            playSound: false, // *** Make this notification silent ***
-            sound: null,      // *** Remove specific sound ***
-            enableVibration: false, // No vibration needed here either
-          ),
-          // Keep basic iOS settings if needed, also silent
-          iOS: DarwinNotificationDetails(
-            presentSound: false,
-          )
-        ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
+        notificationDetails, // Use audible details with actions
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: _getDateTimeComponents(alarm.repeat), // Enable recurring notifications
-        payload: alarm.id, // Keep payload just in case
+        matchDateTimeComponents: _getDateTimeComponents(alarm.repeat),
+        payload: alarm.id,
       );
 
       debugPrint('🔔 Informational Notification scheduled for $tzScheduledDate with ID $notificationId');
@@ -555,7 +551,10 @@ class AlarmService {
     
     // For background handling, we can only log and pass the info to the AlarmReceiver
     // The actual launching of the AlarmActivity happens in the native code
-    if (response.payload != null && (response.actionId == 'show_alarm' || response.notificationResponseType == NotificationResponseType.selectedNotification)) {
+    if (response.payload != null && (
+        response.actionId == 'show_alarm' ||
+        response.actionId == 'dismiss_alarm' ||
+        response.notificationResponseType == NotificationResponseType.selectedNotification)) {
       _handleAlarmNotificationAction(response.payload!);
     }
   }
