@@ -101,6 +101,7 @@ class AlarmProvider extends ChangeNotifier {
     return _alarms.where((alarm) => alarm.isMorningAlarm).toList();
   }
   
+  // Get the enabled morning alarm (if any)
   AlarmModel? getActiveMorningAlarm() {
     final morningAlarms = getMorningAlarms()
         .where((alarm) => alarm.isEnabled)
@@ -154,9 +155,12 @@ class AlarmProvider extends ChangeNotifier {
     }
   }
   
+  // Toggle the morning alarm on/off (creates if doesn't exist)
   Future<void> toggleMorningAlarm(bool isEnabled) async {
-    final morningAlarm = getActiveMorningAlarm();
-    if (morningAlarm != null) {
+    final morningAlarms = getMorningAlarms();
+    if (morningAlarms.isNotEmpty) {
+      // Get the first morning alarm (regardless of enabled state)
+      final morningAlarm = morningAlarms.first;
       await toggleAlarm(morningAlarm.id, isEnabled);
     }
   }

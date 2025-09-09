@@ -53,6 +53,12 @@ class AppTheme {
     end: Alignment.bottomRight,
   );
   
+  static const LinearGradient wakeUpGradient = LinearGradient(
+    colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+  
   static const LinearGradient nightGradient = LinearGradient(
     colors: [Color(0xFF2B32B2), Color(0xFF1488CC)],
     begin: Alignment.topLeft,

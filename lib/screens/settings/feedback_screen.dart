@@ -34,45 +34,47 @@ class FeedbackScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: ListView(
-        padding: EdgeInsets.all(16.w),
-        children: [
-          Text(
-            'We would love to hear your thoughts, concerns, or problems with anything so we can improve!',
-            style: TextStyle(
-              fontSize: 14.sp,
-              color: AppTheme.secondaryTextColor,
-            ),
-          ),
-          SizedBox(height: 24.h),
-          TextField(
-            maxLines: 8,
-            style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 16.sp),
-            decoration: InputDecoration(
-              hintText: 'Describe your experience or suggestion...',
-              hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
-              filled: true,
-              fillColor: AppTheme.darkSurface,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12.r),
-                borderSide: BorderSide.none,
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.all(16.w),
+          children: [
+            Text(
+              'We would love to hear your thoughts, concerns, or problems with anything so we can improve!',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: AppTheme.secondaryTextColor,
               ),
             ),
-          ),
-          SizedBox(height: 24.h),
-          _buildSettingGroup(
-            children: [
-              _buildSettingTile(
-                icon: Icons.camera_alt_outlined,
-                title: 'Attach Screenshot',
-                isLast: true,
-                onTap: () {
-                  // Future: Implement image picker
-                },
+            SizedBox(height: 24.h),
+            TextField(
+              maxLines: 8,
+              style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 16.sp),
+              decoration: InputDecoration(
+                hintText: 'Describe your experience or suggestion...',
+                hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                filled: true,
+                fillColor: AppTheme.darkSurface,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                  borderSide: BorderSide.none,
+                ),
               ),
-            ],
-          )
-        ],
+            ),
+            SizedBox(height: 24.h),
+            _buildSettingGroup(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.camera_alt_outlined,
+                  title: 'Attach Screenshot',
+                  isLast: true,
+                  onTap: () {
+                    // Future: Implement image picker
+                  },
+                ),
+              ],
+            )
+          ],
+        ),
       ),
     );
   }

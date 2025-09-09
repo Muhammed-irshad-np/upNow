@@ -26,37 +26,39 @@ class _HabitAnalyticsScreenState extends State<HabitAnalyticsScreen> {
         backgroundColor: Theme.of(context).primaryColor,
         foregroundColor: Colors.white,
       ),
-      body: Consumer2<HabitService, HabitAnalyticsProvider>(
-        builder: (context, habitService, analytics, child) {
-          final habits = habitService.getActiveHabits();
-          
-          if (habits.isEmpty) {
-            return _buildEmptyState();
-          }
+      body: SafeArea(
+        child: Consumer2<HabitService, HabitAnalyticsProvider>(
+          builder: (context, habitService, analytics, child) {
+            final habits = habitService.getActiveHabits();
+            
+            if (habits.isEmpty) {
+              return _buildEmptyState();
+            }
 
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildOverallStats(habitService, habits),
-                const SizedBox(height: 24),
-                _buildHabitSelector(analytics, habits),
-                const SizedBox(height: 24),
-                _buildPeriodSelector(analytics),
-                const SizedBox(height: 24),
-                if (analytics.selectedHabit != null) ...[
-                  _buildHabitAnalytics(habitService, analytics.selectedHabit!),
+            return SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildOverallStats(habitService, habits),
                   const SizedBox(height: 24),
-                  _buildProgressChart(habitService, analytics.selectedHabit!, analytics.selectedPeriod),
+                  _buildHabitSelector(analytics, habits),
                   const SizedBox(height: 24),
-                  _buildStreakAnalysis(habitService, analytics.selectedHabit!),
-                ] else
-                  _buildAllHabitsOverview(habitService, habits),
-              ],
-            ),
-          );
-        },
+                  _buildPeriodSelector(analytics),
+                  const SizedBox(height: 24),
+                  if (analytics.selectedHabit != null) ...[
+                    _buildHabitAnalytics(habitService, analytics.selectedHabit!),
+                    const SizedBox(height: 24),
+                    _buildProgressChart(habitService, analytics.selectedHabit!, analytics.selectedPeriod),
+                    const SizedBox(height: 24),
+                    _buildStreakAnalysis(habitService, analytics.selectedHabit!),
+                  ] else
+                    _buildAllHabitsOverview(habitService, habits),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     ),
     );

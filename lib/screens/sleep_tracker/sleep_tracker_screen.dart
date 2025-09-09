@@ -60,12 +60,14 @@ class _SleepTrackerScreenState extends State<SleepTrackerScreen> with SingleTick
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildTrackerTab(sleepProvider),
-          _buildHistoryTab(sleepProvider),
-        ],
+      body: SafeArea(
+        child: TabBarView(
+          controller: _tabController,
+          children: [
+            _buildTrackerTab(sleepProvider),
+            _buildHistoryTab(sleepProvider),
+          ],
+        ),
       ),
     );
   }

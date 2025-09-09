@@ -35,31 +35,33 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           
           return Scaffold(
             backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-            body: CustomScrollView(
-              slivers: [
-                _buildAppBar(context, activeHabits.length),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildTodayOverview(context, habitService, activeHabits),
-                        const SizedBox(height: 24),
-                        _buildViewToggle(habitViewProvider),
-                        const SizedBox(height: 16),
-                      ],
+            body: SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  _buildAppBar(context, activeHabits.length),
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildTodayOverview(context, habitService, activeHabits),
+                          const SizedBox(height: 24),
+                          _buildViewToggle(habitViewProvider),
+                          const SizedBox(height: 16),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-                if (activeHabits.isEmpty)
-                  _buildEmptyState(context)
-                else
-                  _buildHabitsList(context, habitService, activeHabits, habitViewProvider),
-                const SliverToBoxAdapter(
-                  child: SizedBox(height: 100), // Bottom padding
-                ),
-              ],
+                  if (activeHabits.isEmpty)
+                    _buildEmptyState(context)
+                  else
+                    _buildHabitsList(context, habitService, activeHabits, habitViewProvider),
+                  const SliverToBoxAdapter(
+                    child: SizedBox(height: 100), // Bottom padding
+                  ),
+                ],
+              ),
             ),
             floatingActionButton: FloatingActionButton(
               onPressed: () => _navigateToAddHabit(context),

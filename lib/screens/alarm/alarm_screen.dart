@@ -5,16 +5,44 @@ import 'package:upnow/services/permissions_manager.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/alarm_card.dart';
 import 'package:upnow/widgets/gradient_button.dart';
-import 'package:upnow/services/alarm_service.dart';
+// import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/models/alarm_model.dart';
-import 'package:upnow/database/hive_database.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+// import 'package:upnow/database/hive_database.dart';
+// import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
+import 'package:upnow/utils/preferences_helper.dart';
 
-class AlarmScreen extends StatelessWidget {
+class AlarmScreen extends StatefulWidget {
   const AlarmScreen({Key? key}) : super(key: key);
+
+  @override
+  State<AlarmScreen> createState() => _AlarmScreenState();
+}
+
+class _AlarmScreenState extends State<AlarmScreen> {
+  bool _isWakeUpReminderDismissed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadWakeUpReminderState();
+  }
+
+  Future<void> _loadWakeUpReminderState() async {
+    final dismissed = await PreferencesHelper.isWakeUpAlarmReminderDismissed();
+    setState(() {
+      _isWakeUpReminderDismissed = dismissed;
+    });
+  }
+
+  Future<void> _dismissWakeUpReminder() async {
+    await PreferencesHelper.setWakeUpAlarmReminderDismissed(true);
+    setState(() {
+      _isWakeUpReminderDismissed = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -56,20 +84,24 @@ class AlarmScreen extends StatelessWidget {
         elevation: 0,
         titleSpacing: 20,
       ),
-      body: Column(
-        children: [
-          _buildNextAlarmSection(context, alarms),
-          const SizedBox(height: 8),
-          _buildMorningAlarmSection(context),
-          const SizedBox(height: 8),
-          _buildQuickAlarmButtons(context),
-          const SizedBox(height: 8),
-          Expanded(
-            child: alarms.isEmpty
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildNextAlarmSection(context, alarms),
+            const SizedBox(height: 8),
+            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
+              _buildWakeUpAlarmReminder(context),
+            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
+              const SizedBox(height: 8),
+            _buildQuickAlarmButtons(context),
+            const SizedBox(height: 8),
+            Expanded(
+              child: alarms.isEmpty
                 ? _buildEmptyState(context)
                 : _buildAlarmList(context, alarms),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'alarmFab',
@@ -251,112 +283,7 @@ class AlarmScreen extends StatelessWidget {
     );
   }
 
-  // Build the morning alarm section
-  Widget _buildMorningAlarmSection(BuildContext context) {
-    final settings = Provider.of<SettingsProvider>(context);
-    final alarmProvider = Provider.of<AlarmProvider>(context);
-    final morningAlarm = alarmProvider.getActiveMorningAlarm();
-
-    if (morningAlarm == null || !morningAlarm.isEnabled) {
-      return const SizedBox.shrink(); // Don't show anything if no morning alarm
-    }
-
-    final morningAlarmTime = _getNextAlarmDateTime(morningAlarm, DateTime.now());
-    final timeRemaining = _formatTimeRemaining(morningAlarmTime);
-    final alarmTimeString = _formatTime(morningAlarm.hour, morningAlarm.minute, settings.is24HourFormat);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.orange.withOpacity(0.1),
-            Colors.orange.withOpacity(0.05),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.orange.withOpacity(0.3),
-          width: 1,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                Icons.wb_sunny,
-                color: Colors.orange,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Wake-Up Alarm',
-                    style: TextStyle(
-                      color: AppTheme.secondaryTextColor,
-                      fontSize: 12.sp,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    alarmTimeString,
-                    style: TextStyle(
-                      color: AppTheme.textColor,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    'Daily Wake-Up',
-                    style: TextStyle(
-                      color: AppTheme.secondaryTextColor,
-                      fontSize: 11.sp,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  timeRemaining,
-                  style: TextStyle(
-                    color: Colors.orange,
-                    fontSize: 13.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Icon(
-                  Icons.alarm_on,
-                  color: Colors.orange.withOpacity(0.7),
-                  size: 16,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Morning alarm section removed; now highlighted as the first alarm card
 
   // Check and request critical permissions if needed
   Future<bool> _checkCriticalPermissions(BuildContext context) async {
@@ -463,6 +390,16 @@ class AlarmScreen extends StatelessWidget {
       return 0; // Keep original order for alarms with same status
     });
 
+    // Ensure morning (wake-up) alarm is the first item if present and enabled
+    final alarmProvider = Provider.of<AlarmProvider>(context);
+    if (alarmProvider.isMorningAlarmEnabled) {
+      final int morningIndex = sortedAlarms.indexWhere((a) => a.isMorningAlarm == true);
+      if (morningIndex > 0) {
+        final morningAlarm = sortedAlarms.removeAt(morningIndex);
+        sortedAlarms.insert(0, morningAlarm);
+      }
+    }
+
     // Define vibrant colors for active alarms
     final List<Color> activeCardColors = [
       const Color(0xFF4A90E2), // Blue
@@ -500,6 +437,7 @@ class AlarmScreen extends StatelessWidget {
                   cardColor: sortedAlarms[i].isEnabled 
                     ? activeCardColors[i % activeCardColors.length]
                     : inactiveCardColor,
+                  isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
                   stackOffset: 0,
                   onDelete: () {
                     Provider.of<AlarmProvider>(context, listen: false)
@@ -698,97 +636,108 @@ class AlarmScreen extends StatelessWidget {
     );
   }
 
-  // Add a new test method to create an alarm directly from the alarm screen for testing
-  static Future<void> createAndScheduleTestAlarm(BuildContext context) async {
-    try {
-      debugPrint('ALARM CREATION: Starting alarm creation process...');
-      
-      // Create a new alarm using the current time plus 5 minutes
-      final now = DateTime.now();
-      final alarmTime = now.add(const Duration(minutes: 5));
-      final alarmHour = alarmTime.hour;
-      final alarmMinute = alarmTime.minute;
-      
-      debugPrint('ALARM CREATION: New alarm time set to ${alarmHour}:${alarmMinute}');
-      
-      final AlarmModel newAlarm = AlarmModel(
-        hour: alarmHour,
-        minute: alarmMinute,
-        isEnabled: true,
-        dismissType: DismissType.normal,
-        vibrate: true,
-        repeat: AlarmRepeat.once,
-      );
-      
-      // Add a special label to help identify the alarm in logs
-      newAlarm.label = 'Test Alarm - ${DateTime.now().millisecondsSinceEpoch % 10000}';
-      debugPrint('ALARM CREATION: Created alarm with label: ${newAlarm.label}');
-      
-      // Save the new alarm to the database
-      debugPrint('ALARM CREATION: Saving to database...');
-      await HiveDatabase.saveAlarm(newAlarm);
-      
-      // Verify the alarm was saved by retrieving all alarms
-      final alarms = HiveDatabase.getAllAlarms();
-      debugPrint('ALARM CREATION: Total alarms in database: ${alarms.length}');
-      for (final a in alarms) {
-        debugPrint('ALARM CREATION: Stored alarm: ${a.id} - ${a.hour}:${a.minute} - ${a.label}');
-      }
-      
-      // Find the alarm we just saved in the database
-      final savedAlarm = alarms.firstWhere(
-        (a) => a.label == newAlarm.label, 
-        orElse: () => throw Exception('Alarm not found in database after saving')
-      );
-      debugPrint('ALARM CREATION: Successfully found saved alarm with ID: ${savedAlarm.id}');
-      
-      // Schedule the alarm
-      debugPrint('ALARM CREATION: Scheduling alarm...');
-      try {
-        await AlarmService.scheduleAlarm(savedAlarm);
-        debugPrint('ALARM CREATION: Alarm scheduled successfully');
-      } catch (e, stackTrace) {
-        debugPrint('ALARM CREATION: Error scheduling alarm: $e');
-        debugPrint('ALARM CREATION: Stack trace: $stackTrace');
-        
-        // Show error to user but don't prevent alarm creation
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Alarm created but scheduling failed: $e'),
-            backgroundColor: Colors.orange,
+  Widget _buildWakeUpAlarmReminder(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryColor.withOpacity(0.1),
+            AppTheme.primaryColor.withOpacity(0.05),
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryColor.withOpacity(0.3),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppTheme.primaryColor.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.wb_sunny,
+                  color: AppTheme.primaryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Set Your Wake-Up Time',
+                      style: TextStyle(
+                        color: AppTheme.textColor,
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Start your day right with a consistent wake-up routine',
+                      style: TextStyle(
+                        color: AppTheme.secondaryTextColor,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              IconButton(
+                onPressed: _dismissWakeUpReminder,
+                icon: Icon(
+                  Icons.close,
+                  color: AppTheme.secondaryTextColor,
+                  size: 20,
+                ),
+              ),
+            ],
           ),
-        );
-      }
-      
-      // Verify pending notifications
-      final notifications = FlutterLocalNotificationsPlugin();
-      final pending = await notifications.pendingNotificationRequests();
-      debugPrint('ALARM CREATION: Pending notifications: ${pending.length}');
-      for (final p in pending) {
-        debugPrint('ALARM CREATION: Pending notification: ${p.id} - ${p.title}');
-      }
-      
-      // Show success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Test alarm set for ${alarmHour}:${alarmMinute.toString().padLeft(2, '0')}'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Final success log
-      debugPrint('ALARM CREATION: Alarm creation process completed successfully');
-    } catch (e, stackTrace) {
-      debugPrint('ALARM CREATION ERROR: $e');
-      debugPrint('ALARM CREATION STACK TRACE: $stackTrace');
-      
-      // Show error message to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error creating alarm: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: GradientButton(
+                  text: 'Set Wake-Up Time',
+                  gradient: AppTheme.primaryGradient,
+                  icon: const Icon(Icons.alarm_add, color: Colors.white, size: 18),
+                  onPressed: () async {
+                    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
+                    await alarmProvider.setMorningAlarm(7, 0); // Default to 7:00 AM
+                    await _dismissWakeUpReminder();
+                  },
+                ),
+              ),
+              const SizedBox(width: 12),
+              TextButton(
+                onPressed: _dismissWakeUpReminder,
+                child: Text(
+                  'Maybe Later',
+                  style: TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
   }
+
+  
 } 

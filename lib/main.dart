@@ -18,7 +18,6 @@ import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
-import 'package:upnow/utils/preferences_helper.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 
@@ -121,6 +120,10 @@ class _StartupScreenState extends State<StartupScreen> {
   void initState() {
     super.initState();
     _checkOnboardingStatus();
+    // After first frame, attempt to consume any pending navigation
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      AlarmService.tryNavigateToCongratulationsIfReady();
+    });
   }
 
   Future<void> _checkOnboardingStatus() async {
@@ -144,7 +147,15 @@ class _StartupScreenState extends State<StartupScreen> {
         }
         
         return onboardingProvider.hasCompletedOnboarding 
-            ? const MainScreen() 
+            ? Builder(
+                builder: (context) {
+                  // Ensure navigation is attempted once UI is built
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    AlarmService.tryNavigateToCongratulationsIfReady();
+                  });
+                  return const MainScreen();
+                },
+              )
             : const OnboardingScreen();
       },
     );
@@ -189,78 +200,113 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Consumer<NavigationProvider>(
       builder: (context, navigationProvider, child) {
-        return Scaffold(
-          body: _screens[navigationProvider.currentIndex],
-          bottomNavigationBar: Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-            child: Container(
-              height: 72,
-              decoration: BoxDecoration(
-                color: AppTheme.darkSurface,
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final double segmentWidth = constraints.maxWidth / 3;
-                  return Stack(
-                    children: [
-                      // Switch-like full block indicator
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 280),
-                        curve: Curves.easeInOut,
-                        left: navigationProvider.currentIndex * segmentWidth,
-                        top: 6,
-                        bottom: 6,
-                        child: Container(
-                          width: segmentWidth,
-                          decoration: BoxDecoration(
-                            color: AppTheme.primaryColor,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                color: AppTheme.primaryColor.withOpacity(0.35),
-                                blurRadius: 16,
-                                offset: const Offset(0, 6),
-                              ),
-                            ],
+        return WillPopScope(
+          onWillPop: () async {
+            final bool? shouldLogout = await showDialog<bool>(
+              context: context,
+              barrierDismissible: true,
+              builder: (ctx) {
+                return AlertDialog(
+                  backgroundColor: AppTheme.darkSurface,
+                  title: const Text('Confirm Logout'),
+                  content: const Text('Do you want to logout and go to Home?'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.of(ctx).pop(false),
+                      child: const Text('Cancel'),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => Navigator.of(ctx).pop(true),
+                      child: const Text('OK'),
+                    ),
+                  ],
+                );
+              },
+            );
+
+            if (shouldLogout == true) {
+              if (!mounted) return false;
+              Navigator.of(context).pushAndRemoveUntil(
+                MaterialPageRoute(builder: (_) => const StartupScreen()),
+                (route) => false,
+              );
+              return false;
+            }
+            return false;
+          },
+          child: Scaffold(
+            body: _screens[navigationProvider.currentIndex],
+            bottomNavigationBar: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Container(
+                height: 72,
+                decoration: BoxDecoration(
+                  color: AppTheme.darkSurface,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final double segmentWidth = constraints.maxWidth / 3;
+                    return Stack(
+                      children: [
+                        // Switch-like full block indicator
+                        AnimatedPositioned(
+                          duration: const Duration(milliseconds: 280),
+                          curve: Curves.easeInOut,
+                          left: navigationProvider.currentIndex * segmentWidth,
+                          top: 6,
+                          bottom: 6,
+                          child: Container(
+                            width: segmentWidth,
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryColor.withOpacity(0.35),
+                                  blurRadius: 16,
+                                  offset: const Offset(0, 6),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      Row(
-                        children: [
-                          _NavItem(
-                            width: segmentWidth,
-                            icon: navigationProvider.currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
-                            label: 'Alarms',
-                            selected: navigationProvider.currentIndex == 0,
-                            onTap: () => navigationProvider.setCurrentIndex(0),
-                          ),
-                          _NavItem(
-                            width: segmentWidth,
-                            icon: navigationProvider.currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
-                            label: 'Habits',
-                            selected: navigationProvider.currentIndex == 1,
-                            onTap: () => navigationProvider.setCurrentIndex(1),
-                          ),
-                          _NavItem(
-                            width: segmentWidth,
-                            icon: navigationProvider.currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
-                            label: 'Settings',
-                            selected: navigationProvider.currentIndex == 2,
-                            onTap: () => navigationProvider.setCurrentIndex(2),
-                          ),
-                        ],
-                      ),
-                    ],
-                  );
-                },
+                        Row(
+                          children: [
+                            _NavItem(
+                              width: segmentWidth,
+                              icon: navigationProvider.currentIndex == 0 ? Icons.alarm : Icons.alarm_outlined,
+                              label: 'Alarms',
+                              selected: navigationProvider.currentIndex == 0,
+                              onTap: () => navigationProvider.setCurrentIndex(0),
+                            ),
+                            _NavItem(
+                              width: segmentWidth,
+                              icon: navigationProvider.currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
+                              label: 'Habits',
+                              selected: navigationProvider.currentIndex == 1,
+                              onTap: () => navigationProvider.setCurrentIndex(1),
+                            ),
+                            _NavItem(
+                              width: segmentWidth,
+                              icon: navigationProvider.currentIndex == 2 ? Icons.settings : Icons.settings_outlined,
+                              label: 'Settings',
+                              selected: navigationProvider.currentIndex == 2,
+                              onTap: () => navigationProvider.setCurrentIndex(2),
+                            ),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),

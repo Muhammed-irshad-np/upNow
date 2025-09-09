@@ -13,6 +13,7 @@ class AlarmCard extends StatelessWidget {
   final VoidCallback onTap;
   final Color cardColor;
   final double stackOffset;
+  final bool isMorningAlarm;
 
   const AlarmCard({
     Key? key,
@@ -23,6 +24,7 @@ class AlarmCard extends StatelessWidget {
     required this.onTap,
     required this.cardColor,
     this.stackOffset = 0.0,
+    this.isMorningAlarm = false,
   }) : super(key: key);
 
   @override
@@ -33,7 +35,8 @@ class AlarmCard extends StatelessWidget {
       height: 130.h, // Responsive height
       margin: EdgeInsets.symmetric(horizontal: 0.w, vertical: 2.h),
       decoration: BoxDecoration(
-        color: cardColor,
+        color: isMorningAlarm ? null : cardColor,
+        gradient: isMorningAlarm ? AppTheme.wakeUpGradient : null,
         borderRadius: BorderRadius.circular(20.r),
         boxShadow: [
           BoxShadow(
@@ -42,7 +45,7 @@ class AlarmCard extends StatelessWidget {
             offset: Offset(0, 4.h),
           ),
           BoxShadow(
-            color: cardColor.withOpacity(0.3),
+            color: (isMorningAlarm ? Colors.orange : cardColor).withOpacity(0.3),
             blurRadius: 20,
             offset: Offset(0, 8.h),
           ),
@@ -64,15 +67,32 @@ class AlarmCard extends StatelessWidget {
                     Expanded(
                       child: Align(
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          alarm.label.isNotEmpty ? alarm.label : 'Alarm',
-                          style: TextStyle(
-                            fontSize: 14.sp,
-                            color: Colors.white.withOpacity(0.85),
-                            fontWeight: FontWeight.w500,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isMorningAlarm) ...[
+                              Icon(
+                                Icons.wb_sunny,
+                                color: Colors.white.withOpacity(0.9),
+                                size: 16.sp,
+                              ),
+                              SizedBox(width: 6.w),
+                            ],
+                            Flexible(
+                              child: Text(
+                                isMorningAlarm
+                                    ? 'Wake-Up Alarm'
+                                    : (alarm.label.isNotEmpty ? alarm.label : 'Alarm'),
+                                style: TextStyle(
+                                  fontSize: 14.sp,
+                                  color: Colors.white.withOpacity(0.9),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -175,7 +195,7 @@ class AlarmCard extends StatelessWidget {
                         value: alarm.isEnabled,
                         onChanged: onToggle,
                         activeColor: Colors.white,
-                        activeTrackColor: Colors.white.withOpacity(0.3),
+                        activeTrackColor: Colors.white.withOpacity(0.35),
                         inactiveThumbColor: Colors.white.withOpacity(0.7),
                         inactiveTrackColor: Colors.white.withOpacity(0.2),
                       ),
@@ -205,7 +225,7 @@ class AlarmCard extends StatelessWidget {
                       // Frequency/Repeat indicator
                       _buildInfoIcon(
                         _getFrequencyIcon(alarm.repeat),
-                        alarm.repeatString.toUpperCase(),
+                        isMorningAlarm ? 'DAILY' : alarm.repeatString.toUpperCase(),
                       ),
                     ],
                   ),
@@ -264,8 +284,6 @@ class AlarmCard extends StatelessWidget {
         return Icons.memory;
       case DismissType.barcode:
         return Icons.qr_code_scanner;
-      default:
-        return Icons.touch_app;
     }
   }
 
@@ -285,8 +303,6 @@ class AlarmCard extends StatelessWidget {
         return 'MEMORY';
       case DismissType.barcode:
         return 'BARCODE';
-      default:
-        return 'TAP';
     }
   }
 
@@ -302,8 +318,6 @@ class AlarmCard extends StatelessWidget {
         return Icons.weekend;
       case AlarmRepeat.custom:
         return Icons.date_range;
-      default:
-        return Icons.repeat;
     }
   }
 } 

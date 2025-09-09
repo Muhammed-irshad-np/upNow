@@ -42,23 +42,25 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
                 ),
               ],
             ),
-            body: Form(
-              key: habitFormProvider.formKey,
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildBasicInfoSection(habitFormProvider),
-                    const SizedBox(height: 24),
-                    _buildFrequencySection(habitFormProvider),
-                    const SizedBox(height: 24),
-                    _buildCustomizationSection(habitFormProvider),
-                    const SizedBox(height: 24),
-                    _buildAlarmSection(habitFormProvider),
-                    const SizedBox(height: 32),
-                    _buildSaveButton(habitFormProvider),
-                  ],
+            body: SafeArea(
+              child: Form(
+                key: habitFormProvider.formKey,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildBasicInfoSection(habitFormProvider),
+                      const SizedBox(height: 24),
+                      _buildFrequencySection(habitFormProvider),
+                      const SizedBox(height: 24),
+                      _buildCustomizationSection(habitFormProvider),
+                      const SizedBox(height: 24),
+                      _buildAlarmSection(habitFormProvider),
+                      const SizedBox(height: 32),
+                      _buildSaveButton(habitFormProvider),
+                    ],
+                  ),
                 ),
               ),
             ),

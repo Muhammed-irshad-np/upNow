@@ -1,15 +1,5 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:upnow/utils/app_theme.dart';
-import 'package:upnow/widgets/gradient_button.dart';
-import 'package:upnow/services/alarm_service.dart';
-import 'package:upnow/models/alarm_model.dart';
-import 'package:upnow/database/hive_database.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:permission_handler/permission_handler.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/screens/settings/feedback_screen.dart';
@@ -34,59 +24,60 @@ class SettingsScreen extends StatelessWidget {
         elevation: 0,
         centerTitle: true,
       ),
-      body: ListView(
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
-        children: [
-          _buildSectionTitle('General'),
-          _buildSettingGroup(
-            children: [
-              _buildTimeFormatSetting(context),
-              _buildSettingTile(
-                icon: Icons.language_outlined,
-                title: 'Language',
-                trailing: Text(
-                  'English',
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppTheme.secondaryTextColor,
+      body: SafeArea(
+        child: ListView(
+          padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
+          children: [
+            _buildSectionTitle('General'),
+            _buildSettingGroup(
+              children: [
+                _buildTimeFormatSetting(context),
+                _buildWakeUpAlarmSetting(context),
+                _buildSettingTile(
+                  icon: Icons.language_outlined,
+                  title: 'Language',
+                  trailing: Text(
+                    'English',
+                    style: TextStyle(
+                      fontSize: 14.sp,
+                      color: AppTheme.secondaryTextColor,
+                    ),
                   ),
+                  onTap: () {
+                    // Future: Show language picker
+                  },
+                  isLast: true,
                 ),
-                onTap: () {
-                  // Future: Show language picker
-                },
-                isLast: false,
-              ),
-              _buildAppVersionTile(),
-            ],
-          ),
-          SizedBox(height: 32.h),
-          _buildSectionTitle('Morning Alarm'),
-          _buildMorningAlarmSection(context),
-          SizedBox(height: 32.h),
-          _buildSectionTitle('Feedback'),
-          _buildSettingGroup(
-            children: [
-              _buildSettingTile(
-                icon: Icons.feedback_outlined,
-                title: 'Send Feedback',
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    CupertinoPageRoute(builder: (_) => const FeedbackScreen()),
-                  );
-                },
-              ),
-              _buildSettingTile(
-                icon: Icons.share_outlined,
-                title: 'Share App',
-                onTap: () {
-                  // Future: Implement share functionality
-                },
-                isLast: true,
-              ),
-            ],
-          ),
-        ],
+              ],
+            ),
+            SizedBox(height: 16.h),
+            _buildAppVersionTile(),
+            SizedBox(height: 32.h),
+            _buildSectionTitle('Feedback'),
+            _buildSettingGroup(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.feedback_outlined,
+                  title: 'Send Feedback',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      CupertinoPageRoute(builder: (_) => const FeedbackScreen()),
+                    );
+                  },
+                ),
+                _buildSettingTile(
+                  icon: Icons.share_outlined,
+                  title: 'Share App',
+                  onTap: () {
+                    // Future: Implement share functionality
+                  },
+                  isLast: true,
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -121,54 +112,161 @@ class SettingsScreen extends StatelessWidget {
               color: AppTheme.secondaryTextColor,
             ),
           ),
-          isLast: false, // The language tile is now the last one in this group
+          isLast: false,
         );
       },
     );
   }
 
-  Widget _buildMorningAlarmSection(BuildContext context) {
+  Widget _buildWakeUpAlarmSetting(BuildContext context) {
     return Consumer<AlarmProvider>(
       builder: (context, alarmProvider, child) {
         final hasMorningAlarm = alarmProvider.hasMorningAlarm;
         final isMorningAlarmEnabled = alarmProvider.isMorningAlarmEnabled;
         final morningAlarmTime = alarmProvider.morningAlarmTime;
         
-        return _buildSettingGroup(
-          children: [
-            _buildSettingTile(
-              icon: Icons.alarm_on_outlined,
-              title: 'Morning Wake-Up Alarm',
-              trailing: Switch(
-                value: isMorningAlarmEnabled,
-                onChanged: (bool value) async {
-                  if (value && !hasMorningAlarm) {
-                    // Create new morning alarm with default time
-                    await alarmProvider.setMorningAlarm(7, 0);
-                  } else {
-                    await alarmProvider.toggleMorningAlarm(value);
-                  }
-                },
-                activeColor: AppTheme.primaryColor,
-                activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
-              ),
-              isLast: !isMorningAlarmEnabled,
-            ),
-            if (isMorningAlarmEnabled)
-              _buildSettingTile(
-                icon: Icons.access_time_outlined,
-                title: 'Wake-Up Time',
-                trailing: Text(
-                  morningAlarmTime.format(context),
-                  style: TextStyle(
-                    fontSize: 14.sp,
-                    color: AppTheme.secondaryTextColor,
+        return Container(
+          decoration: BoxDecoration(
+            color: AppTheme.darkSurface,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Column(
+            children: [
+              // Main wake-up alarm toggle
+              Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    if (!hasMorningAlarm) {
+                      // Create new morning alarm with default time
+                      await alarmProvider.setMorningAlarm(7, 0);
+                    } else {
+                      await alarmProvider.toggleMorningAlarm(!isMorningAlarmEnabled);
+                    }
+                  },
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    decoration: BoxDecoration(
+                      border: isMorningAlarmEnabled
+                          ? Border(
+                              bottom: BorderSide(
+                                color: AppTheme.darkBackground.withOpacity(0.5),
+                                width: 1,
+                              ),
+                            )
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.alarm_on_outlined,
+                          color: AppTheme.primaryColor.withOpacity(0.8),
+                          size: 22.sp,
+                        ),
+                        SizedBox(width: 16.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Wake-Up Alarm',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: AppTheme.primaryTextColor,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                              if (isMorningAlarmEnabled) ...[
+                                SizedBox(height: 4.h),
+                                Text(
+                                  'Daily at ${morningAlarmTime.format(context)}',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: AppTheme.secondaryTextColor,
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                        Switch(
+                          value: isMorningAlarmEnabled,
+                          onChanged: (bool value) async {
+                            if (value) {
+                              if (!hasMorningAlarm) {
+                                // Create new morning alarm with default time
+                                await alarmProvider.setMorningAlarm(7, 0);
+                              } else {
+                                // Enable existing morning alarm
+                                await alarmProvider.toggleMorningAlarm(true);
+                              }
+                            } else {
+                              // Disable morning alarm
+                              await alarmProvider.toggleMorningAlarm(false);
+                            }
+                          },
+                          activeColor: AppTheme.primaryColor,
+                          activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-                onTap: () => _showMorningAlarmTimePicker(context, alarmProvider),
-                isLast: true,
               ),
-          ],
+              // Time picker option (only shown when enabled)
+              if (isMorningAlarmEnabled)
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => _showMorningAlarmTimePicker(context, alarmProvider),
+                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16.r)),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                      child: Row(
+                        children: [
+                          SizedBox(width: 38.w), // Align with the text above
+                          Expanded(
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time_outlined,
+                                  color: AppTheme.primaryColor.withOpacity(0.6),
+                                  size: 18.sp,
+                                ),
+                                SizedBox(width: 16.w),
+                                Text(
+                                  'Set Wake-Up Time',
+                                  style: TextStyle(
+                                    fontSize: 15.sp,
+                                    color: AppTheme.primaryTextColor,
+                                    fontWeight: FontWeight.w400,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            morningAlarmTime.format(context),
+                            style: TextStyle(
+                              fontSize: 14.sp,
+                              color: AppTheme.primaryColor,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Icon(
+                            Icons.arrow_forward_ios,
+                            size: 12.sp,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
         );
       },
     );

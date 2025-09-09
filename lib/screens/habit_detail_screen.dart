@@ -34,29 +34,31 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         final stats = habitService.getHabitStats(widget.habitId);
         
         return Scaffold(
-          body: CustomScrollView(
-            slivers: [
-              _buildAppBar(context, habit),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildStreakSection(stats, habit),
-                      const SizedBox(height: 24),
-                      _buildStatsSection(stats),
-                      const SizedBox(height: 24),
-                      _buildYearSelector(detailProvider),
-                      const SizedBox(height: 16),
-                      _buildGridSection(habit, detailProvider),
-                      const SizedBox(height: 24),
-                      _buildQuickActions(context, habitService, habit),
-                    ],
+          body: SafeArea(
+            child: CustomScrollView(
+              slivers: [
+                _buildAppBar(context, habit),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildStreakSection(stats, habit),
+                        const SizedBox(height: 24),
+                        _buildStatsSection(stats),
+                        const SizedBox(height: 24),
+                        _buildYearSelector(detailProvider),
+                        const SizedBox(height: 16),
+                        _buildGridSection(habit, detailProvider),
+                        const SizedBox(height: 24),
+                        _buildQuickActions(context, habitService, habit),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         );
       },

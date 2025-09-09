@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'dart:io';
-import 'package:upnow/screens/alarm/alarm_ring_screen.dart';
+// import 'package:upnow/screens/alarm/alarm_ring_screen.dart';
 import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
-import 'package:upnow/providers/alarm_provider.dart';
+// import 'package:upnow/providers/alarm_provider.dart';
 
 // Define a global variable to hold the current app lifecycle state
 AppLifecycleState currentAppState = AppLifecycleState.resumed;
@@ -20,6 +20,25 @@ AppLifecycleState currentAppState = AppLifecycleState.resumed;
 class AlarmService {
   static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   static bool _isInitialized = false;
+  // Queue navigation to congratulations if native triggers it before Flutter UI is ready
+  static bool _pendingCongratulationsNavigation = false;
+  
+  // Public helper for UI to attempt consuming pending navigation once navigator is available
+  static void tryNavigateToCongratulationsIfReady() {
+    try {
+      if (!_pendingCongratulationsNavigation) return;
+      final navigatorState = navigatorKey.currentState;
+      if (navigatorState == null) return;
+      navigatorState.pushNamedAndRemoveUntil(
+        '/congratulations',
+        (route) => false,
+      );
+      _pendingCongratulationsNavigation = false;
+      debugPrint('📱 ALARM SERVICE: Consumed pending congratulations navigation');
+    } catch (e) {
+      debugPrint('📱 ALARM SERVICE: Error consuming pending navigation: $e');
+    }
+  }
   
   // Define the platform channel
   static const MethodChannel _platformChannel = 
@@ -197,16 +216,10 @@ class AlarmService {
     
     switch (call.method) {
       case 'openCongratulationsScreen':
-        try {
-          // Navigate to congratulations screen using global navigator key
-          navigatorKey.currentState?.pushNamedAndRemoveUntil(
-            '/congratulations',
-            (route) => route.isFirst || route.settings.name == '/',
-          );
-          debugPrint('📱 ALARM SERVICE: Opened congratulations screen');
-        } catch (e) {
-          debugPrint('📱 ALARM SERVICE: Error opening congratulations screen: $e');
-        }
+        // Mark pending and try to navigate now if possible
+        _pendingCongratulationsNavigation = true;
+        tryNavigateToCongratulationsIfReady();
+        debugPrint('📱 ALARM SERVICE: Received request to open congratulations (queued if navigator not ready)');
         break;
       default:
         debugPrint('📱 ALARM SERVICE: Unknown method call: ${call.method}');
@@ -374,10 +387,10 @@ class AlarmService {
 
       // --- Dynamic Notification Details ---
       String soundName = 'alarm_sound'; // Default sound
-      if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+      if (alarm.soundPath.isNotEmpty) {
          try {
            // Extract filename without extension
-           soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+           soundName = p.basenameWithoutExtension(alarm.soundPath); 
          } catch (e) {
            debugPrint('Error extracting sound name: $e. Using default.');
            // Keep the default 'alarm_sound'
@@ -476,16 +489,16 @@ class AlarmService {
         channelDescription: 'Channel for alarm notifications',
         importance: Importance.max,
         priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound(soundName),
+        sound: RawResourceAndroidNotificationSound('alarm_sound'),
         playSound: true,
-        enableVibration: alarm.vibrate,
+        enableVibration: true,
         fullScreenIntent: true,
         category: AndroidNotificationCategory.alarm,
         autoCancel: true,
         additionalFlags: Int32List.fromList(<int>[4]),
         ongoing: true,
         actions: [
-          const AndroidNotificationAction(
+          AndroidNotificationAction(
             'show_alarm',
             'Show Alarm',
             showsUserInterface: true,
@@ -499,10 +512,10 @@ class AlarmService {
         presentSound: true, // Use default iOS sound
       );
 
-      final NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: iosDetails,
-      );
+      // final NotificationDetails notificationDetails = NotificationDetails(
+      //   android: androidDetails,
+      //   iOS: iosDetails,
+      // );
       
       // Schedule the simple "Wake up!" notification - This is *only* for display
       await _notifications.zonedSchedule(
@@ -563,9 +576,9 @@ class AlarmService {
   // Helper to send a broadcast to the native side to launch alarm activity
   static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
     String soundName = 'alarm_sound'; // Default
-    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+    if (alarm.soundPath.isNotEmpty) {
       try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+        soundName = p.basenameWithoutExtension(alarm.soundPath); 
       } catch (e) {
         debugPrint('Error extracting sound name for broadcast: $e. Using default.');
       }
@@ -1036,9 +1049,9 @@ class AlarmService {
     }
     
     String soundName = 'alarm_sound'; // Default
-    if (alarm.soundPath != null && alarm.soundPath!.isNotEmpty) {
+    if (alarm.soundPath.isNotEmpty) {
       try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath!); 
+        soundName = p.basenameWithoutExtension(alarm.soundPath); 
       } catch (e) {
         debugPrint('Error extracting sound name for launch: $e. Using default.');
       }

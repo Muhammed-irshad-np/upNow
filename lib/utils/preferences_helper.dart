@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PreferencesHelper {
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
   static const String _is24HourFormatKey = 'is_24_hour_format';
+  static const String _wakeUpAlarmReminderDismissedKey = 'wake_up_alarm_reminder_dismissed';
 
   // Time Format
   static Future<bool> is24HourFormat() async {
@@ -25,6 +26,17 @@ class PreferencesHelper {
   static Future<void> setOnboardingCompleted() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_hasCompletedOnboardingKey, true);
+  }
+
+  // Wake-up alarm reminder dismissed state
+  static Future<bool> isWakeUpAlarmReminderDismissed() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_wakeUpAlarmReminderDismissedKey) ?? false;
+  }
+
+  static Future<void> setWakeUpAlarmReminderDismissed(bool dismissed) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_wakeUpAlarmReminderDismissedKey, dismissed);
   }
 
   // Generic method to get a boolean value

@@ -38,35 +38,37 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildTimeSelector(form),
-            const SizedBox(height: 24),
-            _buildLabelInput(form),
-            const SizedBox(height: 24),
-            _buildDismissTypeSelector(form),
-            const SizedBox(height: 24),
-            _buildRepeatSelector(form),
-            if (form.repeat == AlarmRepeat.custom) 
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: _buildWeekdaySelector(form),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildTimeSelector(form),
+              const SizedBox(height: 24),
+              _buildLabelInput(form),
+              const SizedBox(height: 24),
+              _buildDismissTypeSelector(form),
+              const SizedBox(height: 24),
+              _buildRepeatSelector(form),
+              if (form.repeat == AlarmRepeat.custom) 
+                Padding(
+                  padding: const EdgeInsets.only(top: 16),
+                  child: _buildWeekdaySelector(form),
+                ),
+              const SizedBox(height: 24),
+              _buildSoundSelector(form),
+              const SizedBox(height: 24),
+              _buildVibrationOption(form),
+              const SizedBox(height: 16),
+              _buildMorningAlarmOption(form),
+              const SizedBox(height: 36),
+              GradientButton(
+                text: 'Save Alarm',
+                onPressed: () => _saveAlarm(context, form),
               ),
-            const SizedBox(height: 24),
-            _buildSoundSelector(form),
-            const SizedBox(height: 24),
-            _buildVibrationOption(form),
-            const SizedBox(height: 16),
-            _buildMorningAlarmOption(form),
-            const SizedBox(height: 36),
-            GradientButton(
-              text: 'Save Alarm',
-              onPressed: () => _saveAlarm(context, form),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
