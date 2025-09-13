@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:typed_data';
 import 'package:flutter/services.dart'; // Import for Platform Channel
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:upnow/database/hive_database.dart';
@@ -9,7 +8,6 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import 'dart:io';
 // import 'package:upnow/screens/alarm/alarm_ring_screen.dart';
-import 'package:upnow/main.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 // import 'package:upnow/providers/alarm_provider.dart';
@@ -18,50 +16,12 @@ import 'package:path/path.dart' as p;
 AppLifecycleState currentAppState = AppLifecycleState.resumed;
 
 class AlarmService {
-  static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   static bool _isInitialized = false;
-  // Queue navigation to congratulations if native triggers it before Flutter UI is ready
-  static bool _pendingCongratulationsNavigation = false;
-  
-  // Public helper for UI to attempt consuming pending navigation once navigator is available
-  static void tryNavigateToCongratulationsIfReady() {
-    try {
-      if (!_pendingCongratulationsNavigation) return;
-      final navigatorState = navigatorKey.currentState;
-      if (navigatorState == null) return;
-      navigatorState.pushNamedAndRemoveUntil(
-        '/congratulations',
-        (route) => false,
-      );
-      _pendingCongratulationsNavigation = false;
-      debugPrint('📱 ALARM SERVICE: Consumed pending congratulations navigation');
-    } catch (e) {
-      debugPrint('📱 ALARM SERVICE: Error consuming pending navigation: $e');
-    }
-  }
+  static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
   
   // Define the platform channel
   static const MethodChannel _platformChannel = 
       MethodChannel('com.example.upnow/alarm_overlay');
-  
-  // Method to show the overlay via platform channel
-  static Future<void> _showOverlay(AlarmModel alarm) async {
-    try {
-      debugPrint('📱 ALARM OVERLAY: Requesting to show overlay for alarm ID ${alarm.id}');
-      await _platformChannel.invokeMethod('showOverlay', {
-        'id': alarm.id,
-        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm', 
-        'hour': alarm.hour, // Pass hour for time validation
-        'minute': alarm.minute, // Pass minute for time validation
-        // Add other necessary data for the overlay task here if needed
-      });
-      debugPrint('📱 ALARM OVERLAY: showOverlay method invoked.');
-    } on PlatformException catch (e) {
-      debugPrint("📱 ALARM OVERLAY: Failed to invoke showOverlay: '${e.message}'.");
-    } catch (e) {
-       debugPrint("📱 ALARM OVERLAY: Generic error invoking showOverlay: $e");
-    }
-  }
 
   // Method to hide the overlay via platform channel
   static Future<void> hideOverlay() async {
@@ -97,6 +57,9 @@ class AlarmService {
       await fixReleasePermissions();
     }
     
+    // ✅ CRITICAL FIX: Smart cleanup of expired notifications before initialization
+    await _smartCleanupExpiredNotifications();
+    
     // Create notification channels with high importance
     List<AndroidNotificationChannel> channels = [
       const AndroidNotificationChannel(
@@ -104,19 +67,11 @@ class AlarmService {
         'Alarm Notifications',
         description: 'Channel for alarm notifications',
         importance: Importance.max,
-        enableVibration: true,
-        playSound: true,
-        enableLights: true,
-      ),
-      const AndroidNotificationChannel(
-        'test_channel',
-        'Test Notifications',
-        description: 'Channel for test notifications',
-        importance: Importance.max,
         sound: RawResourceAndroidNotificationSound('alarm_sound'),
         enableVibration: true,
         playSound: true,
         enableLights: true,
+        showBadge: true,
       ),
       const AndroidNotificationChannel(
         'alarm_focus',
@@ -125,101 +80,74 @@ class AlarmService {
         importance: Importance.max,
         sound: RawResourceAndroidNotificationSound('alarm_sound'),
         enableVibration: true,
+        playSound: true,
         enableLights: true,
         showBadge: true,
       ),
-      const AndroidNotificationChannel(
-        'simple_channel',
-        'Simple Test',
-        description: 'Channel for ultra-simple notifications',
-        importance: Importance.max,
-        enableVibration: true,
-        playSound: true,
-      ),
-      const AndroidNotificationChannel(
-        'immediate_channel',
-        'Immediate Test',
-        description: 'Channel for immediate test notifications',
-        importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        enableVibration: true,
-        playSound: true,
-        enableLights: true,
-      ),
     ];
+
+    // Initialize the plugin
+    const AndroidInitializationSettings initializationSettingsAndroid =
+        AndroidInitializationSettings('@mipmap/launcher_icon');
     
-    // Register all channels with the system
-    final AndroidFlutterLocalNotificationsPlugin? androidNotifications =
-        _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-    
-    if (androidNotifications != null) {
-      debugPrint('ALARM SERVICE: Creating ${channels.length} notification channels...');
-      
-      for (final channel in channels) {
-        try {
-          await androidNotifications.createNotificationChannel(channel);
-          debugPrint('ALARM SERVICE: Created channel ${channel.id}');
-        } catch (e) {
-          debugPrint('ALARM SERVICE: Error creating channel ${channel.id}: $e');
-        }
-      }
-    }
-    
-    // Initialize notifications
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const DarwinInitializationSettings iosSettings = DarwinInitializationSettings(
+    const DarwinInitializationSettings initializationSettingsIOS =
+        DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
       requestSoundPermission: true,
-      defaultPresentSound: true,
     );
     
-    const InitializationSettings initSettings = InitializationSettings(
-      android: androidSettings,
-      iOS: iosSettings,
+    const InitializationSettings initializationSettings = InitializationSettings(
+      android: initializationSettingsAndroid,
+      iOS: initializationSettingsIOS,
     );
     
     await _notifications.initialize(
-      initSettings,
+      initializationSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
-      onDidReceiveBackgroundNotificationResponse: notificationActionCallback,
     );
+
+    // Create notification channels
+    for (final channel in channels) {
+      await _notifications
+          .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+          ?.createNotificationChannel(channel);
+    }
     
     _isInitialized = true;
+    debugPrint('ALARM SERVICE: Initialization complete');
     
-    // Schedule all saved alarms
+    // Schedule all existing alarms
     await _scheduleAllAlarms();
-    
-    debugPrint('ALARM SERVICE: Alarm service initialized successfully');
   }
   
-  static void _onNotificationTapped(NotificationResponse response) {
-    // Handle notification tap
+  static Future<void> _onNotificationTapped(NotificationResponse response) async {
     debugPrint('Notification tapped: ${response.payload}');
     
     if (response.payload != null) {
       final alarmId = response.payload!;
+      final alarm = HiveDatabase.getAlarm(alarmId);
       
-      // If it's a backup notification, extract the actual alarm ID
-      final String actualId = alarmId.startsWith('backup_') 
-          ? alarmId.substring(7) // Remove 'backup_' prefix
-          : alarmId;
-      
-      // Use the same handler as the background notifications
-      _handleAlarmNotificationAction(actualId);
+      if (alarm != null) {
+        // Launch the alarm screen
+        await _sendAlarmBroadcast(alarm);
+      }
     }
   }
-  
-  // Method channel handler for native calls to Flutter
+
   static Future<void> _handleMethodCall(MethodCall call) async {
-    debugPrint('📱 ALARM SERVICE: Received method call from native: ${call.method}');
-    
     switch (call.method) {
-      case 'openCongratulationsScreen':
-        // Mark pending and try to navigate now if possible
-        _pendingCongratulationsNavigation = true;
-        tryNavigateToCongratulationsIfReady();
-        debugPrint('📱 ALARM SERVICE: Received request to open congratulations (queued if navigator not ready)');
+      case 'alarmTriggered':
+        final alarmId = call.arguments['alarmId'] as String?;
+        final alarmLabel = call.arguments['alarmLabel'] as String?;
+        final soundName = call.arguments['soundName'] as String?;
+        
+        if (alarmId != null && alarmLabel != null && soundName != null) {
+          final alarm = HiveDatabase.getAlarm(alarmId);
+          if (alarm != null) {
+            await _sendAlarmBroadcast(alarm);
+          }
+        }
         break;
       default:
         debugPrint('📱 ALARM SERVICE: Unknown method call: ${call.method}');
@@ -241,14 +169,97 @@ class AlarmService {
     }
   }
   
+  // ✅ CRITICAL FIX: Smart cleanup of expired notifications
+  static Future<void> _smartCleanupExpiredNotifications() async {
+    try {
+      debugPrint('🧹 ALARM SERVICE: Starting smart notification cleanup...');
+      
+      // Get all pending notifications
+      final pendingNotifications = await _notifications.pendingNotificationRequests();
+      debugPrint('📋 Found ${pendingNotifications.length} pending notifications');
+      
+      final now = DateTime.now();
+      int cancelledCount = 0;
+      int deletedOneTimeAlarms = 0;
+      
+      for (final notification in pendingNotifications) {
+        if (notification.payload != null) {
+          final alarmId = notification.payload!;
+          final alarm = HiveDatabase.getAlarm(alarmId);
+          
+          if (alarm != null) {
+            // Calculate when this notification was supposed to fire
+            final alarmTime = DateTime(now.year, now.month, now.day, alarm.hour, alarm.minute);
+            
+            if (alarmTime.isBefore(now)) {
+              // Cancel the expired notification
+              await _notifications.cancel(notification.id);
+              cancelledCount++;
+              debugPrint('🗑️ Cancelled expired notification for alarm ${alarm.hour}:${alarm.minute}');
+              
+              // Handle based on alarm type
+        if (alarm.repeat == AlarmRepeat.once) {
+                // For one-time alarms, delete from database
+                await HiveDatabase.deleteAlarm(alarmId);
+                deletedOneTimeAlarms++;
+                debugPrint('🗑️ Deleted expired one-time alarm from database');
+              } else {
+                // For recurring alarms, log missed occurrence but keep alarm
+                debugPrint('⏭️ Recurring alarm missed: ${alarm.hour}:${alarm.minute} (${alarm.repeat})');
+              }
+            } else {
+              debugPrint('✅ Keeping valid notification for alarm ${alarm.hour}:${alarm.minute}');
+            }
+          }
+        }
+      }
+      
+      debugPrint('🧹 ALARM SERVICE: Cleanup complete. Cancelled $cancelledCount notifications, deleted $deletedOneTimeAlarms one-time alarms');
+      
+    } catch (e) {
+      debugPrint('⚠️ ALARM SERVICE: Error during smart cleanup: $e');
+      // Fallback: cancel all if cleanup fails
+      try {
+        await _notifications.cancelAll();
+        debugPrint('🔄 ALARM SERVICE: Fallback - cancelled all notifications');
+      } catch (fallbackError) {
+        debugPrint('❌ ALARM SERVICE: Fallback cleanup also failed: $fallbackError');
+      }
+    }
+  }
+  
   static Future<void> _scheduleAllAlarms() async {
     final alarms = HiveDatabase.getAllAlarms();
-    debugPrint('Scheduling ${alarms.length} alarms');
+    debugPrint('📋 Found ${alarms.length} alarms in database');
     
-    // Update the flag to indicate we have pending alarms
-    await _updatePendingAlarmsFlag(alarms.any((alarm) => alarm.isEnabled));
+    // ✅ Additional validation: Clean up any remaining expired one-time alarms
+    final now = DateTime.now();
+    final List<String> alarmsToDelete = [];
     
     for (final alarm in alarms) {
+      if (alarm.repeat == AlarmRepeat.once) {
+        final alarmTime = DateTime(now.year, now.month, now.day, alarm.hour, alarm.minute);
+        if (alarmTime.isBefore(now)) {
+          alarmsToDelete.add(alarm.id);
+          debugPrint('🗑️ Marking expired one-time alarm for deletion: ${alarm.hour}:${alarm.minute}');
+        }
+      }
+    }
+    
+    // Delete expired one-time alarms
+    for (final alarmId in alarmsToDelete) {
+      await HiveDatabase.deleteAlarm(alarmId);
+      debugPrint('✅ Deleted expired one-time alarm from database');
+    }
+    
+    // Get updated list after cleanup
+    final updatedAlarms = HiveDatabase.getAllAlarms();
+    debugPrint('📅 Scheduling ${updatedAlarms.length} valid alarms');
+    
+    // Update the flag to indicate we have pending alarms
+    await _updatePendingAlarmsFlag(updatedAlarms.any((alarm) => alarm.isEnabled));
+    
+    for (final alarm in updatedAlarms) {
       if (alarm.isEnabled) {
         await scheduleAlarm(alarm);
       }
@@ -263,542 +274,201 @@ class AlarmService {
       final tz.TZDateTime tzNow = tz.TZDateTime.from(now, tz.local);
       debugPrint('🔔 Current time: ${tzNow.toString()}');
       
-      // Calculate the initial scheduled date based on the alarm's hour and minute
-      var scheduledDate = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        alarm.hour,
-        alarm.minute,
-      );
-      debugPrint('🔔 Initial scheduled date: ${scheduledDate.toString()}');
+      // ✅ CRITICAL FIX: Use getNextAlarmTime() for proper next occurrence calculation
+      final nextOccurrence = alarm.getNextAlarmTime();
+      debugPrint('🔔 Next occurrence calculated: ${nextOccurrence.toString()}');
       
-      // Adjust the scheduled date if it's in the past
-      if (scheduledDate.isBefore(now)) {
-        debugPrint('🔔 Scheduled date is in the past, adjusting...');
-        
-        // For "once" alarms, schedule for the next day
-        if (alarm.repeat == AlarmRepeat.once) {
-          scheduledDate = scheduledDate.add(const Duration(days: 1));
-          debugPrint('🔔 Once alarm adjusted to tomorrow: ${scheduledDate.toString()}');
-        }
-        // For daily alarms, schedule for tomorrow
-        else if (alarm.repeat == AlarmRepeat.daily) {
-          scheduledDate = scheduledDate.add(const Duration(days: 1));
-          debugPrint('🔔 Daily alarm adjusted to tomorrow: ${scheduledDate.toString()}');
-        }
-        // For weekday alarms, find the next weekday
-        else if (alarm.repeat == AlarmRepeat.weekdays) {
-          do {
-            scheduledDate = scheduledDate.add(const Duration(days: 1));
-          } while (scheduledDate.weekday > 5); // Skip Saturday (6) and Sunday (7)
-          debugPrint('🔔 Weekday alarm adjusted to next weekday: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
-        }
-        // For weekend alarms, find the next weekend day
-        else if (alarm.repeat == AlarmRepeat.weekends) {
-          do {
-            scheduledDate = scheduledDate.add(const Duration(days: 1));
-          } while (scheduledDate.weekday != 6 && scheduledDate.weekday != 7); // Only Saturday (6) and Sunday (7)
-          debugPrint('🔔 Weekend alarm adjusted to next weekend: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
-        }
-        // For custom repeat, find the next enabled day
-        else if (alarm.repeat == AlarmRepeat.custom && alarm.weekdays.any((day) => day)) {
-          debugPrint('🔔 Custom repeat pattern: ${alarm.weekdays}');
-          int daysToAdd = 1;
-          int checkDay = 0;
-          bool foundNextDay = false;
-          
-          // Try up to 7 days to find the next enabled day
-          while (checkDay < 7 && !foundNextDay) {
-            final DateTime nextDay = scheduledDate.add(Duration(days: daysToAdd));
-            // Convert weekday to index (0-6, where 0 is Monday in the weekdays array)
-            final int weekdayIndex = (nextDay.weekday - 1) % 7;
-            
-            debugPrint('🔔 Checking day ${nextDay.toString()} (weekday ${nextDay.weekday}, index $weekdayIndex): ${alarm.weekdays[weekdayIndex]}');
-            
-            if (alarm.weekdays[weekdayIndex]) {
-              scheduledDate = nextDay;
-              foundNextDay = true;
-              debugPrint('🔔 Found next custom day: ${scheduledDate.toString()} (Day ${scheduledDate.weekday})');
-              break;
-            }
-            
-            daysToAdd++;
-            checkDay++;
-          }
-          
-          if (!foundNextDay) {
-            debugPrint('⚠️ No enabled days found for custom repeat, defaulting to tomorrow');
-            scheduledDate = scheduledDate.add(const Duration(days: 1));
-          }
-        } else {
-          // Fallback - just add a day if nothing else matches
-          debugPrint('⚠️ Unknown repeat pattern, defaulting to tomorrow');
-          scheduledDate = scheduledDate.add(const Duration(days: 1));
-        }
-      } else {
-        debugPrint('🔔 Scheduled date is in the future, keeping as is');
+      // ✅ Validate that next occurrence is in the future
+      if (nextOccurrence.isBefore(now)) {
+        debugPrint('❌ Calculated next occurrence is still in the past, not scheduling');
+        return;
       }
       
+      var scheduledDate = nextOccurrence;
       debugPrint('🔔 Final scheduled date: ${scheduledDate.toString()}');
+      
+      // ✅ SCHEDULE NATIVE ALARM (Primary - Bulletproof)
+      await _scheduleNativeAlarm(alarm, scheduledDate);
+      
+      // ✅ SCHEDULE NOTIFICATION ALARM (Backup/UI indicator)
+      await _scheduleNotificationAlarm(alarm, scheduledDate);
+      
+      debugPrint('✅ ALARM SCHEDULED: Both native alarm and notification scheduled');
+    } catch (e) {
+      debugPrint('❌ ERROR SCHEDULING ALARM: $e');
+    }
+  }
+  
+  // ✅ NATIVE ALARM SCHEDULING - PRIMARY BULLETPROOF SYSTEM
+  static Future<void> _scheduleNativeAlarm(AlarmModel alarm, DateTime scheduledDate) async {
+    try {
+      debugPrint('🔔 NATIVE ALARM: Scheduling bulletproof native alarm for ${alarm.hour}:${alarm.minute}');
+      
+      // Check native alarm permissions first
+      if (!await hasNativeAlarmPermissions()) {
+        debugPrint('❌ NATIVE ALARM: Missing SCHEDULE_EXACT_ALARM permission, requesting...');
+        if (!await requestNativeAlarmPermissions()) {
+          debugPrint('❌ NATIVE ALARM: Permission denied, falling back to notification-only');
+          return;
+        }
+      }
+      
+      // Convert repeat type to string
+      String repeatType = 'once';
+      switch (alarm.repeat) {
+        case AlarmRepeat.daily:
+          repeatType = 'daily';
+          break;
+        case AlarmRepeat.weekdays:
+          repeatType = 'weekdays';
+          break;
+        case AlarmRepeat.weekends:
+          repeatType = 'weekends';
+          break;
+        case AlarmRepeat.custom:
+          repeatType = 'custom';
+          break;
+        case AlarmRepeat.once:
+          repeatType = 'once';
+          break;
+      }
+      
+      // Schedule native alarm via platform channel (ACTUAL ALARM, not notification)
+      final result = await _platformChannel.invokeMethod('scheduleNativeAlarm', {
+        'alarmId': alarm.id,
+        'hour': alarm.hour,
+        'minute': alarm.minute,
+        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+        'soundName': alarm.soundPath.isNotEmpty ? p.basenameWithoutExtension(alarm.soundPath) : 'alarm_sound',
+        'repeatType': repeatType,
+        'weekdays': alarm.weekdays,
+      });
+      
+      if (result == true) {
+        debugPrint('✅ NATIVE ALARM: Successfully scheduled bulletproof native alarm');
+      } else {
+        debugPrint('❌ NATIVE ALARM: Failed to schedule native alarm');
+      }
+    } catch (e) {
+      debugPrint('❌ NATIVE ALARM: Error scheduling native alarm: $e');
+    }
+  }
+  
+  // ✅ NOTIFICATION ALARM SCHEDULING - BACKUP/UI INDICATOR
+  static Future<void> _scheduleNotificationAlarm(AlarmModel alarm, DateTime scheduledDate) async {
+    try {
+      debugPrint('🔔 NOTIFICATION ALARM: Scheduling notification alarm for ${alarm.hour}:${alarm.minute}');
       
       // Make sure the scheduled date is in the correct timezone
       final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
       debugPrint('🔔 Timezone adjusted date: ${tzScheduledDate.toString()}');
       
-      // --- Foreground Check ---
-      final Duration timeUntilAlarm = tzScheduledDate.difference(tzNow);
-      debugPrint('🔔 Time until alarm: $timeUntilAlarm');
+      // Get notification ID
+      final int notificationId = alarm.hashCode;
       
-      // Check if the alarm is very soon (e.g., within 5 seconds) AND app is in foreground
-      const Duration foregroundThreshold = Duration(seconds: 5); 
-      
-      if (currentAppState == AppLifecycleState.resumed && 
-          timeUntilAlarm > Duration.zero && // Ensure it's in the future
-          timeUntilAlarm <= foregroundThreshold) {
-            
-        debugPrint('📱 App is in foreground and alarm is imminent. Triggering alarm broadcast.');
-        
-        // Cancel potentially existing notification for this specific time 
-        final int notificationId = alarm.hashCode;
-        await _notifications.cancel(notificationId);
-        
-        // Show the alarm via broadcast to receiver
-        await _sendAlarmBroadcast(alarm);
-        
-        // We need to schedule the next occurrence for recurring alarms
-        if (alarm.repeat != AlarmRepeat.once) {
-          debugPrint('🔄 Need to schedule next occurrence for recurring alarm');
-          await _rescheduleAlarmForNextOccurrence(alarm);
-        }
-        
-        return; // Stop further processing for this specific alarm time
-      }
-      // --- End Foreground Check ---
-      
-      // Cancel any existing alarms with this ID (based on hash) to avoid duplicates
-      final int alarmHashCode = alarm.hashCode;
-      await _notifications.cancel(alarmHashCode);
-      debugPrint('🔔 Cancelled any existing alarms with ID: $alarmHashCode');
-      
-      // Generate a unique notification ID based on the alarm hash and current time
-      final int notificationId = alarmHashCode;
-      debugPrint('🔔 Generated notification ID: $notificationId');
-
-      // --- Dynamic Notification Details ---
-      String soundName = 'alarm_sound'; // Default sound
-      if (alarm.soundPath.isNotEmpty) {
-         try {
-           // Extract filename without extension
-           soundName = p.basenameWithoutExtension(alarm.soundPath); 
-         } catch (e) {
-           debugPrint('Error extracting sound name: $e. Using default.');
-           // Keep the default 'alarm_sound'
-         }
-      }
-      debugPrint('🎵 Selected sound for notification: $soundName');
-      
-      // --- REMOVED Future.delayed timer here which doesn't work in terminated state ---
-      // Instead rely on system notifications with proper intent configuration
-      
-      // Get the AndroidFlutterLocalNotificationsPlugin to set custom intents
-      final AndroidFlutterLocalNotificationsPlugin? androidImplementation = 
-          _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-          
-      // Create custom notification details with full screen intent
-      AndroidNotificationDetails? enhancedAndroidDetails;
-      
-      if (androidImplementation != null) {
-        try {
-          // Create AndroidNotificationDetails with custom intents
-          enhancedAndroidDetails = AndroidNotificationDetails(
-            'alarm_channel',
-            'Alarm Notifications',
-            channelDescription: 'Channel for alarm notifications',
-            importance: Importance.max,
-            priority: Priority.max,
-            sound: RawResourceAndroidNotificationSound(soundName),
-            playSound: true,
-            enableVibration: alarm.vibrate,
-            fullScreenIntent: true,
-            category: AndroidNotificationCategory.alarm,
-            autoCancel: false, // Changed to false to keep alarm notification visible
-            additionalFlags: Int32List.fromList(<int>[4]), // FLAG_INSISTENT
-            ongoing: true,
-            actions: [
-              const AndroidNotificationAction(
-                'show_alarm',
-                'Show Alarm',
-                showsUserInterface: true,
-                cancelNotification: false,
-              ),
-            ],
-          );
-          
-          // The broadcast action to launch our AlarmReceiver for automatic fullscreen
-          await androidImplementation.createNotificationChannel(
-            const AndroidNotificationChannel(
-              'alarm_channel',
-              'Alarm Notifications',
-              description: 'Channel for alarm notifications',
-              importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
-              enableVibration: true,
-              playSound: true,
-              enableLights: true,
-              showBadge: true,
-            ),
-          );
-          
-          // Add intent to directly launch the full alarm activity
-          // This is critical for terminated state functionality
-          await androidImplementation.createNotificationChannel(
-            const AndroidNotificationChannel(
-              'alarm_focus',
-              'Alarm Focus', 
-              description: 'High priority alarm notifications',
-              importance: Importance.max,
-              sound: RawResourceAndroidNotificationSound('alarm_sound'),
-              enableVibration: true,
-              playSound: true,
-            ),
-          );
-          
-          // Configure alarm intent
-          final alarmIntent = {
-            'id': alarm.id,
-            'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
-            'soundName': soundName,
-            'hour': alarm.hour,
-            'minute': alarm.minute,
-          };
-          
-          // Register the alarm with the platform for terminated state
-          await _platformChannel.invokeMethod('registerTerminatedStateAlarm', alarmIntent);
-          
-          debugPrint('🔔 Enhanced notification details created successfully');
-        } catch (e) {
-          debugPrint('❌ Error creating enhanced notification details: $e');
-        }
-      }
-      
-      // Use enhanced details if available, otherwise fall back to basic details
-      final AndroidNotificationDetails androidDetails = enhancedAndroidDetails ?? AndroidNotificationDetails(
-        'alarm_channel',
-        'Alarm Notifications',
-        channelDescription: 'Channel for alarm notifications',
-        importance: Importance.max,
-        priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        playSound: true,
-        enableVibration: true,
-        fullScreenIntent: true,
-        category: AndroidNotificationCategory.alarm,
-        autoCancel: true,
-        additionalFlags: Int32List.fromList(<int>[4]),
-        ongoing: true,
-        actions: [
-          AndroidNotificationAction(
-            'show_alarm',
-            'Show Alarm',
-            showsUserInterface: true,
-            cancelNotification: true,
-          ),
-        ],
-      );
-      
-      // Default iOS settings
-      const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-        presentSound: true, // Use default iOS sound
-      );
-
-      // final NotificationDetails notificationDetails = NotificationDetails(
-      //   android: androidDetails,
-      //   iOS: iosDetails,
-      // );
-      
-      // Schedule the simple "Wake up!" notification - This is *only* for display
+      // Schedule the notification (as backup/UI indicator)
       await _notifications.zonedSchedule(
-        notificationId, // Use the consistent ID
-        alarm.label.isNotEmpty ? alarm.label : 'Alarm', // Title
-        'Wake up!', // Simplified Body
-        tzScheduledDate, // Scheduled time
-        // Modify details for silent informational notification
+        notificationId,
+        alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+        'Wake up!',
+        tzScheduledDate,
         const NotificationDetails(
           android: AndroidNotificationDetails(
-            'alarm_channel', // Use the same channel ID
+            'alarm_channel',
             'Alarm Notifications',
             channelDescription: 'Channel for alarm notifications',
             importance: Importance.max, 
             priority: Priority.high,
-            playSound: false, // *** Make this notification silent ***
-            sound: null,      // *** Remove specific sound ***
-            enableVibration: false, // No vibration needed here either
+            playSound: false, // Silent notification (native alarm handles sound)
+            sound: null,
+            enableVibration: false,
           ),
-          // Keep basic iOS settings if needed, also silent
-          iOS: DarwinNotificationDetails(
-            presentSound: false,
-          )
         ),
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle, // Use precise scheduling
+        payload: alarm.id,
         uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: _getDateTimeComponents(alarm.repeat), // Enable recurring notifications
-        payload: alarm.id, // Keep payload just in case
+        matchDateTimeComponents: DateTimeComponents.time,
       );
-
-      debugPrint('🔔 Informational Notification scheduled for $tzScheduledDate with ID $notificationId');
-      debugPrint('🔁 Repeat type: ${alarm.repeat} - Will auto-repeat: ${_getDateTimeComponents(alarm.repeat) != null}');
-
-      // After scheduling, update the pending alarms flag
-      final allAlarms = HiveDatabase.getAllAlarms();
-      final hasEnabledAlarms = allAlarms.any((a) => a.isEnabled);
-      await _updatePendingAlarmsFlag(hasEnabledAlarms);
-
+      
+      debugPrint('✅ NOTIFICATION ALARM: Successfully scheduled notification alarm');
     } catch (e) {
-      debugPrint('❌ Error scheduling alarm ID ${alarm.id}: $e');
-      // Consider re-throwing or showing an error to the user
+      debugPrint('❌ NOTIFICATION ALARM: Error scheduling notification alarm: $e');
     }
   }
   
-  // This is called when a notification action is tapped in the background
-  @pragma('vm:entry-point')
-  static void notificationActionCallback(NotificationResponse response) {
-    // This gets called in the background isolate and needs to be a top-level or static function
-    debugPrint('Background notification response: ${response.id} - ${response.actionId} - ${response.payload}');
-    
-    // For background handling, we can only log and pass the info to the AlarmReceiver
-    // The actual launching of the AlarmActivity happens in the native code
-    if (response.payload != null && (response.actionId == 'show_alarm' || response.notificationResponseType == NotificationResponseType.selectedNotification)) {
-      _handleAlarmNotificationAction(response.payload!);
-    }
-  }
-  
-  // Helper to send a broadcast to the native side to launch alarm activity
-  static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
-    String soundName = 'alarm_sound'; // Default
-    if (alarm.soundPath.isNotEmpty) {
-      try {
-        soundName = p.basenameWithoutExtension(alarm.soundPath); 
-      } catch (e) {
-        debugPrint('Error extracting sound name for broadcast: $e. Using default.');
-      }
-    }
-    debugPrint('🎵 Using sound name for broadcast: $soundName');
-
+  // ✅ CANCEL NATIVE ALARM
+  static Future<void> cancelNativeAlarm(String alarmId) async {
     try {
-      debugPrint('📱 ALARM BROADCAST: Sending broadcast for alarm ID ${alarm.id}');
-      await _platformChannel.invokeMethod('sendAlarmBroadcast', {
-        'id': alarm.id,
-        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
-        'soundName': soundName, // Pass sound name
-        'hour': alarm.hour, // Pass hour for time validation
-        'minute': alarm.minute, // Pass minute for time validation
+      debugPrint('🗑️ NATIVE ALARM: Cancelling native alarm $alarmId');
+      
+      final result = await _platformChannel.invokeMethod('cancelNativeAlarm', {
+        'alarmId': alarmId,
       });
-      debugPrint('📱 ALARM BROADCAST: Broadcast sent');
-    } on PlatformException catch (e) {
-      debugPrint("📱 ALARM BROADCAST: Failed to send broadcast: '${e.message}'.");
-    } catch (e) {
-      debugPrint("📱 ALARM BROADCAST: Generic error sending broadcast: $e");
-    }
-  }
-
-  // Helper to launch the alarm activity from both foreground and background
-  static void _handleAlarmNotificationAction(String alarmId) {
-    debugPrint('Handling alarm notification action for ID: $alarmId');
-    
-    // Get the alarm
-    final alarm = HiveDatabase.getAlarm(alarmId);
-    if (alarm != null) {
-      // Use broadcast to launch native AlarmActivity
-      _sendAlarmBroadcast(alarm);
       
-      // Reschedule the alarm if it's a repeating alarm
-      if (alarm.repeat != AlarmRepeat.once) {
-        _rescheduleAlarmForNextOccurrence(alarm);
+      if (result == true) {
+        debugPrint('✅ NATIVE ALARM: Successfully cancelled native alarm');
+      } else {
+        debugPrint('❌ NATIVE ALARM: Failed to cancel native alarm');
       }
+    } catch (e) {
+      debugPrint('❌ NATIVE ALARM: Error cancelling native alarm: $e');
     }
   }
   
-  // Helper to reschedule alarm for next occurrence after it fires
-  static Future<void> _rescheduleAlarmForNextOccurrence(AlarmModel alarm) async {
+  // ✅ CANCEL ALL NATIVE ALARMS
+  static Future<void> cancelAllNativeAlarms() async {
     try {
-      debugPrint('🔄 Rescheduling alarm ID ${alarm.id} for next occurrence');
+      debugPrint('🗑️ NATIVE ALARM: Cancelling all native alarms');
       
-      // Only reschedule repeating alarms
-      if (alarm.repeat == AlarmRepeat.once) {
-        debugPrint('❌ Not rescheduling one-time alarm');
-        
-        // For one-time alarms, delete them after they fire
-        await HiveDatabase.deleteAlarm(alarm.id);
-        debugPrint('✅ One-time alarm deleted after firing');
-        
-        // No need to try to update UI directly - the app will refresh alarms when it becomes active
-        
-        return;
-      }
+      final result = await _platformChannel.invokeMethod('cancelAllNativeAlarms');
       
-      // Get current time
-      final DateTime now = DateTime.now();
-      
-      // Start from today with the alarm time
-      var nextOccurrence = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        alarm.hour,
-        alarm.minute,
-      );
-      
-      debugPrint('🔄 Base date for calculation: ${nextOccurrence.toString()}');
-      
-      // Adjust for next occurrence based on repeat type
-      if (alarm.repeat == AlarmRepeat.daily) {
-        // For daily, add one day
-        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
-        debugPrint('🔄 Daily alarm - next occurrence: ${nextOccurrence.toString()}');
-      } else if (alarm.repeat == AlarmRepeat.weekdays) {
-        // Add one day first
-        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
-        
-        // If we land on a weekend, jump to Monday
-        if (nextOccurrence.weekday > 5) { // 6 = Saturday, 7 = Sunday
-          // Calculate days until next Monday (weekday 1)
-          int daysUntilMonday = 8 - nextOccurrence.weekday; // 8-6=2 (Sat->Mon), 8-7=1 (Sun->Mon)
-          nextOccurrence = nextOccurrence.add(Duration(days: daysUntilMonday));
-        }
-        
-        debugPrint('🔄 Weekday alarm - next occurrence: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
-      } else if (alarm.repeat == AlarmRepeat.weekends) {
-        // Add one day first
-        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
-        
-        // If we land on a weekday (1-5), jump to Saturday (6)
-        if (nextOccurrence.weekday < 6) {
-          // Calculate days until next Saturday (weekday 6)
-          int daysUntilSaturday = 6 - nextOccurrence.weekday;
-          nextOccurrence = nextOccurrence.add(Duration(days: daysUntilSaturday));
-        }
-        
-        debugPrint('🔄 Weekend alarm - next occurrence: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
-      } else if (alarm.repeat == AlarmRepeat.custom && alarm.weekdays.any((day) => day)) {
-        // First check if there are any days enabled
-        if (!alarm.weekdays.contains(true)) {
-          debugPrint('⚠️ Custom alarm has no days enabled, not rescheduling');
-          return;
-        }
-        
-        debugPrint('🔄 Custom repeat pattern: ${alarm.weekdays}');
-        
-        // Add one day first
-        nextOccurrence = nextOccurrence.add(const Duration(days: 1));
-        int currentWeekdayIndex = (nextOccurrence.weekday - 1) % 7; // Convert to 0-6 index
-        
-        // If current day is not enabled, find the next enabled day
-        if (!alarm.weekdays[currentWeekdayIndex]) {
-          bool foundDay = false;
-          
-          // Try each day, up to 7 days
-          for (int i = 1; i <= 7; i++) {
-            final checkDate = nextOccurrence.add(Duration(days: i - 1));
-            final weekdayIndex = (checkDate.weekday - 1) % 7;
-            
-            debugPrint('🔄 Checking day ${checkDate.toString()} (weekday ${checkDate.weekday}, index $weekdayIndex): ${alarm.weekdays[weekdayIndex]}');
-            
-            if (alarm.weekdays[weekdayIndex]) {
-              nextOccurrence = checkDate;
-              foundDay = true;
-              debugPrint('🔄 Found next custom day: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
-              break;
-            }
-          }
-          
-          if (!foundDay) {
-            debugPrint('⚠️ Could not find next enabled day for custom alarm, not rescheduling');
-            return;
-          }
+      if (result == true) {
+        debugPrint('✅ NATIVE ALARM: Successfully cancelled all native alarms');
         } else {
-          debugPrint('🔄 Next day is already enabled: ${nextOccurrence.toString()} (Day ${nextOccurrence.weekday})');
-        }
+        debugPrint('❌ NATIVE ALARM: Failed to cancel all native alarms');
       }
-      
-      debugPrint('🔄 Final next occurrence: ${nextOccurrence.toString()}');
-      
-      // Update the alarm with the next occurrence time (keeping the hour/minute the same)
-      // We don't need to modify the alarm object since the hour/minute stay the same
-      // Just reschedule it
-      
-      // Use the existing alarm scheduling mechanism
-      await scheduleAlarm(alarm);
-      
     } catch (e) {
-      debugPrint('❌ Error rescheduling alarm: $e');
+      debugPrint('❌ NATIVE ALARM: Error cancelling all native alarms: $e');
     }
   }
   
-  // Add a new method to handle battery optimization
-  static Future<void> requestBatteryOptimizationExemption() async {
-    if (Platform.isAndroid) {
-      try {
-        // Use permission_handler for battery optimization
-        if (await Permission.ignoreBatteryOptimizations.isDenied) {
-          final status = await Permission.ignoreBatteryOptimizations.request();
-          debugPrint('Battery optimization exemption status: $status');
-        }
-      } catch (e) {
-        debugPrint('Error requesting battery optimization exemption: $e');
-      }
-    }
-  }
-  
-  static DateTimeComponents? _getDateTimeComponents(AlarmRepeat repeat) {
-    switch (repeat) {
-      case AlarmRepeat.once:
-        return null;
-      case AlarmRepeat.daily:
-        return DateTimeComponents.time;
-      case AlarmRepeat.weekdays:
-      case AlarmRepeat.weekends:
-      case AlarmRepeat.custom:
-        return DateTimeComponents.dayOfWeekAndTime;
-    }
-  }
-  
+  // ✅ CANCEL ALARM METHOD - BOTH NOTIFICATION AND NATIVE NOTIFICATION
   static Future<void> cancelAlarm(String alarmId) async {
     try {
-      debugPrint('Cancelling alarm with ID: $alarmId');
+      debugPrint('🗑️ CANCELLING ALARM: Starting cancellation for $alarmId');
       
-      // Get the alarm from database
+      // Cancel native notification
+      await cancelNativeAlarm(alarmId);
+      
+      // Cancel notification alarm
       final alarm = HiveDatabase.getAlarm(alarmId);
-      if (alarm == null) {
-        debugPrint('Alarm not found with ID: $alarmId');
-        return;
+      if (alarm != null) {
+        final int notificationId = alarm.hashCode;
+        await _notifications.cancel(notificationId);
+        debugPrint('🗑️ Cancelled notification alarm with ID: $notificationId');
       }
-      
-      // Cancel the notification
-      final int notificationId = alarm.hashCode;
-      await _notifications.cancel(notificationId);
       
       // Check if there are any remaining enabled alarms
       final allAlarms = HiveDatabase.getAllAlarms();
-      final hasEnabledAlarms = allAlarms.any((a) => a != null && a.id != alarmId && a.isEnabled);
+      final hasEnabledAlarms = allAlarms.any((a) => a.id != alarmId && a.isEnabled);
       
       // Update the pending alarms flag
       await _updatePendingAlarmsFlag(hasEnabledAlarms);
       
-      debugPrint('Alarm cancelled with ID: $alarmId');
+      debugPrint('✅ ALARM CANCELLED: Successfully cancelled both notification and native notification $alarmId');
     } catch (e) {
-      debugPrint('Error cancelling alarm: $e');
+      debugPrint('❌ ERROR CANCELLING ALARM: $e');
     }
   }
   
   static Future<void> cancelAllAlarms() async {
     try {
-      debugPrint('Cancelling all alarms');
+      debugPrint('🗑️ CANCELLING ALL ALARMS: Starting...');
       
-      // Get all alarms
+      // Cancel all native alarms
+      await cancelAllNativeAlarms();
+      
+      // Cancel all notification alarms
       final alarms = HiveDatabase.getAllAlarms();
-      
-      // Cancel each alarm notification
       for (final alarm in alarms) {
         final int notificationId = alarm.hashCode;
         await _notifications.cancel(notificationId);
@@ -807,9 +477,9 @@ class AlarmService {
       // Update the pending alarms flag to false since all alarms are cancelled
       await _updatePendingAlarmsFlag(false);
       
-      debugPrint('All alarms cancelled');
+      debugPrint('✅ ALL ALARMS CANCELLED: Successfully cancelled all alarms');
     } catch (e) {
-      debugPrint('Error cancelling all alarms: $e');
+      debugPrint('❌ ERROR CANCELLING ALL ALARMS: $e');
     }
   }
 
@@ -820,6 +490,47 @@ class AlarmService {
     // Keep this method for backward compatibility
   }
 
+  // ✅ CHECK NATIVE ALARM PERMISSIONS
+  static Future<bool> hasNativeAlarmPermissions() async {
+    try {
+      if (Platform.isAndroid) {
+        // Check SCHEDULE_EXACT_ALARM permission (Android 12+)
+        if (await Permission.scheduleExactAlarm.isGranted) {
+          debugPrint('✅ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission granted');
+          return true;
+        } else {
+          debugPrint('❌ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission not granted');
+          return false;
+        }
+      }
+      return true; // iOS doesn't need this permission
+    } catch (e) {
+      debugPrint('❌ NATIVE ALARM: Error checking permissions: $e');
+      return false;
+    }
+  }
+  
+  // ✅ REQUEST NATIVE ALARM PERMISSIONS
+  static Future<bool> requestNativeAlarmPermissions() async {
+    try {
+      if (Platform.isAndroid) {
+        // Request SCHEDULE_EXACT_ALARM permission
+        final status = await Permission.scheduleExactAlarm.request();
+        if (status.isGranted) {
+          debugPrint('✅ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission granted');
+      return true;
+        } else {
+          debugPrint('❌ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission denied');
+      return false;
+    }
+  }
+      return true; // iOS doesn't need this permission
+    } catch (e) {
+      debugPrint('❌ NATIVE ALARM: Error requesting permissions: $e');
+      return false;
+    }
+  }
+  
   // For directly checking notification settings
   static Future<Map<String, dynamic>> checkNotificationSettings() async {
     final Map<String, dynamic> settings = {};
@@ -827,12 +538,12 @@ class AlarmService {
     try {
       if (Platform.isAndroid) {
         final AndroidFlutterLocalNotificationsPlugin? androidImplementation =
-            _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-        
+          _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+      
         if (androidImplementation != null) {
           // Check if notifications are enabled
           final bool? areNotificationsEnabled = await androidImplementation.areNotificationsEnabled();
-          settings['notifications_enabled'] = areNotificationsEnabled;
+          settings['notifications_enabled'] = areNotificationsEnabled ?? false;
         }
         
         // Check exact alarm permission
@@ -841,239 +552,104 @@ class AlarmService {
         // Check battery optimization
         settings['battery_optimization'] = await Permission.ignoreBatteryOptimizations.status;
         
-        // Get pending notifications count
-        final pendingNotifications = await _notifications.pendingNotificationRequests();
-        settings['pending_notifications'] = pendingNotifications.length;
+        // Check display over other apps
+        settings['display_over_apps'] = await Permission.systemAlertWindow.status;
       }
+      
+      return settings;
     } catch (e) {
       debugPrint('Error checking notification settings: $e');
-      settings['error'] = e.toString();
-    }
-    
-    return settings;
-  }
-
-  // Direct test method for notifications
-  static Future<bool> testDirectNotification() async {
-    try {
-      // Ensure initialized
-      if (!_isInitialized) await init();
-      
-      // Create notification details
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'alarm_channel',
-        'Alarms',
-        channelDescription: 'Notifications for scheduled alarms',
-        importance: Importance.max,
-        priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        playSound: true,
-        fullScreenIntent: true,
-        category: AndroidNotificationCategory.alarm,
-        visibility: NotificationVisibility.public,
-      );
-      
-      const NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBadge: true,
-          presentSound: true,
-          sound: 'alarm_sound.mp3',
-        ),
-      );
-      
-      // Get current time for payload
-      final now = DateTime.now();
-      final timestamp = '${now.hour}:${now.minute}:${now.second}';
-      
-      // Show notification directly
-      await _notifications.show(
-        99999,
-        'DIRECT TEST',
-        'Direct test notification sent at $timestamp',
-        notificationDetails,
-        payload: 'direct_test',
-      );
-      
-      debugPrint('Direct test notification sent at $timestamp');
-      return true;
-    } catch (e) {
-      debugPrint('Error sending direct test notification: $e');
-      return false;
+      return settings;
     }
   }
 
-  // Ultra simple notification test
-  static Future<bool> testSimpleNotification() async {
+  // Send alarm broadcast to native side
+  static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
     try {
-      final FlutterLocalNotificationsPlugin notifier = FlutterLocalNotificationsPlugin();
-      
-      // Create a super simple channel if not initialized
-      if (!_isInitialized) {
-        // Initialize with minimum settings
-        const AndroidInitializationSettings androidSettings = 
-            AndroidInitializationSettings('@mipmap/ic_launcher');
-        const InitializationSettings initSettings = 
-            InitializationSettings(android: androidSettings);
-        await notifier.initialize(initSettings);
-        
-        // Create a simple channel
-        const AndroidNotificationChannel simpleChannel = AndroidNotificationChannel(
-          'simple_channel', 
-          'Simple Test',
-          importance: Importance.max,
-        );
-        
-        final AndroidFlutterLocalNotificationsPlugin? androidPlugin = 
-            notifier.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-        
-        if (androidPlugin != null) {
-          await androidPlugin.createNotificationChannel(simpleChannel);
-        }
-      }
-      
-      // Super simple notification
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'simple_channel',
-        'Simple Test',
-        importance: Importance.max,
-        priority: Priority.max,
-      );
-      
-      const NotificationDetails details = NotificationDetails(android: androidDetails);
-      
-      // Show basic notification
-      final now = DateTime.now();
-      await notifier.show(
-        12345,
-        'ULTRA SIMPLE TEST',
-        'Simple test at ${now.hour}:${now.minute}:${now.second}',
-        details,
-      );
-      
-      debugPrint('SIMPLE TEST: Sent notification at ${now.toString()}');
-      return true;
-    } catch (e) {
-      debugPrint('SIMPLE TEST ERROR: $e');
-      return false;
-    }
-  }
-  
-  // Test notification with special alarm settings
-  static Future<bool> testAlarmFocusedNotification() async {
-    try {
-      // Ensure initialized
-      if (!_isInitialized) await init();
-      
-      // Use a dedicated alarm channel
-      const AndroidNotificationChannel alarmFocusChannel = AndroidNotificationChannel(
-        'alarm_focus',
-        'Alarm Focus',
-        description: 'High priority alarm notifications',
-        importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        enableVibration: true,
-        enableLights: true,
-        showBadge: true,
-      );
-      
-      final AndroidFlutterLocalNotificationsPlugin? androidPlugin = 
-          _notifications.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
-      
-      if (androidPlugin != null) {
-        await androidPlugin.createNotificationChannel(alarmFocusChannel);
-      }
-      
-      // Create notification with max priority
-      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
-        'alarm_focus',
-        'Alarm Focus',
-        importance: Importance.max,
-        priority: Priority.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        playSound: true,
-        fullScreenIntent: true,
-        category: AndroidNotificationCategory.alarm,
-        visibility: NotificationVisibility.public,
-        ticker: 'ALARM',
-        color: Color.fromARGB(255, 255, 0, 0),
-        colorized: true,
-        ongoing: true,
-        autoCancel: false,
-      );
-      
-      const NotificationDetails notificationDetails = NotificationDetails(
-        android: androidDetails,
-      );
-      
-      // Current timestamp
-      final now = DateTime.now();
-      final timestamp = '${now.hour}:${now.minute}:${now.second}';
-      
-      // Show focused alarm
-      await _notifications.show(
-        88888,
-        'ALARM TEST',
-        'Special alarm configuration test at $timestamp',
-        notificationDetails,
-      );
-      
-      debugPrint('ALARM FOCUS TEST: Sent notification at $timestamp');
-      return true;
-    } catch (e) {
-      debugPrint('ALARM FOCUS TEST ERROR: $e');
-      return false;
-    }
-  }
-
-  // When alarm time is reached, this method will be called to launch the fullscreen activity
-  static Future<void> _launchFullscreenAlarm(String alarmId, String label) async {
-    debugPrint('📱 ALARM LAUNCH: Attempting to show fullscreen alarm for $alarmId');
-    // Retrieve alarm to get sound path
-    final alarm = HiveDatabase.getAlarm(alarmId);
-    if (alarm == null) {
-      debugPrint('❌ Alarm not found with ID: $alarmId');
-      return;
-    }
-    
-    // Check if the alarm time has already passed (comparing only hour and minute)
-    final now = DateTime.now();
-    final bool isAlarmInPast = 
-        (now.hour > alarm.hour) || 
-        (now.hour == alarm.hour && now.minute > alarm.minute);
-    
-    if (isAlarmInPast) {
-      debugPrint('⏰ Not showing alarm that has already passed: ${alarm.hour}:${alarm.minute}');
-      return;
-    }
+      debugPrint('📱 ALARM BROADCAST: Sending broadcast for alarm ${alarm.id}');
     
     String soundName = 'alarm_sound'; // Default
     if (alarm.soundPath.isNotEmpty) {
       try {
         soundName = p.basenameWithoutExtension(alarm.soundPath); 
       } catch (e) {
-        debugPrint('Error extracting sound name for launch: $e. Using default.');
+          debugPrint('Error extracting sound name for broadcast: $e. Using default.');
+        }
       }
-    }
-    debugPrint('🎵 Using sound name for launch: $soundName');
-
-    try {
-      // First try direct method channel call to immediately show the math screen
-      final result = await _platformChannel.invokeMethod('showOverlay', {
-        'id': alarmId,
-        'label': label,
-        'soundName': soundName, // Pass sound name
-        'hour': alarm.hour, // Pass hour
-        'minute': alarm.minute, // Pass minute
-      });
-      debugPrint('📱 ALARM LAUNCH: Direct launch result: $result');
       
-      // Also send broadcast as backup method (belt and suspenders approach)
-      await _sendAlarmBroadcast(alarm); // Pass the full alarm model
-      debugPrint('📱 ALARM BROADCAST: Backup broadcast sent');
+      await _platformChannel.invokeMethod('sendAlarmBroadcast', {
+        'id': alarm.id,
+        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
+        'soundName': soundName,
+        'hour': alarm.hour,
+        'minute': alarm.minute,
+      });
+      
+      debugPrint('📱 ALARM BROADCAST: Broadcast sent successfully');
     } catch (e) {
-      debugPrint('❌ ERROR launching fullscreen alarm: $e');
+      debugPrint('❌ ALARM BROADCAST: Error sending broadcast: $e');
+    }
+  }
+
+  // Fix release mode permissions
+  static Future<void> fixReleasePermissions() async {
+    try {
+      debugPrint('🔧 RELEASE MODE: Fixing permissions...');
+      
+      // Request critical permissions for release mode
+      await Permission.notification.request();
+      await Permission.scheduleExactAlarm.request();
+      await Permission.ignoreBatteryOptimizations.request();
+      
+      debugPrint('✅ RELEASE MODE: Permissions fixed');
+    } catch (e) {
+      debugPrint('❌ RELEASE MODE: Error fixing permissions: $e');
+    }
+  }
+
+  // Check if app can schedule alarms
+  static Future<bool> canScheduleAlarms() async {
+    try {
+      if (Platform.isAndroid) {
+        // Check if we have the necessary permissions
+        final hasNotificationPermission = await Permission.notification.isGranted;
+        final hasExactAlarmPermission = await Permission.scheduleExactAlarm.isGranted;
+        
+        return hasNotificationPermission && hasExactAlarmPermission;
+      }
+      return true; // iOS doesn't need these specific permissions
+    } catch (e) {
+      debugPrint('Error checking alarm scheduling capability: $e');
+      return false;
+    }
+  }
+
+  // Test alarm functionality
+  static Future<bool> testAlarmFocus() async {
+    try {
+      debugPrint('🧪 ALARM FOCUS TEST: Starting test...');
+      
+      // Create a test alarm
+      final testAlarm = AlarmModel(
+        id: 'test_alarm_${DateTime.now().millisecondsSinceEpoch}',
+        hour: DateTime.now().hour,
+        minute: DateTime.now().minute + 1, // 1 minute from now
+        label: 'Test Alarm',
+        soundPath: 'alarm_sound',
+        isEnabled: true,
+        vibrate: true,
+        repeat: AlarmRepeat.once,
+        weekdays: [false, false, false, false, false, false, false],
+      );
+      
+      // Schedule the test alarm
+      await scheduleAlarm(testAlarm);
+      
+      debugPrint('✅ ALARM FOCUS TEST: Test alarm scheduled');
+      return true;
+    } catch (e) {
+      debugPrint('❌ ALARM FOCUS TEST ERROR: $e');
+      return false;
     }
   }
 
@@ -1082,135 +658,51 @@ class AlarmService {
     try {
       debugPrint('📱 ALARM SERVICE: Checking permissions for release build');
       
-      // Check native permissions through platform channel
-      final Map<String, dynamic> nativePermissions = 
-          await _platformChannel.invokeMethod('checkAlarmPermissions')
-              .then((result) => Map<String, dynamic>.from(result as Map))
-              .catchError((e) {
-                debugPrint('Error checking native permissions: $e');
-                return <String, dynamic>{'error': e.toString()};
-              });
+      final Map<String, dynamic> permissions = {};
       
-      // Check Flutter permissions using permission_handler
-      final Map<String, dynamic> flutterPermissions = {};
+      if (Platform.isAndroid) {
+        permissions['notifications'] = await Permission.notification.status;
+        permissions['exact_alarm'] = await Permission.scheduleExactAlarm.status;
+        permissions['battery_optimization'] = await Permission.ignoreBatteryOptimizations.status;
+        permissions['display_over_apps'] = await Permission.systemAlertWindow.status;
+      }
       
-      // Schedule exact alarms permission
-      flutterPermissions['scheduleExactAlarm'] = 
-          await Permission.scheduleExactAlarm.status.isGranted;
-      
-      // Notification permission
-      flutterPermissions['notification'] = 
-          await Permission.notification.status.isGranted;
-      
-      // Battery optimization
-      flutterPermissions['ignoreBatteryOptimizations'] = 
-          await Permission.ignoreBatteryOptimizations.status.isGranted;
-          
-      // System alert window permission (overlay)
-      flutterPermissions['systemAlertWindow'] = 
-          await Permission.systemAlertWindow.status.isGranted;
-      
-      // Get the number of scheduled alarms
-      final pendingNotifications = await _notifications.pendingNotificationRequests();
-      
-      // Combine all results
-      return {
-        'native': nativePermissions,
-        'flutter': flutterPermissions,
-        'pendingNotificationsCount': pendingNotifications.length,
-        'appLifecycleState': currentAppState.toString(),
-      };
+      debugPrint('📱 ALARM SERVICE: Permission check complete: $permissions');
+      return permissions;
     } catch (e) {
-      debugPrint('Error in checkReleasePermissions: $e');
-      return {'error': e.toString()};
+      debugPrint('❌ ALARM SERVICE: Error checking permissions: $e');
+      return {};
     }
   }
   
-  // Fix permissions for release builds
-  static Future<bool> fixReleasePermissions() async {
-    try {
-      debugPrint('📱 ALARM SERVICE: Checking permissions for release build');
-      
-      // Check all permissions but don't request them automatically
-      // This ensures we're aware of the current permission state
-      final permissionStatus = await checkReleasePermissions();
-      debugPrint('📱 ALARM SERVICE: Current permission status: $permissionStatus');
-      
-      // Don't request permissions here anymore - let the PermissionsScreen handle it
-      // This prevents prompting at startup on physical devices
-      
-      return true;
-    } catch (e) {
-      debugPrint('Error checking release permissions: $e');
-      return false;
-    }
+  // Navigate to congratulations screen if ready
+  static void tryNavigateToCongratulationsIfReady() {
+    // This method is kept for compatibility but does nothing
+    // The congratulations navigation is now handled elsewhere
+    debugPrint('📱 ALARM SERVICE: tryNavigateToCongratulationsIfReady called (no-op)');
   }
 
-  // Test alarm functionality in release mode
-  static Future<Map<String, dynamic>> testReleaseAlarm() async {
-    try {
-      debugPrint('📱 ALARM SERVICE: Testing alarm in release mode');
-      
-      // First check permissions
-      final permissionStatus = await checkReleasePermissions();
-      
-      // Create a test alarm for 30 seconds from now
-      final now = DateTime.now();
-      final testAlarmTime = now.add(const Duration(seconds: 30));
-      
-      // Create a test alarm model
-      final testAlarm = AlarmModel(
-        id: 'test_release_${now.millisecondsSinceEpoch}',
-        hour: testAlarmTime.hour,
-        minute: testAlarmTime.minute,
-        isEnabled: true,
-        label: 'Release Test Alarm',
-        vibrate: true,
-        repeat: AlarmRepeat.once,
-        weekdays: List.filled(7, false),
-        soundPath: 'alarm_sound',
-        dismissType: DismissType.normal,
-      );
-      
-      // Log the test alarm
-      debugPrint('📱 ALARM SERVICE: Created test alarm for ${testAlarmTime.toString()}');
-      
-      // Try to schedule it
-      await scheduleAlarm(testAlarm);
-      
-      // Get pending notifications
-      final pendingNotifications = await _notifications.pendingNotificationRequests();
-      
-      // Also send a direct test notification
-      await testDirectNotification();
-      
-      // Log result and return status
-      return {
-        'permissionStatus': permissionStatus,
-        'testAlarmCreated': true,
-        'testAlarmTime': '${testAlarmTime.hour}:${testAlarmTime.minute}:${testAlarmTime.second}',
-        'pendingNotificationsCount': pendingNotifications.length,
-      };
-    } catch (e) {
-      debugPrint('Error testing release alarm: $e');
-      return {'error': e.toString()};
-    }
-  }
-
+  // Skip next alarm occurrence
   static Future<void> skipNextAlarm(AlarmModel alarm) async {
-    // This is a placeholder.
-    // The actual implementation will depend on how alarms are stored and scheduled
-    // on the native side. It might involve:
-    // 1. Finding the next scheduled alarm instance.
-    // 2. Cancelling it.
-    // 3. Scheduling the *following* alarm instance.
-    // For now, we'll just log it.
-    debugPrint("Skipping next occurrence of alarm: ${alarm.id}");
-
-    // Example of what it might look like:
-    // final nextTime = alarm.getNextAlarmTime(skip: 1); // Get time after next
-    // await cancelAlarm(alarm.id);
-    // alarm.reschedule(nextTime);
-    // await scheduleAlarm(alarm);
+    try {
+      debugPrint('⏭️ SKIP ALARM: Skipping next occurrence for ${alarm.hour}:${alarm.minute}');
+      
+      // Cancel current alarm
+      await cancelAlarm(alarm.id);
+      
+      // For one-time alarms, just disable them
+      if (alarm.repeat == AlarmRepeat.once) {
+        final disabledAlarm = alarm.copyWith(isEnabled: false);
+        await HiveDatabase.saveAlarm(disabledAlarm);
+        debugPrint('⏭️ SKIP ALARM: One-time alarm disabled');
+        return;
+      }
+      
+      // For recurring alarms, reschedule for next occurrence
+      await scheduleAlarm(alarm);
+      debugPrint('⏭️ SKIP ALARM: Recurring alarm rescheduled for next occurrence');
+    } catch (e) {
+      debugPrint('❌ SKIP ALARM: Error skipping alarm: $e');
+    }
   }
 } 

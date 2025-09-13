@@ -39,12 +39,13 @@ class AlarmReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d(TAG, "Alarm receiver triggered with action: ${intent.action}")
         
-        // Check if this is a direct alarm trigger or a boot completed event
+        // Check if this is a direct alarm trigger, native alarm trigger, or boot completed event
         val isDirectAlarmTrigger = intent.action == "com.example.upnow.ALARM_TRIGGER"
+        val isNativeAlarmTrigger = intent.action == "com.example.upnow.NATIVE_ALARM_TRIGGER"
         val isBootCompleted = intent.action == Intent.ACTION_BOOT_COMPLETED
         
-        // Only proceed if this is a direct alarm trigger
-        if (!isDirectAlarmTrigger && !isBootCompleted) {
+        // Only proceed if this is a recognized action
+        if (!isDirectAlarmTrigger && !isNativeAlarmTrigger && !isBootCompleted) {
             Log.d(TAG, "Ignoring unknown action: ${intent.action}")
             return
         }
@@ -66,8 +67,17 @@ class AlarmReceiver : BroadcastReceiver() {
             return
         }
         
-        // For direct alarm triggers, we need specific parameters
+        // Handle both direct alarm trigger and native alarm trigger
         val alarmId = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_ID)
+        val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL)
+        val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND)
+        val hour = intent.getIntExtra("hour", -1)
+        val minute = intent.getIntExtra("minute", -1)
+        val repeatType = intent.getStringExtra("repeatType") ?: "once"
+        val weekdays = intent.getBooleanArrayExtra("weekdays")
+        
+        val triggerType = if (isNativeAlarmTrigger) "NATIVE ALARM" else "NOTIFICATION"
+        Log.d(TAG, "🔔 $triggerType TRIGGER - ID: $alarmId, Label: $alarmLabel, Sound: $soundName, Time: $hour:$minute")
         
         // Only proceed if we have a valid alarm ID (not null and not "unknown")
         if (alarmId == null || alarmId == "unknown") {
@@ -76,13 +86,10 @@ class AlarmReceiver : BroadcastReceiver() {
         }
         
         // Check if the alarm time has passed (if hour and minute are provided)
-        val hour = intent.getIntExtra("hour", -1)
-        val minute = intent.getIntExtra("minute", -1)
-        
         if (hour != -1 && minute != -1) {
             // For app startup, do not show alarms from the past
             if (isAlarmInPast(hour, minute)) {
-                Log.d(TAG, "Ignoring alarm that has already passed: $hour:$minute")
+                Log.d(TAG, "⏰ Ignoring alarm that has already passed: $hour:$minute")
                 return
             }
         }
