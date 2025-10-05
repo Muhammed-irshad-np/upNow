@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 // import 'package:upnow/providers/alarm_provider.dart';
+import 'package:upnow/utils/navigation_service.dart';
 
 // Define a global variable to hold the current app lifecycle state
 AppLifecycleState currentAppState = AppLifecycleState.resumed;
@@ -150,7 +151,22 @@ class AlarmService {
         }
         break;
       default:
-        debugPrint('📱 ALARM SERVICE: Unknown method call: ${call.method}');
+        if (call.method == 'openCongratulationsScreen') {
+          try {
+            final state = navigationKey.currentState;
+            if (state != null) {
+              state.pushNamedAndRemoveUntil('/congratulations', (route) => false);
+              debugPrint('🎉 Navigated to congratulations screen');
+            } else {
+              debugPrint('⚠️ Navigator not ready; deferring congratulations navigation');
+              // Optionally, you could queue a microtask to retry shortly
+            }
+          } catch (e) {
+            debugPrint('❌ Error navigating to congratulations: $e');
+          }
+        } else {
+          debugPrint('📱 ALARM SERVICE: Unknown method call: ${call.method}');
+        }
     }
   }
 
@@ -294,7 +310,7 @@ class AlarmService {
       await _scheduleNotificationAlarm(alarm, scheduledDate);
       
       debugPrint('✅ ALARM SCHEDULED: Both native alarm and notification scheduled');
-    } catch (e) {
+         } catch (e) {
       debugPrint('❌ ERROR SCHEDULING ALARM: $e');
     }
   }
@@ -336,8 +352,8 @@ class AlarmService {
       // Schedule native alarm via platform channel (ACTUAL ALARM, not notification)
       final result = await _platformChannel.invokeMethod('scheduleNativeAlarm', {
         'alarmId': alarm.id,
-        'hour': alarm.hour,
-        'minute': alarm.minute,
+            'hour': alarm.hour,
+            'minute': alarm.minute,
         'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
         'soundName': alarm.soundPath.isNotEmpty ? p.basenameWithoutExtension(alarm.soundPath) : 'alarm_sound',
         'repeatType': repeatType,
@@ -349,7 +365,7 @@ class AlarmService {
       } else {
         debugPrint('❌ NATIVE ALARM: Failed to schedule native alarm');
       }
-    } catch (e) {
+        } catch (e) {
       debugPrint('❌ NATIVE ALARM: Error scheduling native alarm: $e');
     }
   }
@@ -442,8 +458,8 @@ class AlarmService {
       // Cancel notification alarm
       final alarm = HiveDatabase.getAlarm(alarmId);
       if (alarm != null) {
-        final int notificationId = alarm.hashCode;
-        await _notifications.cancel(notificationId);
+      final int notificationId = alarm.hashCode;
+      await _notifications.cancel(notificationId);
         debugPrint('🗑️ Cancelled notification alarm with ID: $notificationId');
       }
       

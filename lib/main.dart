@@ -20,9 +20,9 @@ import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/utils/global_error_handler.dart';
+import 'package:upnow/utils/navigation_service.dart';
 
-// Global navigator key for accessing Navigator from outside the widget tree
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+// Navigator key is provided by navigation_service.dart
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +46,7 @@ void main() async {
   await HabitAlarmService.initialize();
 
   // Initialize global error handler before the app starts
-  GlobalErrorHandler.initialize(navigatorKey: navigatorKey);
+  GlobalErrorHandler.initialize(navigatorKey: navigationKey);
 
   // Wrap the app in a guarded zone to catch any uncaught errors and show dialog
   runZonedGuarded(() {
@@ -89,7 +89,7 @@ class MyApp extends StatelessWidget {
           child: MaterialApp(
             title: 'UpNow',
             debugShowCheckedModeBanner: false,
-            navigatorKey: navigatorKey,
+            navigatorKey: navigationKey,
             theme: AppTheme.getDarkTheme(),
             home: const StartupScreen(),
             routes: {
