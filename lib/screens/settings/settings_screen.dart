@@ -7,6 +7,7 @@ import 'package:provider/provider.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:upnow/widgets/alarm_optimization_card.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -28,11 +29,26 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
           children: [
+            _buildSectionTitle('Alarm'),
+            _buildSettingGroup(
+              children: [
+                const AlarmOptimizationCard(
+                  style: AlarmOptimizationStyle.settingsTile,
+                  hideWhenOptimized: false,
+                  isLast: false,
+                ),
+                Container(
+                  height: 1,
+                  color: AppTheme.darkBackground.withOpacity(0.5),
+                ),
+                _buildWakeUpAlarmSetting(context),
+              ],
+            ),
+            SizedBox(height: 16.h),
             _buildSectionTitle('General'),
             _buildSettingGroup(
               children: [
                 _buildTimeFormatSetting(context),
-                _buildWakeUpAlarmSetting(context),
                 _buildSettingTile(
                   icon: Icons.language_outlined,
                   title: 'Language',

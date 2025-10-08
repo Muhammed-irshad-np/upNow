@@ -8,14 +8,49 @@ class PermissionsManager {
   static const String _hasRequestedNotifications = 'has_requested_notifications';
   static const String _hasRequestedExactAlarm = 'has_requested_exact_alarm';
 
-  // Check if all critical permissions are granted
+  // Check if legacy "all critical" permissions are granted (includes exact alarm)
+  // Kept for backward compatibility. Prefer hasAllOptimizationPermissions() for UI flows.
   static Future<bool> hasAllCriticalPermissions() async {
     final displayOverApps = await Permission.systemAlertWindow.isGranted;
     final batteryOptimization = await Permission.ignoreBatteryOptimizations.isGranted;
     final notifications = await Permission.notification.isGranted;
     final exactAlarm = await Permission.scheduleExactAlarm.isGranted;
-    
+
     return displayOverApps && batteryOptimization && notifications && exactAlarm;
+  }
+
+  // Optimization permissions (exclude exact alarm)
+  static Future<bool> isOverlayGranted() async {
+    return await Permission.systemAlertWindow.isGranted;
+  }
+
+  static Future<bool> isBatteryOptimizationIgnored() async {
+    return await Permission.ignoreBatteryOptimizations.isGranted;
+  }
+
+  static Future<bool> isNotificationGranted() async {
+    return await Permission.notification.isGranted;
+  }
+
+  static Future<Map<String, bool>> getOptimizationStatuses() async {
+    return {
+      'overlay': await isOverlayGranted(),
+      'battery': await isBatteryOptimizationIgnored(),
+      'notifications': await isNotificationGranted(),
+    };
+  }
+
+  static Future<int> getOptimizationScore() async {
+    final statuses = await getOptimizationStatuses();
+    int score = 0;
+    if (statuses['overlay'] == true) score++;
+    if (statuses['battery'] == true) score++;
+    if (statuses['notifications'] == true) score++;
+    return score;
+  }
+
+  static Future<bool> hasAllOptimizationPermissions() async {
+    return (await getOptimizationScore()) == 3;
   }
 
   // Check if a specific permission has been requested before

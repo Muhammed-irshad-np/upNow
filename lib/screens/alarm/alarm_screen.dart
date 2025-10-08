@@ -13,6 +13,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 import 'package:upnow/utils/preferences_helper.dart';
+import 'package:upnow/widgets/alarm_optimization_card.dart';
 
 class AlarmScreen extends StatefulWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -87,6 +88,11 @@ class _AlarmScreenState extends State<AlarmScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            // Alarm Optimization card at top of alarm screen (hide when all 3 permissions granted)
+            const AlarmOptimizationCard(
+              style: AlarmOptimizationStyle.card,
+              hideWhenOptimized: true,
+            ),
             _buildNextAlarmSection(context, alarms),
             const SizedBox(height: 8),
             if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
