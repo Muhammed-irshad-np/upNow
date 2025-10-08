@@ -263,7 +263,7 @@ class _Divider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 8.h),
-      height: 1,
+      height: 1.h,
       color: AppTheme.darkBackground.withOpacity(0.5),
     );
   }

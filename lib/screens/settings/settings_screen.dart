@@ -38,7 +38,7 @@ class SettingsScreen extends StatelessWidget {
                   isLast: false,
                 ),
                 Container(
-                  height: 1,
+                  height: 1.h,
                   color: AppTheme.darkBackground.withOpacity(0.5),
                 ),
                 _buildWakeUpAlarmSetting(context),
