@@ -14,6 +14,7 @@ import 'package:upnow/screens/alarm/create_alarm_screen.dart';
 import 'package:upnow/screens/onboarding/onboarding_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
 import 'package:upnow/screens/habit_home_screen.dart';
+import 'package:upnow/screens/splash_screen.dart';
 import 'package:upnow/services/alarm_service.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/services/habit_alarm_service.dart';
@@ -91,7 +92,7 @@ class MyApp extends StatelessWidget {
             debugShowCheckedModeBanner: false,
             navigatorKey: navigationKey,
             theme: AppTheme.getDarkTheme(),
-            home: const StartupScreen(),
+            home: const SplashScreen(),
             routes: {
               '/create_alarm': (context) => const CreateAlarmScreen(),
               '/edit_alarm': (context) {
