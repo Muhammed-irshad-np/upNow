@@ -116,11 +116,17 @@ class _AlarmScreenState extends State<AlarmScreen> {
               child: SizedBox(height: 8),
             ),
             alarms.isEmpty
-              ? SliverFillRemaining(
-                  child: _buildEmptyState(context),
+              ? SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  sliver: SliverToBoxAdapter(
+                    child: _buildEmptyState(context),
+                  ),
                 )
-              : SliverToBoxAdapter(
-                  child: _buildAlarmList(context, alarms),
+              : SliverPadding(
+                  padding: const EdgeInsets.only(bottom: 96),
+                  sliver: SliverToBoxAdapter(
+                    child: _buildAlarmList(context, alarms),
+                  ),
                 ),
           ],
         ),
