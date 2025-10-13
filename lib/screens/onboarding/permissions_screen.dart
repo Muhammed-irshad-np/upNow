@@ -69,12 +69,12 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 'To ensure alarms work even in battery saving mode',
                 Icons.battery_charging_full,
               ),
-              const SizedBox(height: 16),
-              _buildPermissionItem(
-                'Schedule Exact Alarms',
-                'For precise alarm timing',
-                Icons.access_time,
-              ),
+              // const SizedBox(height: 16),
+              // _buildPermissionItem(
+              //   'Schedule Exact Alarms',
+              //   'For precise alarm timing',
+              //   Icons.access_time,
+              // ),
               
               const Spacer(),
               
@@ -188,7 +188,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
     await PermissionsManager.requestNotifications(context);
     await PermissionsManager.requestDisplayOverApps(context);
     await PermissionsManager.requestBatteryOptimization(context);
-    await PermissionsManager.requestExactAlarm(context);
+    // await PermissionsManager.requestExactAlarm(context);
 
     provider.finishRequest();
 

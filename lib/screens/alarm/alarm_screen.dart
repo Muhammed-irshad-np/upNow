@@ -86,26 +86,42 @@ class _AlarmScreenState extends State<AlarmScreen> {
         titleSpacing: 20,
       ),
       body: SafeArea(
-        child: Column(
-          children: [
+        child: CustomScrollView(
+          slivers: [
             // Alarm Optimization card at top of alarm screen (hide when all 3 permissions granted)
-            const AlarmOptimizationCard(
-              style: AlarmOptimizationStyle.card,
-              hideWhenOptimized: true,
+            const SliverToBoxAdapter(
+              child: AlarmOptimizationCard(
+                style: AlarmOptimizationStyle.card,
+                hideWhenOptimized: true,
+              ),
             ),
-            _buildNextAlarmSection(context, alarms),
-            const SizedBox(height: 8),
-            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
-              _buildWakeUpAlarmReminder(context),
-            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
-              const SizedBox(height: 8),
-            _buildQuickAlarmButtons(context),
-            const SizedBox(height: 8),
-            Expanded(
-              child: alarms.isEmpty
-                ? _buildEmptyState(context)
-                : _buildAlarmList(context, alarms),
+            SliverToBoxAdapter(
+              child: _buildNextAlarmSection(context, alarms),
             ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 8),
+            ),
+            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
+              SliverToBoxAdapter(
+                child: _buildWakeUpAlarmReminder(context),
+              ),
+            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
+              const SliverToBoxAdapter(
+                child: SizedBox(height: 8),
+              ),
+            SliverToBoxAdapter(
+              child: _buildQuickAlarmButtons(context),
+            ),
+            const SliverToBoxAdapter(
+              child: SizedBox(height: 8),
+            ),
+            alarms.isEmpty
+              ? SliverFillRemaining(
+                  child: _buildEmptyState(context),
+                )
+              : SliverToBoxAdapter(
+                  child: _buildAlarmList(context, alarms),
+                ),
           ],
         ),
       ),
@@ -332,7 +348,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
       await PermissionsManager.requestNotifications(context);
       await PermissionsManager.requestDisplayOverApps(context);
       await PermissionsManager.requestBatteryOptimization(context);
-      await PermissionsManager.requestExactAlarm(context);
+      // await PermissionsManager.requestExactAlarm(context);
     }
 
     return true;
@@ -426,47 +442,45 @@ class _AlarmScreenState extends State<AlarmScreen> {
     final double stackOffset = 120.h; // Show more of each card while keeping stacked effect
     final double totalHeight = (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
 
-    return SingleChildScrollView(
+    return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: SizedBox(
-        height: totalHeight,
-        child: Stack(
-          children: [
-            // Build cards from bottom to top (reverse order for proper stacking)
-            for (int i = sortedAlarms.length - 1; i >= 0; i--)
-              Positioned(
-                top: i * stackOffset,
-                left: 0,
-                right: 0,
-                child: AlarmCard(
-                  alarm: sortedAlarms[i],
-                  cardColor: sortedAlarms[i].isEnabled 
-                    ? activeCardColors[i % activeCardColors.length]
-                    : inactiveCardColor,
-                  isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
-                  stackOffset: 0,
-                  onDelete: () {
-                    Provider.of<AlarmProvider>(context, listen: false)
-                        .deleteAlarm(sortedAlarms[i].id);
-                  },
-                  onToggle: (value) {
-                    Provider.of<AlarmProvider>(context, listen: false)
-                        .toggleAlarm(sortedAlarms[i].id, value);
-                  },
-                  onTap: () async {
-                    // Navigate to edit alarm screen
-                    await Navigator.pushNamed(
-                      context,
-                      '/edit_alarm',
-                      arguments: sortedAlarms[i],
-                    );
-                    // AlarmProvider will automatically reload alarms
-                  },
-                  onSkipOnce: () => _skipAlarmOnce(context, sortedAlarms[i]),
-                ),
+      height: totalHeight,
+      child: Stack(
+        children: [
+          // Build cards from bottom to top (reverse order for proper stacking)
+          for (int i = sortedAlarms.length - 1; i >= 0; i--)
+            Positioned(
+              top: i * stackOffset,
+              left: 0,
+              right: 0,
+              child: AlarmCard(
+                alarm: sortedAlarms[i],
+                cardColor: sortedAlarms[i].isEnabled 
+                  ? activeCardColors[i % activeCardColors.length]
+                  : inactiveCardColor,
+                isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
+                stackOffset: 0,
+                onDelete: () {
+                  Provider.of<AlarmProvider>(context, listen: false)
+                      .deleteAlarm(sortedAlarms[i].id);
+                },
+                onToggle: (value) {
+                  Provider.of<AlarmProvider>(context, listen: false)
+                      .toggleAlarm(sortedAlarms[i].id, value);
+                },
+                onTap: () async {
+                  // Navigate to edit alarm screen
+                  await Navigator.pushNamed(
+                    context,
+                    '/edit_alarm',
+                    arguments: sortedAlarms[i],
+                  );
+                  // AlarmProvider will automatically reload alarms
+                },
+                onSkipOnce: () => _skipAlarmOnce(context, sortedAlarms[i]),
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }

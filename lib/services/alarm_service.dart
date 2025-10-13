@@ -49,7 +49,7 @@ class AlarmService {
     tz_data.initializeTimeZones();
     
     // Request permissions first
-    await requestPermissions();
+    // await requestPermissions();
     
     // Fix release mode issues
     final bool isReleaseMode = const bool.fromEnvironment('dart.vm.product');
