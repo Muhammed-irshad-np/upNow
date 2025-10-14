@@ -55,7 +55,7 @@ class AlarmService {
     final bool isReleaseMode = const bool.fromEnvironment('dart.vm.product');
     if (isReleaseMode) {
       debugPrint('ALARM SERVICE: Running in release mode - applying fixes');
-      await fixReleasePermissions();
+      // await fixReleasePermissions(); // Commented out to prevent startup permission requests
     }
     
     // ✅ CRITICAL FIX: Smart cleanup of expired notifications before initialization
