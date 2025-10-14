@@ -664,8 +664,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   Widget _buildWakeUpAlarmReminder(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      padding: const EdgeInsets.all(16),
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+      padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -675,10 +675,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: AppTheme.primaryColor.withOpacity(0.3),
-          width: 1,
+          width: 1.w,
         ),
       ),
       child: Column(
@@ -687,18 +687,18 @@ class _AlarmScreenState extends State<AlarmScreen> {
           Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: AppTheme.primaryColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
                 child: Icon(
                   Icons.wb_sunny,
                   color: AppTheme.primaryColor,
-                  size: 24,
+                  size: 24.sp,
                 ),
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: 16.w),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,16 +707,16 @@ class _AlarmScreenState extends State<AlarmScreen> {
                       'Set Your Wake-Up Time',
                       style: TextStyle(
                         color: AppTheme.textColor,
-                        fontSize: 16,
+                        fontSize: 16.sp,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: 4.h),
                     Text(
                       'Start your day right with a consistent wake-up routine',
                       style: TextStyle(
                         color: AppTheme.secondaryTextColor,
-                        fontSize: 13,
+                        fontSize: 13.sp,
                       ),
                     ),
                   ],
@@ -727,19 +727,19 @@ class _AlarmScreenState extends State<AlarmScreen> {
                 icon: Icon(
                   Icons.close,
                   color: AppTheme.secondaryTextColor,
-                  size: 20,
+                  size: 20.sp,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: 16.h),
           Row(
             children: [
               Expanded(
                 child: GradientButton(
                   text: 'Set Wake-Up Time',
                   gradient: AppTheme.primaryGradient,
-                  icon: const Icon(Icons.alarm_add, color: Colors.white, size: 18),
+                  icon: Icon(Icons.alarm_add, color: Colors.white, size: 18.sp),
                   onPressed: () async {
                     final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
                     await alarmProvider.setMorningAlarm(7, 0); // Default to 7:00 AM
@@ -747,14 +747,14 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
+              SizedBox(width: 12.w),
               TextButton(
                 onPressed: _dismissWakeUpReminder,
                 child: Text(
                   'Maybe Later',
                   style: TextStyle(
                     color: AppTheme.secondaryTextColor,
-                    fontSize: 14,
+                    fontSize: 14.sp,
                   ),
                 ),
               ),
