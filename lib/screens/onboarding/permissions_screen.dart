@@ -70,7 +70,7 @@ class _PermissionsScreenState extends State<PermissionsScreen> {
                 Icons.battery_charging_full,
               ),
               // const SizedBox(height: 16),
-              // _buildPermissionItem(
+            // _buildPermissionItem(
               //   'Schedule Exact Alarms',
               //   'For precise alarm timing',
               //   Icons.access_time,

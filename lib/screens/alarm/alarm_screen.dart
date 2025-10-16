@@ -83,7 +83,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
         ),
         backgroundColor: Colors.transparent,
         elevation: 0,
-        titleSpacing: 20,
+        titleSpacing: 20.w,
       ),
       body: SafeArea(
         child: CustomScrollView(
@@ -98,32 +98,32 @@ class _AlarmScreenState extends State<AlarmScreen> {
             SliverToBoxAdapter(
               child: _buildNextAlarmSection(context, alarms),
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 8),
+            SliverToBoxAdapter(
+              child: SizedBox(height: 8.h),
             ),
             if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
               SliverToBoxAdapter(
                 child: _buildWakeUpAlarmReminder(context),
               ),
             if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
-              const SliverToBoxAdapter(
-                child: SizedBox(height: 8),
+              SliverToBoxAdapter(
+                child: SizedBox(height: 8.h),
               ),
             SliverToBoxAdapter(
               child: _buildQuickAlarmButtons(context),
             ),
-            const SliverToBoxAdapter(
-              child: SizedBox(height: 8),
+            SliverToBoxAdapter(
+              child: SizedBox(height: 8.h),
             ),
             alarms.isEmpty
               ? SliverPadding(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: EdgeInsets.only(bottom: 96.h),
                   sliver: SliverToBoxAdapter(
                     child: _buildEmptyState(context),
                   ),
                 )
               : SliverPadding(
-                  padding: const EdgeInsets.only(bottom: 96),
+                  padding: EdgeInsets.only(bottom: 96.h),
                   sliver: SliverToBoxAdapter(
                     child: _buildAlarmList(context, alarms),
                   ),
@@ -223,7 +223,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
     final alarmTimeString = _formatTime(nextAlarm.hour, nextAlarm.minute, settings.is24HourFormat);
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -233,29 +233,29 @@ class _AlarmScreenState extends State<AlarmScreen> {
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         border: Border.all(
           color: AppTheme.primaryColor.withOpacity(0.2),
-          width: 1,
+          width: 1.w,
         ),
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16.w),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              padding: EdgeInsets.all(12.w),
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
               ),
               child: Icon(
                 Icons.schedule,
                 color: AppTheme.primaryColor,
-                size: 24,
+                size: 24.sp,
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: 16.w),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +268,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                       fontWeight: FontWeight.w500,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2.h),
                   Text(
                     alarmTimeString,
                     style: TextStyle(
@@ -278,7 +278,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                     ),
                   ),
                   if (nextAlarm.label.isNotEmpty) ...[
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2.h),
                     Text(
                       nextAlarm.label,
                       style: TextStyle(
@@ -325,13 +325,13 @@ class _AlarmScreenState extends State<AlarmScreen> {
           title: Row(
             children: [
               Icon(Icons.notification_important, color: AppTheme.primaryColor),
-              const SizedBox(width: 10),
+               SizedBox(width: 10.w),
               const Text('Permissions Required'),
             ],
           ),
-          content: const Text(
-            'To ensure alarms work correctly, we need to request some important permissions.',
-            style: TextStyle(fontSize: 14),
+          content: Text(
+            'we need to request some important permissions.',
+            style: TextStyle(fontSize: 14.sp),
           ),
           actions: [
             TextButton(
@@ -367,27 +367,27 @@ class _AlarmScreenState extends State<AlarmScreen> {
         children: [
           Icon(
             Icons.alarm_off,
-            size: 100,
+            size: 100.sp,
             color: AppTheme.secondaryTextColor.withOpacity(0.5),
           ),
-          const SizedBox(height: 20),
-          const Text(
+          SizedBox(height: 20.h),
+          Text(
             'No alarms set',
             style: TextStyle(
-              fontSize: 22,
+              fontSize: 22.sp,
               fontWeight: FontWeight.bold,
               color: AppTheme.textColor,
             ),
           ),
-          const SizedBox(height: 12),
-          const Text(
+          SizedBox(height: 12.h),
+          Text(
             'Create an alarm to get started',
             style: TextStyle(
-              fontSize: 16,
+              fontSize: 16.sp,
               color: AppTheme.secondaryTextColor,
             ),
           ),
-          const SizedBox(height: 30),
+          SizedBox(height: 30.h),
           GradientButton(
             text: 'Create Alarm',
             gradient: AppTheme.primaryGradient,
@@ -449,7 +449,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
     final double totalHeight = (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
       height: totalHeight,
       child: Stack(
         children: [
@@ -564,17 +564,17 @@ class _AlarmScreenState extends State<AlarmScreen> {
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.darkBackground.withOpacity(0.8),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24.r)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            blurRadius: 10.r,
+            offset: Offset(0, 2.h),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+        padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 20.h),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -585,27 +585,27 @@ class _AlarmScreenState extends State<AlarmScreen> {
                 Icon(
                   Icons.bolt,
                   color: AppTheme.primaryColor,
-                  size: 20,
+                  size: 20.sp,
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 Text(
                   'Quick Alarms',
                   style: TextStyle(
                     color: AppTheme.textColor,
-                    fontSize: 16,
+                    fontSize: 16.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12.h),
             // Quick Alarm Buttons
             Row(
               children: [
                 _buildQuickAlarmButton(context, 5),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 _buildQuickAlarmButton(context, 10),
-                const SizedBox(width: 8),
+                SizedBox(width: 8.w),
                 _buildQuickAlarmButton(context, 15),
               ],
             ),
@@ -618,15 +618,15 @@ class _AlarmScreenState extends State<AlarmScreen> {
   Widget _buildQuickAlarmButton(BuildContext context, int minutes) {
     return Expanded(
       child: Container(
-        height: 72,
+        height: 72.h,
         decoration: BoxDecoration(
           gradient: AppTheme.primaryGradient,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(16.r),
           boxShadow: [
             BoxShadow(
               color: AppTheme.primaryColor.withOpacity(0.2),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              blurRadius: 8.r,
+              offset: Offset(0, 2.h),
             ),
           ],
         ),
@@ -634,24 +634,24 @@ class _AlarmScreenState extends State<AlarmScreen> {
           color: Colors.transparent,
           child: InkWell(
             onTap: () => _createQuickAlarm(context, minutes),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
                   '$minutes',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
-                    fontSize: 24,
+                    fontSize: 24.sp,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4.h),
+                Text(
                   'min',
                   style: TextStyle(
                     color: Colors.white70,
-                    fontSize: 12,
+                    fontSize: 12.sp,
                   ),
                 ),
               ],
@@ -722,14 +722,14 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   ],
                 ),
               ),
-              IconButton(
-                onPressed: _dismissWakeUpReminder,
-                icon: Icon(
-                  Icons.close,
-                  color: AppTheme.secondaryTextColor,
-                  size: 20.sp,
-                ),
-              ),
+              // IconButton(
+              //   onPressed: _dismissWakeUpReminder,
+              //   icon: Icon(
+              //     Icons.close,
+              //     color: AppTheme.secondaryTextColor,
+              //     size: 20.sp,
+              //   ),
+              // ),
             ],
           ),
           SizedBox(height: 16.h),
@@ -737,7 +737,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
             children: [
               Expanded(
                 child: GradientButton(
-                  text: 'Set Wake-Up Time',
+                  text: 'Set Time',
+                 
                   gradient: AppTheme.primaryGradient,
                   icon: Icon(Icons.alarm_add, color: Colors.white, size: 18.sp),
                   onPressed: () async {
