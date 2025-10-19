@@ -135,7 +135,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
         heroTag: 'alarmFab',
         onPressed: () async {
           try {
-            if (!await _checkCriticalPermissions(context)) return;
             await Navigator.pushNamed(context, '/create_alarm');
           } catch (e, s) {
             // Ensure any navigation-related errors surface visibly
