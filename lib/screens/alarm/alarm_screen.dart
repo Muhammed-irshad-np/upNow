@@ -741,9 +741,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   gradient: AppTheme.primaryGradient,
                   icon: Icon(Icons.alarm_add, color: Colors.white, size: 18.sp),
                   onPressed: () async {
-                    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
-                    await alarmProvider.setMorningAlarm(7, 0); // Default to 7:00 AM
-                    await _dismissWakeUpReminder();
+                    await _showWakeUpTimePicker(context);
                   },
                 ),
               ),
@@ -763,6 +761,42 @@ class _AlarmScreenState extends State<AlarmScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _showWakeUpTimePicker(BuildContext context) async {
+    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
+    final currentTime = alarmProvider.morningAlarmTime;
+    
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+      initialEntryMode: TimePickerEntryMode.input,
+      builder: (BuildContext context, Widget? child) {
+        // Wrap with MediaQuery to use 12-hour format
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppTheme.primaryColor,
+                onSurface: AppTheme.textColor,
+              ),
+              timePickerTheme: TimePickerThemeData(
+                hourMinuteShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            child: child!,
+          ),
+        );
+      },
+    );
+    
+    if (pickedTime != null) {
+      await alarmProvider.setMorningAlarm(pickedTime.hour, pickedTime.minute);
+      await _dismissWakeUpReminder();
+    }
   }
 
   

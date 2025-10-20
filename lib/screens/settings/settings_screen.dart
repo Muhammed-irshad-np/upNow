@@ -9,9 +9,14 @@ import 'package:upnow/providers/alarm_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
 
-class SettingsScreen extends StatelessWidget {
+class SettingsScreen extends StatefulWidget {
   const SettingsScreen({Key? key}) : super(key: key);
 
+  @override
+  State<SettingsScreen> createState() => _SettingsScreenState();
+}
+
+class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -154,8 +159,8 @@ class SettingsScreen extends StatelessWidget {
                 child: InkWell(
                   onTap: () async {
                     if (!hasMorningAlarm) {
-                      // Create new morning alarm with default time
-                      await alarmProvider.setMorningAlarm(7, 0);
+                      // Show time picker to set wake-up time
+                      await _showWakeUpTimePicker(context);
                     } else {
                       await alarmProvider.toggleMorningAlarm(!isMorningAlarmEnabled);
                     }
@@ -211,8 +216,8 @@ class SettingsScreen extends StatelessWidget {
                           onChanged: (bool value) async {
                             if (value) {
                               if (!hasMorningAlarm) {
-                                // Create new morning alarm with default time
-                                await alarmProvider.setMorningAlarm(7, 0);
+                                // Show time picker to set wake-up time
+                                await _showWakeUpTimePicker(context);
                               } else {
                                 // Enable existing morning alarm
                                 await alarmProvider.toggleMorningAlarm(true);
@@ -425,5 +430,40 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _showWakeUpTimePicker(BuildContext context) async {
+    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
+    final currentTime = alarmProvider.morningAlarmTime;
+    
+    final pickedTime = await showTimePicker(
+      context: context,
+      initialTime: currentTime,
+      initialEntryMode: TimePickerEntryMode.input,
+      builder: (BuildContext context, Widget? child) {
+        // Wrap with MediaQuery to use 12-hour format
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
+          child: Theme(
+            data: ThemeData.dark().copyWith(
+              colorScheme: const ColorScheme.dark(
+                primary: AppTheme.primaryColor,
+                onSurface: AppTheme.textColor,
+              ),
+              timePickerTheme: TimePickerThemeData(
+                hourMinuteShape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            ),
+            child: child!,
+          ),
+        );
+      },
+    );
+    
+    if (pickedTime != null) {
+      await alarmProvider.setMorningAlarm(pickedTime.hour, pickedTime.minute);
+    }
   }
 } 
