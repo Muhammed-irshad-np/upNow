@@ -14,6 +14,7 @@ import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 import 'package:upnow/utils/preferences_helper.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
+import 'package:permission_handler/permission_handler.dart';
 
 class AlarmScreen extends StatefulWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -511,9 +512,28 @@ class _AlarmScreenState extends State<AlarmScreen> {
     try {
       debugPrint('QUICK ALARM: Starting quick alarm creation for $minutes minutes...');
 
-      // Check for critical permissions before creating an alarm
-      if (!await _checkCriticalPermissions(context)) {
-        return;
+      // Check if display over other apps permission is granted
+      final overlayPermissionStatus = await Permission.systemAlertWindow.status;
+      
+      if (!overlayPermissionStatus.isGranted) {
+        // Show permission request dialog
+        final shouldRequest = await _showOverlayPermissionDialog(context);
+        
+        if (shouldRequest == true) {
+          // Request the permission
+          final newStatus = await Permission.systemAlertWindow.request();
+          
+          if (!newStatus.isGranted) {
+            // Permission denied, show explanation and return
+            if (mounted) {
+              _showPermissionDeniedDialog(context);
+            }
+            return;
+          }
+        } else {
+          // User cancelled, don't create alarm
+          return;
+        }
       }
 
       final now = DateTime.now();
@@ -797,6 +817,185 @@ class _AlarmScreenState extends State<AlarmScreen> {
       await alarmProvider.setMorningAlarm(pickedTime.hour, pickedTime.minute);
       await _dismissWakeUpReminder();
     }
+  }
+
+  Future<bool?> _showOverlayPermissionDialog(BuildContext context) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.darkCardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.warning_amber_rounded,
+                color: Colors.orange,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Permission Required',
+                style: TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Display Over Other Apps',
+                style: TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'This permission allows the alarm screen to pop up from the background when your alarm rings, even when your phone is locked or you\'re using other apps.\n\nWithout it, you won\'t see the alarm interface to solve tasks like math problems, typing challenges, or other dismiss methods.',
+                style: TextStyle(
+                  color: AppTheme.secondaryTextColor,
+                  fontSize: 14,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.orange.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.orange.withOpacity(0.3),
+                    width: 1,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: const Text(
+                        'Without this permission, the alarm screen won\'t pop up and you can\'t dismiss the alarm!',
+                        style: TextStyle(
+                          color: Colors.orange,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.secondaryTextColor,
+              ),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Grant Permission',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showPermissionDeniedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.darkCardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
+          title: Row(
+            children: [
+              Icon(
+                Icons.error_outline,
+                color: Colors.red,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'Permission Denied',
+                style: TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'The alarm cannot be saved without the "Display Over Other Apps" permission. This permission is essential for the alarm screen to pop up from the background when your alarm rings.\n\nYou can enable it later from Settings → Apps → upNow → Permissions.',
+            style: TextStyle(
+              color: AppTheme.secondaryTextColor,
+              fontSize: 14,
+              height: 1.5,
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                foregroundColor: AppTheme.secondaryTextColor,
+              ),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                openAppSettings();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryColor,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'Open Settings',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   

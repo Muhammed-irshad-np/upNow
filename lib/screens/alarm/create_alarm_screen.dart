@@ -89,9 +89,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return Center(
       child: InkWell(
         onTap: () => _showTimePicker(context, form),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(16.r),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 24),
+          width: double.infinity,
+          padding:  EdgeInsets.symmetric(vertical: 24.h),
           decoration: BoxDecoration(
             color: AppTheme.darkCardColor,
             borderRadius: BorderRadius.circular(16),
@@ -100,13 +101,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             children: [
               Text(
                 formattedTime,
-                style: const TextStyle(
-                  fontSize: 60,
+                style:  TextStyle(
+                  fontSize: 60.sp,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textColor,
                 ),
               ),
-              const SizedBox(height: 8),
+               SizedBox(height: 8.h),
               const Text(
                 'Tap to change',
                 style: TextStyle(
@@ -128,7 +129,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Label',
           style: AppTheme.subtitleStyle,
         ),
-        const SizedBox(height: 8),
+         SizedBox(height: 8.h),
         TextField(
           controller: _labelController,
           style: const TextStyle(color: AppTheme.textColor),
@@ -138,7 +139,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             filled: true,
             fillColor: AppTheme.darkCardColor,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
             ),
             prefixIcon: const Icon(Icons.label_outline, color: AppTheme.secondaryTextColor),
@@ -157,12 +158,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Dismiss Method',
           style: AppTheme.subtitleStyle,
         ),
-        const SizedBox(height: 8),
+         SizedBox(height: 8.h),
         const Text(
           'How would you like to dismiss the alarm?',
           style: TextStyle(color: AppTheme.secondaryTextColor),
         ),
-        const SizedBox(height: 16),
+         SizedBox(height: 16.h),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -220,13 +221,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     final bool isComingSoon = type != DismissType.math && type != DismissType.normal;
     
     Widget optionWidget = Container(
-      width: 110,
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(12),
+      width: 110.w,
+      margin:  EdgeInsets.only(right: 12.w),
+      padding:  EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: isSelected ? color.withOpacity(0.2) : AppTheme.darkCardColor,
-        borderRadius: BorderRadius.circular(12),
-        border: isSelected ? Border.all(color: color, width: 2) : null,
+        borderRadius: BorderRadius.circular(12.r),
+        border: isSelected ? Border.all(color: color, width: 2.w) : null,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -234,9 +235,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           Icon(
             icon,
             color: isSelected ? color : AppTheme.secondaryTextColor,
-            size: 32,
+            size: 32.h,
           ),
-          const SizedBox(height: 8),
+           SizedBox(height: 8.r),
           Text(
             title,
             textAlign: TextAlign.center,
@@ -256,18 +257,18 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           optionWidget,
           Positioned(
             top: 0,
-            right: 12,
+            right: 12.w,
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              padding:  EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
+              child:  Text(
                 'SOON',
                 style: TextStyle(
                   color: Colors.white,
-                  fontSize: 8,
+                  fontSize: 8.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -300,7 +301,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Repeat',
           style: AppTheme.subtitleStyle,
         ),
-        const SizedBox(height: 16),
+         SizedBox(height: 16.h),
         Wrap(
           spacing: 8,
           children: [
@@ -346,7 +347,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-        const SizedBox(height: 8),
+         SizedBox(height: 8.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
@@ -363,8 +364,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return GestureDetector(
       onTap: () => form.toggleWeekday(dayIndex),
       child: Container(
-        width: 40,
-        height: 40,
+        width: 40.w,
+        height: 40.h,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: isSelected ? AppTheme.primaryColor : AppTheme.darkCardColor,
@@ -396,10 +397,10 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         children: [
           Text(
              displaySound,
-             style: const TextStyle(color: AppTheme.secondaryTextColor, fontSize: 16)
+             style:  TextStyle(color: AppTheme.secondaryTextColor, fontSize: 16.h)
           ),
-          const SizedBox(width: 8),
-          const Icon(Icons.arrow_forward_ios, size: 16, color: AppTheme.secondaryTextColor),
+           SizedBox(width: 8.w),
+           Icon(Icons.arrow_forward_ios, size: 16.sp, color: AppTheme.secondaryTextColor),
         ],
       ),
       onTap: () => _showSoundSelectionDialog(context, form),
@@ -458,12 +459,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                           style: TextStyle(
                             // Highlight the temporarily selected item
                             color: isTemporarilySelected ? Theme.of(context).primaryColor : AppTheme.textColor, 
-                            fontSize: 16,
+                            fontSize: 16.sp,
                             fontWeight: isTemporarilySelected ? FontWeight.bold : FontWeight.normal,
                           )
                         ),
                         if (isTemporarilySelected) // Show check only for temporary selection
-                          Icon(Icons.music_note, color: Theme.of(context).primaryColor, size: 20),
+                          Icon(Icons.music_note, color: Theme.of(context).primaryColor, size: 20.h),
                         // Optional: Show a different indicator for the *originally* selected sound
                         // else if (_selectedSoundPath == soundPath) 
                         //   Icon(Icons.check_circle_outline, color: AppTheme.secondaryTextColor, size: 20),
@@ -474,7 +475,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 
                 // Add Cancel and OK buttons
                 Padding(
-                  padding: const EdgeInsets.only(top: 16.0, right: 16.0, bottom: 8.0),
+                  padding:  EdgeInsets.only(top: 16.0.h, right: 16.0.w, bottom: 8.0.h),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
@@ -485,7 +486,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                           Navigator.pop(context); // Close dialog
                         },
                       ),
-                      const SizedBox(width: 8),
+                       SizedBox(width: 8.w),
                       TextButton(
                         child: Text('OK', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
                         onPressed: () async {
@@ -519,7 +520,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       onChanged: (value) => form.setVibrate(value),
       tileColor: AppTheme.darkCardColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
     );
   }
@@ -533,11 +534,11 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle: const Text(
+      subtitle:  Text(
         'Set as your daily wake-up alarm',
         style: TextStyle(
           color: AppTheme.secondaryTextColor,
-          fontSize: 12,
+          fontSize: 12.sp,
         ),
       ),
       value: form.isMorningAlarm,
@@ -545,7 +546,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       onChanged: (value) => form.setMorningAlarm(value),
       tileColor: AppTheme.darkCardColor,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
     );
   }
@@ -567,7 +568,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               ),
               timePickerTheme: TimePickerThemeData(
                 hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
               ),
             ),
@@ -630,21 +631,21 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         return AlertDialog(
           backgroundColor: AppTheme.darkCardColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.r),
           ),
           title: Row(
             children: [
               Icon(
                 Icons.warning_amber_rounded,
                 color: Colors.orange,
-                size: 28,
+                size: 28.h,
               ),
-              const SizedBox(width: 12),
-              const Text(
+               SizedBox(width: 12.w),
+               Text(
                 'Permission Required',
                 style: TextStyle(
                   color: AppTheme.textColor,
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -654,32 +655,32 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
+               Text(
                 'Display Over Other Apps',
                 style: TextStyle(
                   color: AppTheme.textColor,
-                  fontSize: 16,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              const SizedBox(height: 12),
-              const Text(
+               SizedBox(height: 12.h),
+               Text(
                 'This permission allows the alarm screen to pop up from the background when your alarm rings, even when your phone is locked or you\'re using other apps.\n\nWithout it, you won\'t see the alarm interface to solve tasks like math problems, typing challenges, or other dismiss methods.',
                 style: TextStyle(
                   color: AppTheme.secondaryTextColor,
-                  fontSize: 14,
-                  height: 1.5,
+                  fontSize: 14.sp,
+                  height: 1.5.h,
                 ),
               ),
-              const SizedBox(height: 16),
+               SizedBox(height: 16.h),
               Container(
-                padding: const EdgeInsets.all(12),
+                padding:  EdgeInsets.all(12.w),
                 decoration: BoxDecoration(
                   color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                   border: Border.all(
                     color: Colors.orange.withOpacity(0.3),
-                    width: 1,
+                    width: 1.w,
                   ),
                 ),
                 child: Row(
@@ -687,15 +688,15 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                     Icon(
                       Icons.info_outline,
                       color: Colors.orange,
-                      size: 20,
+                      size: 20.h,
                     ),
-                    const SizedBox(width: 8),
+                     SizedBox(width: 8.w),
                     Expanded(
-                      child: const Text(
+                      child:  Text(
                         'Without this permission, the alarm screen won\'t pop up and you can\'t dismiss the alarm!',
                         style: TextStyle(
                           color: Colors.orange,
-                          fontSize: 12,
+                          fontSize: 12.sp,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -718,9 +719,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:  EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
               ),
               child: const Text(
@@ -741,32 +742,32 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         return AlertDialog(
           backgroundColor: AppTheme.darkCardColor,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.r),
           ),
           title: Row(
             children: [
               Icon(
                 Icons.error_outline,
                 color: Colors.red,
-                size: 28,
+                size: 28.h,
               ),
-              const SizedBox(width: 12),
-              const Text(
+              SizedBox(width: 12.w),
+               Text(
                 'Permission Denied',
                 style: TextStyle(
                   color: AppTheme.textColor,
-                  fontSize: 20,
+                  fontSize: 20.sp,
                   fontWeight: FontWeight.bold,
                 ),
               ),
             ],
           ),
-          content: const Text(
+          content:  Text(
             'The alarm cannot be saved without the "Display Over Other Apps" permission. This permission is essential for the alarm screen to pop up from the background when your alarm rings.\n\nYou can enable it later from Settings → Apps → upNow → Permissions.',
             style: TextStyle(
               color: AppTheme.secondaryTextColor,
-              fontSize: 14,
-              height: 1.5,
+              fontSize: 14.sp,
+              height: 1.5.h,
             ),
           ),
           actions: [
@@ -785,9 +786,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppTheme.primaryColor,
                 foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding:  EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(12.r),
                 ),
               ),
               child: const Text(
@@ -814,27 +815,27 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           color: Colors.transparent,
           child: Center(
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: AppTheme.darkCardColor,
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(8.r),
                 border: Border.all(
                   color: AppTheme.primaryColor.withOpacity(0.3),
-                  width: 1,
+                  width: 1.w,
                 ),
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8,
+                    blurRadius: 8.r,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Text(
                 message,
-                style: const TextStyle(
+                style:  TextStyle(
                   color: AppTheme.textColor,
-                  fontSize: 14,
+                  fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
                 ),
                 textAlign: TextAlign.center,
