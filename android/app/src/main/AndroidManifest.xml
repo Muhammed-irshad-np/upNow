@@ -10,13 +10,13 @@
     <!-- Permission to prevent device from sleeping -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Permission for foreground service (needed for reliable alarms) -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> -->
     <!-- Permission to run with full networking capabilities (helps with reliability) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Permission to request battery optimization exemption -->
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
     <!-- Permission to use foreground service for alarms -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" /> -->
     <!-- Permission for foreground service system exemption (more reliable) -->
     <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <!-- Permission for vibration -->
