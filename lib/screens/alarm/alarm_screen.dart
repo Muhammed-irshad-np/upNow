@@ -394,9 +394,9 @@ class _AlarmScreenState extends State<AlarmScreen> {
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () async {
               // Check for critical permissions before creating an alarm
-              if (!await _checkCriticalPermissions(context)) {
-                return;
-              }
+              // if (!await _checkCriticalPermissions(context)) {
+              //   return;
+              // }
               
               // Navigate to create alarm screen
               await Navigator.pushNamed(context, '/create_alarm');

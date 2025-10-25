@@ -137,7 +137,7 @@ class _StartupScreenState extends State<StartupScreen> {
     return Consumer<OnboardingProvider>(
       builder: (context, onboardingProvider, child) {
         if (onboardingProvider.isLoading) {
-          return Scaffold(
+          return  Scaffold(
             backgroundColor: AppTheme.darkBackground,
             body: Center(
               child: CircularProgressIndicator(
@@ -305,41 +305,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     return Consumer<NavigationProvider>(
       builder: (context, navigationProvider, child) {
-        return WillPopScope(
-          onWillPop: () async {
-            final bool? shouldLogout = await showDialog<bool>(
-              context: context,
-              barrierDismissible: true,
-              builder: (ctx) {
-                return AlertDialog(
-                  backgroundColor: AppTheme.darkSurface,
-                  title: const Text('Confirm Logout'),
-                  content: const Text('Do you want to logout and go to Home?'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(ctx).pop(false),
-                      child: const Text('Cancel'),
-                    ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.of(ctx).pop(true),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                );
-              },
-            );
-
-            if (shouldLogout == true) {
-              if (!mounted) return false;
-              Navigator.of(context).pushAndRemoveUntil(
-                MaterialPageRoute(builder: (_) => const StartupScreen()),
-                (route) => false,
-              );
-              return false;
-            }
-            return false;
-          },
-          child: Scaffold(
+        return Scaffold(
             body: _screens[navigationProvider.currentIndex],
             bottomNavigationBar: Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
@@ -414,7 +380,6 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                 ),
               ),
             ),
-          ),
         );
       },
     );
