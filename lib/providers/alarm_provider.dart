@@ -25,16 +25,64 @@ class AlarmProvider extends ChangeNotifier {
     notifyListeners();
   }
   
+  /// Find an existing alarm by time, optionally excluding a specific alarm ID
+  AlarmModel? findAlarmByTime(int hour, int minute, {String? excludeId}) {
+    try {
+      return _alarms.firstWhere(
+        (alarm) => 
+          alarm.hour == hour && 
+          alarm.minute == minute &&
+          (excludeId == null || alarm.id != excludeId),
+      );
+    } catch (e) {
+      return null; // No alarm found at this time
+    }
+  }
+
   Future<void> addAlarm(AlarmModel alarm) async {
-    await HiveDatabase.saveAlarm(alarm);
-    await AlarmService.scheduleAlarm(alarm);
-    await _loadAlarms();
+    // Check if an alarm already exists at this time
+    final existing = findAlarmByTime(alarm.hour, alarm.minute);
+    
+    if (existing != null) {
+      // Update existing alarm instead of creating new one
+      // Reuse existing alarm ID
+      final updatedAlarm = alarm.copyWith(id: existing.id);
+      await HiveDatabase.saveAlarm(updatedAlarm);
+      await AlarmService.scheduleAlarm(updatedAlarm);
+      await _loadAlarms();
+      debugPrint('Updated existing alarm at ${alarm.hour}:${alarm.minute}');
+    } else {
+      // No existing alarm, create new one
+      await HiveDatabase.saveAlarm(alarm);
+      await AlarmService.scheduleAlarm(alarm);
+      await _loadAlarms();
+      debugPrint('Created new alarm at ${alarm.hour}:${alarm.minute}');
+    }
   }
   
   Future<void> updateAlarm(AlarmModel alarm) async {
-    await HiveDatabase.saveAlarm(alarm);
-    await AlarmService.scheduleAlarm(alarm);
-    await _loadAlarms();
+    // Check if another alarm already exists at this time (excluding current alarm)
+    final existing = findAlarmByTime(alarm.hour, alarm.minute, excludeId: alarm.id);
+    
+    if (existing != null) {
+      // Another alarm exists at this time, merge with it
+      // Delete the current alarm and update the existing one
+      await AlarmService.cancelAlarm(alarm.id);
+      await HiveDatabase.deleteAlarm(alarm.id);
+      
+      // Update the existing alarm with new settings
+      final updatedAlarm = alarm.copyWith(id: existing.id);
+      await HiveDatabase.saveAlarm(updatedAlarm);
+      await AlarmService.scheduleAlarm(updatedAlarm);
+      await _loadAlarms();
+      debugPrint('Merged alarm into existing alarm at ${alarm.hour}:${alarm.minute}');
+    } else {
+      // No conflict, normal update
+      await HiveDatabase.saveAlarm(alarm);
+      await AlarmService.scheduleAlarm(alarm);
+      await _loadAlarms();
+      debugPrint('Updated alarm at ${alarm.hour}:${alarm.minute}');
+    }
   }
   
   Future<void> deleteAlarm(String id) async {
@@ -92,7 +140,6 @@ class AlarmProvider extends ChangeNotifier {
 
   // Quick Alarm
   Future<void> addQuickAlarm(Duration duration) async {
-    final now = DateTime.now();
     // ... existing code ...
   }
 
