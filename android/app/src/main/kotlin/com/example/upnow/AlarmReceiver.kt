@@ -103,10 +103,12 @@ class AlarmReceiver : BroadcastReceiver() {
             "UpNow:AlarmWakeLock"
         )
         
-        // Acquire wake lock with timeout (release after 10 minutes)
-        wakeLock.acquire(10 * 60 * 1000L)
+        Log.d(TAG, "🔓 Acquiring wake lock to turn on screen and wake device")
         
         try {
+            // Acquire wake lock with timeout (release after 10 minutes)
+            wakeLock.acquire(10 * 60 * 1000L)
+            
             val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL) ?: "Alarm"
             val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND) ?: "alarm_sound"
             
@@ -132,14 +134,20 @@ class AlarmReceiver : BroadcastReceiver() {
             
             // Start the activity immediately
             context.startActivity(alarmIntent)
-            Log.i(TAG, "AlarmActivity started from receiver for alarm ID: $alarmId")
+            Log.i(TAG, "✅ AlarmActivity started from receiver for alarm ID: $alarmId")
+            
+            // DON'T release wake lock here - let it time out or let AlarmActivity take over
+            // This ensures the device stays awake until AlarmActivity is fully started
+            // The wake lock will be released after 10 minutes OR when AlarmActivity takes over with its own wake lock
+            
         } catch (e: Exception) {
-            Log.e(TAG, "Error launching alarm activity: ${e.message}", e)
-        } finally {
-            // Release the wake lock to avoid battery drain
+            Log.e(TAG, "❌ Error launching alarm activity: ${e.message}", e)
+            // Only release wake lock if there was an error starting the activity
             if (wakeLock.isHeld) {
                 wakeLock.release()
+                Log.d(TAG, "Wake lock released due to error")
             }
         }
+        // NO FINALLY BLOCK - keep wake lock alive until Activity takes over or times out
     }
 } 
