@@ -54,12 +54,12 @@
             </intent-filter>
         </receiver>
         
-        <!-- Alarm service for scheduled notifications -->
+        <!-- Alarm service for scheduled notifications
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false"
             android:stopWithTask="false"
-            android:foregroundServiceType="specialUse" />
+            android:foregroundServiceType="specialUse" /> -->
             
         <!-- Dedicated Alarm Activity -->
         <activity
