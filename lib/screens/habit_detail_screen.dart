@@ -5,6 +5,7 @@ import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/widgets/habit_grid_widget.dart';
 import 'package:upnow/providers/habit_detail_provider.dart';
+import 'package:upnow/utils/app_theme.dart';
 
 class HabitDetailScreen extends StatefulWidget {
   final String habitId;
@@ -34,29 +35,66 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
         final stats = habitService.getHabitStats(widget.habitId);
         
         return Scaffold(
-          body: SafeArea(
-            child: CustomScrollView(
-              slivers: [
-                _buildAppBar(context, habit),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _buildStreakSection(stats, habit),
-                        const SizedBox(height: 24),
-                        _buildStatsSection(stats),
-                        const SizedBox(height: 24),
-                        _buildYearSelector(detailProvider),
-                        const SizedBox(height: 16),
-                        _buildGridSection(habit, detailProvider),
-                        const SizedBox(height: 24),
-                        _buildQuickActions(context, habitService, habit),
-                      ],
+          backgroundColor: AppTheme.darkBackground,
+          appBar: AppBar(
+            title: Text(habit.name),
+            backgroundColor: habit.color,
+            foregroundColor: Colors.white,
+            elevation: 0,
+            actions: [
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white),
+                onSelected: (value) => _handleMenuAction(context, value, habit),
+                itemBuilder: (context) => [
+                  const PopupMenuItem(
+                    value: 'edit',
+                    child: ListTile(
+                      leading: Icon(Icons.edit),
+                      title: Text('Edit Habit'),
                     ),
                   ),
-                ),
+                  PopupMenuItem(
+                    value: 'alarm',
+                    child: ListTile(
+                      leading: Icon(habit.hasAlarm ? Icons.alarm_off : Icons.alarm),
+                      title: Text(habit.hasAlarm ? 'Turn Off Alarm' : 'Set Alarm'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'archive',
+                    child: ListTile(
+                      leading: Icon(Icons.archive),
+                      title: Text('Archive Habit'),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: ListTile(
+                      leading: Icon(Icons.delete, color: Colors.red),
+                      title: Text('Delete Habit', style: TextStyle(color: Colors.red)),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          body: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHabitHeader(habit),
+                const SizedBox(height: 24),
+                _buildStreakSection(stats, habit),
+                const SizedBox(height: 24),
+                _buildStatsSection(stats),
+                const SizedBox(height: 24),
+                _buildYearSelector(detailProvider),
+                const SizedBox(height: 16),
+                _buildGridSection(habit, detailProvider),
+                const SizedBox(height: 24),
+                _buildQuickActions(context, habitService, habit),
+                const SizedBox(height: 24),
               ],
             ),
           ),
@@ -66,150 +104,94 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, HabitModel habit) {
-    return SliverAppBar(
-      expandedHeight: 200,
-      pinned: true,
-      backgroundColor: habit.color,
-      foregroundColor: Colors.white,
-      flexibleSpace: FlexibleSpaceBar(
-        title: Text(
-          habit.name,
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        background: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [
-                habit.color,
-                habit.color.withOpacity(0.8),
-              ],
-            ),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.end,
-              crossAxisAlignment: CrossAxisAlignment.start,
+  Widget _buildHabitHeader(HabitModel habit) {
+    return Card(
+      color: AppTheme.darkSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                const SizedBox(height: 60), // Account for app bar
-                Row(
-                  children: [
-                    if (habit.icon != null)
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: const Icon(
-                          Icons.check_circle,
-                          color: Colors.white,
-                          size: 28,
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: habit.color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.circle,
+                    color: habit.color,
+                    size: 28,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        habit.name,
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (habit.description != null) ...[
-                            Text(
-                              habit.description!,
-                              style: const TextStyle(
-                                color: Colors.white70,
-                                fontSize: 16,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                          ],
-                          Row(
-                            children: [
-                              Icon(
-                                _getFrequencyIcon(habit.frequency),
-                                color: Colors.white70,
-                                size: 16,
-                              ),
-                              const SizedBox(width: 4),
-                              Text(
-                                _getFrequencyText(habit.frequency),
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 14,
-                                ),
-                              ),
-                              if (habit.hasAlarm) ...[
-                                const SizedBox(width: 12),
-                                const Icon(
-                                  Icons.alarm,
-                                  color: Colors.white70,
-                                  size: 16,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  habit.targetTime != null
-                                    ? '${habit.targetTime!.hour.toString().padLeft(2, '0')}:${habit.targetTime!.minute.toString().padLeft(2, '0')}'
-                                    : 'Set',
-                                  style: const TextStyle(
-                                    color: Colors.white70,
-                                    fontSize: 14,
-                                  ),
-                                ),
-                              ],
-                            ],
+                      if (habit.description != null) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          habit.description!,
+                          style: AppTheme.bodyStyle.copyWith(
+                            color: AppTheme.secondaryTextColor,
+                            fontSize: 14,
                           ),
-                        ],
-                      ),
-                    ),
-                  ],
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ],
             ),
-          ),
-        ),
-      ),
-      actions: [
-        PopupMenuButton<String>(
-          icon: const Icon(Icons.more_vert, color: Colors.white),
-          onSelected: (value) => _handleMenuAction(context, value, habit),
-          itemBuilder: (context) => [
-            const PopupMenuItem(
-              value: 'edit',
-              child: ListTile(
-                leading: Icon(Icons.edit),
-                title: Text('Edit Habit'),
-              ),
-            ),
-            PopupMenuItem(
-              value: 'alarm',
-              child: ListTile(
-                leading: Icon(habit.hasAlarm ? Icons.alarm_off : Icons.alarm),
-                title: Text(habit.hasAlarm ? 'Turn Off Alarm' : 'Set Alarm'),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'archive',
-              child: ListTile(
-                leading: Icon(Icons.archive),
-                title: Text('Archive Habit'),
-              ),
-            ),
-            const PopupMenuItem(
-              value: 'delete',
-              child: ListTile(
-                leading: Icon(Icons.delete, color: Colors.red),
-                title: Text('Delete Habit', style: TextStyle(color: Colors.red)),
-              ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Icon(
+                  _getFrequencyIcon(habit.frequency),
+                  color: AppTheme.secondaryTextColor,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  _getFrequencyText(habit.frequency),
+                  style: AppTheme.bodyStyle.copyWith(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 14,
+                  ),
+                ),
+                if (habit.hasAlarm) ...[
+                  const SizedBox(width: 16),
+                  const Icon(
+                    Icons.alarm,
+                    color: AppTheme.secondaryTextColor,
+                    size: 18,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    habit.targetTime != null
+                        ? '${habit.targetTime!.hour.toString().padLeft(2, '0')}:${habit.targetTime!.minute.toString().padLeft(2, '0')}'
+                        : 'Set',
+                    style: AppTheme.bodyStyle.copyWith(
+                      color: AppTheme.secondaryTextColor,
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -222,14 +204,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
 
   Widget _buildStatsSection(HabitStats stats) {
     return Card(
+      color: AppTheme.darkSurface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Statistics',
-              style: TextStyle(
+              style: AppTheme.titleStyle.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -242,7 +225,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     'Total Days',
                     '${stats.totalDays}',
                     Icons.calendar_today,
-                    Colors.blue,
+                    AppTheme.primaryColor,
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -306,9 +289,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           ),
           Text(
             title,
-            style: TextStyle(
+            style: AppTheme.captionStyle.copyWith(
               fontSize: 12,
-              color: Colors.grey[600],
+              color: AppTheme.secondaryTextColor,
             ),
             textAlign: TextAlign.center,
           ),
@@ -321,36 +304,45 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final currentYear = DateTime.now().year;
     final years = List.generate(5, (index) => currentYear - index);
     
-    return Row(
-      children: [
-        const Text(
-          'Year: ',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-          ),
+    return Card(
+      color: AppTheme.darkSurface,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Text(
+              'Year: ',
+              style: AppTheme.bodyStyle.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            DropdownButton<int>(
+              value: detailProvider.selectedYear,
+              dropdownColor: AppTheme.darkSurface,
+              style: AppTheme.bodyStyle,
+              onChanged: (year) {
+                if (year != null) {
+                  detailProvider.setSelectedYear(year);
+                }
+              },
+              items: years.map((year) {
+                return DropdownMenuItem<int>(
+                  value: year,
+                  child: Text('$year'),
+                );
+              }).toList(),
+            ),
+          ],
         ),
-        const SizedBox(width: 8),
-        DropdownButton<int>(
-          value: detailProvider.selectedYear,
-          onChanged: (year) {
-            if (year != null) {
-              detailProvider.setSelectedYear(year);
-            }
-          },
-          items: years.map((year) {
-            return DropdownMenuItem<int>(
-              value: year,
-              child: Text('$year'),
-            );
-          }).toList(),
-        ),
-      ],
+      ),
     );
   }
 
   Widget _buildGridSection(HabitModel habit, HabitDetailProvider detailProvider) {
     return Card(
+      color: AppTheme.darkSurface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -358,16 +350,16 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
           children: [
             Row(
               children: [
-                const Text(
+                Text(
                   'Activity Overview',
-                  style: TextStyle(
+                  style: AppTheme.titleStyle.copyWith(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: const Icon(Icons.info_outline),
+                  icon: Icon(Icons.info_outline, color: AppTheme.secondaryTextColor),
                   onPressed: () => _showGridInfo(context),
                 ),
               ],
@@ -391,14 +383,15 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     final isCompletedToday = todayEntry?.completed == true;
 
     return Card(
+      color: AppTheme.darkSurface,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+            Text(
               'Quick Actions',
-              style: TextStyle(
+              style: AppTheme.titleStyle.copyWith(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
@@ -412,7 +405,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                     icon: Icon(isCompletedToday ? Icons.undo : Icons.check),
                     label: Text(isCompletedToday ? 'Undo Today' : 'Mark Complete'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isCompletedToday ? Colors.grey : habit.color,
+                      backgroundColor: isCompletedToday ? AppTheme.secondaryTextColor : habit.color,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),

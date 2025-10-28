@@ -358,12 +358,19 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                               selected: navigationProvider.currentIndex == 0,
                               onTap: () => navigationProvider.setCurrentIndex(0),
                             ),
+                            // _NavItem(
+                            //   width: segmentWidth,
+                            //   icon: Icons.track_changes_outlined,
+                            //   label: 'Habits',
+                            //   selected: false,
+                            //   onTap: () => _showComingSoonDialog(context),
+                            // ),
                             _NavItem(
                               width: segmentWidth,
-                              icon: Icons.track_changes_outlined,
+                              icon: navigationProvider.currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
                               label: 'Habits',
-                              selected: false,
-                              onTap: () => _showComingSoonDialog(context),
+                              selected: navigationProvider.currentIndex == 1,
+                              onTap: () => navigationProvider.setCurrentIndex(1),
                             ),
                             _NavItem(
                               width: segmentWidth,

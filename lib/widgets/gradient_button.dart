@@ -27,16 +27,18 @@ class GradientButton extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: gradient ?? AppTheme.primaryGradient,
         borderRadius: BorderRadius.circular(25),
-        boxShadow: [
-          BoxShadow(
-            color: (gradient ?? AppTheme.primaryGradient).colors.first.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        // boxShadow: [
+        //   BoxShadow(
+        //     color: (gradient ?? AppTheme.primaryGradient).colors.first.withOpacity(0.3),
+        //     blurRadius: 8,
+        //     offset: const Offset(0, 4),
+        //   ),
+        // ],
       ),
       child: ElevatedButton(
+        
         onPressed: onPressed,
+         
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
