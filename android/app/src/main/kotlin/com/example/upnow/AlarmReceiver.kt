@@ -43,6 +43,12 @@ class AlarmReceiver : BroadcastReceiver() {
         val isDirectAlarmTrigger = intent.action == "com.example.upnow.ALARM_TRIGGER"
         val isNativeAlarmTrigger = intent.action == "com.example.upnow.NATIVE_ALARM_TRIGGER"
         val isBootCompleted = intent.action == Intent.ACTION_BOOT_COMPLETED
+
+        val pm = context.getSystemService(PowerManager::class.java)
+        val km = context.getSystemService(KeyguardManager::class.java)
+
+        val isInteractive = pm?.isInteractive == true      // screen is on
+        val isLocked = km?.isKeyguardLocked == true        // device is locked
         
         // Only proceed if this is a recognized action
         if (!isDirectAlarmTrigger && !isNativeAlarmTrigger && !isBootCompleted) {

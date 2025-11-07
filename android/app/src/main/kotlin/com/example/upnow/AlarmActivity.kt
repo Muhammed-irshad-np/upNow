@@ -50,6 +50,9 @@ class AlarmActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "AlarmActivity onCreate")
+
+        setShowWhenLocked(true)
+        setTurnScreenOn(true)
         
         // Set window flags to show over lock screen and keep screen on
         window.addFlags(
