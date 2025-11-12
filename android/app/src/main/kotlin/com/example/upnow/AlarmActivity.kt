@@ -1,14 +1,9 @@
 package com.example.upnow
 
-import android.content.Context
 import android.content.Intent
-import android.media.MediaPlayer
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.os.PowerManager
-import android.os.VibrationEffect
-import android.os.Vibrator
 import android.util.Log
 import android.view.KeyEvent
 import android.view.WindowManager
@@ -19,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.activity.OnBackPressedCallback
+import androidx.core.app.NotificationManagerCompat
 import kotlin.random.Random
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -32,9 +28,6 @@ class AlarmActivity : AppCompatActivity() {
         const val EXTRA_ALARM_SOUND = "alarm_sound"
     }
 
-    private var mediaPlayer: MediaPlayer? = null
-    private var vibrator: Vibrator? = null
-    private var wakeLock: PowerManager.WakeLock? = null
     private var alarmId: String? = null
     private var isAlarmActive = true // Flag to track if the alarm is still active
     private var timeUpdateHandler: Handler? = null
@@ -79,12 +72,21 @@ class AlarmActivity : AppCompatActivity() {
         // Set up current time display
         setupTimeDisplay()
         
-        // Acquire wake lock to keep CPU running
-        acquireWakeLock()
-        
-        // Start sound and vibration
-        startAlarmSound(soundName)
-        startVibration()
+        val repeatType = intent.getStringExtra("repeatType") ?: "once"
+        val weekdays = intent.getBooleanArrayExtra("weekdays")
+
+        if (alarmId != null && alarmId != "unknown") {
+            AlarmForegroundService.start(
+                this,
+                alarmId!!,
+                alarmLabel,
+                soundName,
+                intent.getIntExtra("hour", -1),
+                intent.getIntExtra("minute", -1),
+                repeatType,
+                weekdays
+            )
+        }
         
         // Generate math problem
         generateMathProblem()
@@ -244,114 +246,17 @@ class AlarmActivity : AppCompatActivity() {
         }
     }
     
-    private fun acquireWakeLock() {
-        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
-            PowerManager.PARTIAL_WAKE_LOCK,
-            "UpNow:AlarmWakeLock"
-        )
-        wakeLock?.acquire(10*60*1000L /*10 minutes*/)
-    }
-    
-    private fun startAlarmSound(soundName: String) {
-        try {
-            var soundUri: android.net.Uri? = null
-            
-            // Try to get resource ID for the custom sound name
-            if (soundName != "alarm_sound" && soundName.isNotEmpty()) {
-                val resourceId = resources.getIdentifier(soundName, "raw", packageName)
-                if (resourceId != 0) { 
-                    soundUri = android.net.Uri.parse("android.resource://$packageName/$resourceId")
-                    Log.d(TAG, "Using custom sound resource: $soundName (ID: $resourceId)")
-                } else {
-                    Log.w(TAG, "Custom sound resource '$soundName' not found. Falling back to default.")
-                }
-            }
-            
-            // If custom sound wasn't found or wasn't specified, use default system alarm sound
-            if (soundUri == null) {
-                soundUri = android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI
-                Log.d(TAG, "Using default system alarm sound.")
-            }
-            
-            // Create and start MediaPlayer
-            mediaPlayer = MediaPlayer().apply {
-                setDataSource(this@AlarmActivity, soundUri!!)
-                setAudioAttributes(
-                    android.media.AudioAttributes.Builder()
-                        .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                        .setUsage(android.media.AudioAttributes.USAGE_ALARM)
-                        .build()
-                )
-                isLooping = true
-                prepareAsync() // Use prepareAsync for network/resource URIs
-                setOnPreparedListener { 
-                    start()
-                    Log.d(TAG, "Alarm sound started with URI: $soundUri")
-                }
-                setOnErrorListener { mp, what, extra ->
-                    Log.e(TAG, "MediaPlayer error: what=$what, extra=$extra. URI: $soundUri")
-                    // Fallback to basic create maybe?
-                    try {
-                        mp.release() // Release errored player
-                        mediaPlayer = MediaPlayer.create(this@AlarmActivity, android.provider.Settings.System.DEFAULT_ALARM_ALERT_URI)
-                        mediaPlayer?.isLooping = true
-                        mediaPlayer?.start()
-                        Log.d(TAG, "Fallback sound started after error.")
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error starting fallback sound: ${e.message}")
-                    }
-                    true // Indicate error was handled
-                }
-            }
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting alarm sound: ${e.message}")
-        }
-    }
-    
-    private fun startVibration() {
-        try {
-            vibrator = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
-            
-            // Create vibration pattern - 0 delay, 500ms on, 500ms off, repeat
-            val pattern = longArrayOf(0, 500, 500)
-            
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
-            } else {
-                @Suppress("DEPRECATION")
-                vibrator?.vibrate(pattern, 0)
-            }
-            Log.d(TAG, "Vibration started")
-        } catch (e: Exception) {
-            Log.e(TAG, "Error starting vibration: ${e.message}")
-        }
-    }
-    
     private fun stopAlarmAndFinish() {
         isAlarmActive = false // Set flag to false when alarm is dismissed
-        
-        // Stop media player
-        mediaPlayer?.apply {
-            if (isPlaying) {
-                stop()
-            }
-            release()
+        alarmId?.let {
+            NotificationManagerCompat.from(this).cancel(it.hashCode())
+            AlarmForegroundService.stop(this, it)
         }
-        mediaPlayer = null
-        
-        // Stop vibration
-        vibrator?.cancel()
-        vibrator = null
-        
-        // Release wake lock
-        wakeLock?.release()
-        wakeLock = null
-        
-        // Stop time updates
-        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
-        
+
+        timeRunnable?.let { runnable ->
+            timeUpdateHandler?.removeCallbacks(runnable)
+        }
+
         Log.d(TAG, "Alarm stopped and resources released")
         
         // Notify Flutter through broadcast (optional, implement if needed)
@@ -365,27 +270,15 @@ class AlarmActivity : AppCompatActivity() {
     
     private fun stopAlarmAndOpenCongratulations() {
         isAlarmActive = false // Set flag to false when alarm is dismissed
-        
-        // Stop media player
-        mediaPlayer?.apply {
-            if (isPlaying) {
-                stop()
-            }
-            release()
+        alarmId?.let {
+            NotificationManagerCompat.from(this).cancel(it.hashCode())
+            AlarmForegroundService.stop(this, it)
         }
-        mediaPlayer = null
-        
-        // Stop vibration
-        vibrator?.cancel()
-        vibrator = null
-        
-        // Release wake lock
-        wakeLock?.release()
-        wakeLock = null
-        
-        // Stop time updates
-        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
-        
+
+        timeRunnable?.let { runnable ->
+            timeUpdateHandler?.removeCallbacks(runnable)
+        }
+
         Log.d(TAG, "Alarm stopped, opening congratulations screen")
         
         // Attempt to open congratulations screen via running Flutter instance (if available)
@@ -449,12 +342,9 @@ class AlarmActivity : AppCompatActivity() {
 
     // Clean up resources if activity is destroyed
     override fun onDestroy() {
-        // Stop time updates
-        timeUpdateHandler?.removeCallbacks(timeRunnable!!)
-        
-        mediaPlayer?.release()
-        vibrator?.cancel()
-        wakeLock?.release()
+        timeRunnable?.let { runnable ->
+            timeUpdateHandler?.removeCallbacks(runnable)
+        }
         super.onDestroy()
     }
 } 

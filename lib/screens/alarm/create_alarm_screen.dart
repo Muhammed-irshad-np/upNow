@@ -10,7 +10,7 @@ import 'package:path/path.dart' as p;
 import 'package:intl/intl.dart';
 import 'package:upnow/providers/alarm_form_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
-import 'package:permission_handler/permission_handler.dart';
+import 'package:upnow/services/permissions_manager.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -585,30 +585,22 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   Future<void> _saveAlarm(BuildContext context, AlarmFormProvider form) async {
     try {
-      // Check if display over other apps permission is granted
-      final overlayPermissionStatus = await Permission.systemAlertWindow.status;
-      
-      if (!overlayPermissionStatus.isGranted) {
-        // Show permission request dialog
-        final shouldRequest = await _showOverlayPermissionDialog(context);
-        
-        if (shouldRequest == true) {
-          // Request the permission
-          final newStatus = await Permission.systemAlertWindow.request();
-          
-          if (!newStatus.isGranted) {
-            // Permission denied, show explanation and return
-            if (mounted) {
-              _showPermissionDeniedDialog(context);
-            }
-            return;
-          }
-        } else {
-          // User cancelled, don't save alarm
-          return;
+      final notificationGranted =
+          await PermissionsManager.ensureNotificationPermission(context);
+
+      if (!notificationGranted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Enable notifications so alarms can ring over the lock screen.',
+              ),
+            ),
+          );
         }
+        return;
       }
-      
+
       // Permission granted, proceed to save alarm
       final alarm = form.buildOrUpdate(widget.alarm);
       final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
@@ -623,184 +615,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     }
   }
 
-  Future<bool?> _showOverlayPermissionDialog(BuildContext context) {
-    return showDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.darkCardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.warning_amber_rounded,
-                color: Colors.orange,
-                size: 28.h,
-              ),
-               SizedBox(width: 12.w),
-               Text(
-                'Permission Required',
-                style: TextStyle(
-                  color: AppTheme.textColor,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-               Text(
-                'Display Over Other Apps',
-                style: TextStyle(
-                  color: AppTheme.textColor,
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-               SizedBox(height: 12.h),
-               Text(
-                'This permission allows the alarm screen to pop up from the background when your alarm rings, even when your phone is locked or you\'re using other apps.\n\nWithout it, you won\'t see the alarm interface to solve tasks like math problems, typing challenges, or other dismiss methods.',
-                style: TextStyle(
-                  color: AppTheme.secondaryTextColor,
-                  fontSize: 14.sp,
-                  height: 1.5.h,
-                ),
-              ),
-               SizedBox(height: 16.h),
-              Container(
-                padding:  EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: Colors.orange.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12.r),
-                  border: Border.all(
-                    color: Colors.orange.withOpacity(0.3),
-                    width: 1.w,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.orange,
-                      size: 20.h,
-                    ),
-                     SizedBox(width: 8.w),
-                    Expanded(
-                      child:  Text(
-                        'Without this permission, the alarm screen won\'t pop up and you can\'t dismiss the alarm!',
-                        style: TextStyle(
-                          color: Colors.orange,
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.secondaryTextColor,
-              ),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                padding:  EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: const Text(
-                'Grant Permission',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showPermissionDeniedDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.darkCardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          title: Row(
-            children: [
-              Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 28.h,
-              ),
-              SizedBox(width: 12.w),
-               Text(
-                'Permission Denied',
-                style: TextStyle(
-                  color: AppTheme.textColor,
-                  fontSize: 20.sp,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          content:  Text(
-            'The alarm cannot be saved without the "Display Over Other Apps" permission. This permission is essential for the alarm screen to pop up from the background when your alarm rings.\n\nYou can enable it later from Settings → Apps → upNow → Permissions.',
-            style: TextStyle(
-              color: AppTheme.secondaryTextColor,
-              fontSize: 14.sp,
-              height: 1.5.h,
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              style: TextButton.styleFrom(
-                foregroundColor: AppTheme.secondaryTextColor,
-              ),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                openAppSettings();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppTheme.primaryColor,
-                foregroundColor: Colors.white,
-                padding:  EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-              ),
-              child: const Text(
-                'Open Settings',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
+  // Overlay-specific dialogs removed; notification permissions are now handled via PermissionsManager.
 
   void _showTooltip(BuildContext context, String message) {
     final overlay = Overlay.of(context);

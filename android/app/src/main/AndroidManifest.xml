@@ -5,12 +5,16 @@
     <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
     <!-- Permission for posting notifications (Android 13+) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Permission to surface full-screen intents for alarms -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
     <!-- Permission to run at device startup -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Permission to prevent device from sleeping -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Permission for foreground service (needed for reliable alarms) -->
-    <!-- <uses-permission android:name="android.permission.FOREGROUND_SERVICE" /> -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <!-- Permission for media playback foreground service behavior on Android 14+ -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
     <!-- Permission to run with full networking capabilities (helps with reliability) -->
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Permission to request battery optimization exemption -->
@@ -54,12 +58,17 @@
             </intent-filter>
         </receiver>
         
-        Alarm service for scheduled notifications
+        <!-- Alarm service for scheduled notifications -->
         <service
             android:name="com.dexterous.flutterlocalnotifications.ForegroundService"
             android:exported="false"
             android:stopWithTask="false"
             android:foregroundServiceType="specialUse" />
+
+        <service
+            android:name=".AlarmForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="mediaPlayback" />
             
         <!-- Dedicated Alarm Activity -->
         <activity

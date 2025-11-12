@@ -1,13 +1,9 @@
 package com.example.upnow
 
-import android.app.KeyguardManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
-import android.os.PowerManager
 import android.util.Log
-import android.content.SharedPreferences
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -45,12 +41,6 @@ class AlarmReceiver : BroadcastReceiver() {
         val isNativeAlarmTrigger = intent.action == "com.example.upnow.NATIVE_ALARM_TRIGGER"
         val isBootCompleted = intent.action == Intent.ACTION_BOOT_COMPLETED
 
-        val pm = context.getSystemService(PowerManager::class.java)
-        val km = context.getSystemService(KeyguardManager::class.java)
-
-        val isInteractive = pm?.isInteractive == true      // screen is on
-        val isLocked = km?.isKeyguardLocked == true        // device is locked
-        
         // Only proceed if this is a recognized action
         if (!isDirectAlarmTrigger && !isNativeAlarmTrigger && !isBootCompleted) {
             Log.d(TAG, "Ignoring unknown action: ${intent.action}")
@@ -76,8 +66,8 @@ class AlarmReceiver : BroadcastReceiver() {
         
         // Handle both direct alarm trigger and native alarm trigger
         val alarmId = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_ID)
-        val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL)
-        val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND)
+        val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL) ?: "Alarm"
+        val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND) ?: "alarm_sound"
         val hour = intent.getIntExtra("hour", -1)
         val minute = intent.getIntExtra("minute", -1)
         val repeatType = intent.getStringExtra("repeatType") ?: "once"
@@ -101,60 +91,17 @@ class AlarmReceiver : BroadcastReceiver() {
             }
         }
         
-        // Acquire wake lock to ensure device is awake
-        val powerManager = context.getSystemService(Context.POWER_SERVICE) as PowerManager
-        val wakeLock = powerManager.newWakeLock(
-            PowerManager.FULL_WAKE_LOCK or
-            PowerManager.ACQUIRE_CAUSES_WAKEUP or
-            PowerManager.ON_AFTER_RELEASE,
-            "UpNow:AlarmWakeLock"
+        Log.d(TAG, "Dispatching alarm to foreground service -> ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
+
+        AlarmForegroundService.start(
+            context = context,
+            alarmId = alarmId,
+            alarmLabel = alarmLabel,
+            soundName = soundName,
+            hour = hour,
+            minute = minute,
+            repeatType = repeatType,
+            weekdays = weekdays
         )
-        
-        Log.d(TAG, "🔓 Acquiring wake lock to turn on screen and wake device")
-        
-        try {
-            // Acquire wake lock with timeout (release after 10 minutes)
-            wakeLock.acquire(10 * 60 * 1000L)
-            
-            val alarmLabel = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_LABEL) ?: "Alarm"
-            val soundName = intent.getStringExtra(AlarmActivity.EXTRA_ALARM_SOUND) ?: "alarm_sound"
-            
-            Log.d(TAG, "Processing alarm for ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
-            
-            // Launch AlarmActivity with all necessary flags to show over lock screen
-            val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
-                putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
-                putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
-                putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
-                
-                // These flags are crucial for showing over lock screen and other apps
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or 
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
-                        Intent.FLAG_ACTIVITY_NO_HISTORY
-                
-                // For Android 10+ add this to immediately show over other activities
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    flags = flags or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                }
-            }
-            
-            // Start the activity immediately
-            context.startActivity(alarmIntent)
-            Log.i(TAG, "✅ AlarmActivity started from receiver for alarm ID: $alarmId")
-            
-            // DON'T release wake lock here - let it time out or let AlarmActivity take over
-            // This ensures the device stays awake until AlarmActivity is fully started
-            // The wake lock will be released after 10 minutes OR when AlarmActivity takes over with its own wake lock
-            
-        } catch (e: Exception) {
-            Log.e(TAG, "❌ Error launching alarm activity: ${e.message}", e)
-            // Only release wake lock if there was an error starting the activity
-            if (wakeLock.isHeld) {
-                wakeLock.release()
-                Log.d(TAG, "Wake lock released due to error")
-            }
-        }
-        // NO FINALLY BLOCK - keep wake lock alive until Activity takes over or times out
     }
 } 

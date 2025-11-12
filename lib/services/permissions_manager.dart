@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:upnow/utils/preferences_helper.dart';
@@ -135,6 +137,35 @@ class PermissionsManager {
     return false;
   }
 
+  static Future<bool> ensureNotificationPermission(BuildContext context) async {
+    if (!Platform.isAndroid) {
+      return true;
+    }
+
+    var status = await Permission.notification.status;
+    if (status.isGranted) {
+      return true;
+    }
+
+    if (status.isPermanentlyDenied || status.isRestricted) {
+      await _showNotificationSettingsDialog(context);
+      return false;
+    }
+
+    final granted = await requestNotifications(context);
+    if (granted) {
+      return true;
+    }
+
+    status = await Permission.notification.status;
+    if (status.isPermanentlyDenied || status.isRestricted) {
+      await _showNotificationSettingsDialog(context);
+    } else {
+      await _showNotificationSettingsDialog(context);
+    }
+    return false;
+  }
+
   // Request exact alarm permission with explanation
   static Future<bool> requestExactAlarm(BuildContext context) async {
     if (await Permission.scheduleExactAlarm.isGranted) {
@@ -204,5 +235,45 @@ class PermissionsManager {
         ],
       ),
     ) ?? false;
+  }
+
+  static Future<void> _showNotificationSettingsDialog(
+    BuildContext context,
+  ) async {
+    await showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.notifications_active_outlined,
+              color: Theme.of(dialogContext).primaryColor,
+            ),
+            const SizedBox(width: 10),
+            const Text('Enable Notifications'),
+          ],
+        ),
+        content: const Text(
+          'Notifications are required for alarms to break through the lock screen. '
+          'Please enable notifications for UpNow in system settings.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(),
+            child: const Text('Later'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              await openAppSettings();
+              if (dialogContext.mounted) {
+                Navigator.of(dialogContext).pop();
+              }
+            },
+            child: const Text('Open Settings'),
+          ),
+        ],
+      ),
+    );
   }
 } 

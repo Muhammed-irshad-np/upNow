@@ -62,28 +62,15 @@ class AlarmService {
     await _smartCleanupExpiredNotifications();
     
     // Create notification channels with high importance
-    List<AndroidNotificationChannel> channels = [
-      const AndroidNotificationChannel(
+    final List<AndroidNotificationChannel> channels = [
+      AndroidNotificationChannel(
         'alarm_channel',
-        'Alarm Notifications',
-        description: 'Channel for alarm notifications',
+        'Alarm Alerts',
+        description: 'Channel for ringing alarms',
         importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        enableVibration: true,
-        playSound: true,
-        enableLights: true,
-        showBadge: true,
-      ),
-      const AndroidNotificationChannel(
-        'alarm_focus',
-        'Alarm Focus',
-        description: 'High priority alarm notifications',
-        importance: Importance.max,
-        sound: RawResourceAndroidNotificationSound('alarm_sound'),
-        enableVibration: true,
-        playSound: true,
-        enableLights: true,
-        showBadge: true,
+        enableVibration: false,
+        playSound: false,
+        showBadge: false,
       ),
     ];
 
@@ -306,10 +293,7 @@ class AlarmService {
       // ✅ SCHEDULE NATIVE ALARM (Primary - Bulletproof)
       await _scheduleNativeAlarm(alarm, scheduledDate);
       
-      // ✅ SCHEDULE NOTIFICATION ALARM (Backup/UI indicator)
-      await _scheduleNotificationAlarm(alarm, scheduledDate);
-      
-      debugPrint('✅ ALARM SCHEDULED: Both native alarm and notification scheduled');
+      debugPrint('✅ ALARM SCHEDULED: Native alarm registered with full-screen fallback');
          } catch (e) {
       debugPrint('❌ ERROR SCHEDULING ALARM: $e');
     }
@@ -370,46 +354,6 @@ class AlarmService {
     }
   }
   
-  // ✅ NOTIFICATION ALARM SCHEDULING - BACKUP/UI INDICATOR
-  static Future<void> _scheduleNotificationAlarm(AlarmModel alarm, DateTime scheduledDate) async {
-    try {
-      debugPrint('🔔 NOTIFICATION ALARM: Scheduling notification alarm for ${alarm.hour}:${alarm.minute}');
-      
-      // Make sure the scheduled date is in the correct timezone
-      final tz.TZDateTime tzScheduledDate = tz.TZDateTime.from(scheduledDate, tz.local);
-      debugPrint('🔔 Timezone adjusted date: ${tzScheduledDate.toString()}');
-      
-      // Get notification ID
-      final int notificationId = alarm.hashCode;
-      
-      // Schedule the notification (as backup/UI indicator)
-      await _notifications.zonedSchedule(
-        notificationId,
-        alarm.label.isNotEmpty ? alarm.label : 'Alarm',
-        'Wake up!',
-        tzScheduledDate,
-        const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'alarm_channel',
-            'Alarm Notifications',
-            channelDescription: 'Channel for alarm notifications',
-            importance: Importance.max, 
-            priority: Priority.high,
-            playSound: false, // Silent notification (native alarm handles sound)
-            sound: null,
-            enableVibration: false,
-          ),
-        ),
-        payload: alarm.id,
-        uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-        matchDateTimeComponents: DateTimeComponents.time,
-      );
-      
-      debugPrint('✅ NOTIFICATION ALARM: Successfully scheduled notification alarm');
-    } catch (e) {
-      debugPrint('❌ NOTIFICATION ALARM: Error scheduling notification alarm: $e');
-    }
-  }
   
   // ✅ CANCEL NATIVE ALARM
   static Future<void> cancelNativeAlarm(String alarmId) async {
