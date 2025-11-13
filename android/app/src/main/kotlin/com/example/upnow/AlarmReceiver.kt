@@ -1,9 +1,16 @@
 package com.example.upnow
 
+import android.app.KeyguardManager
+import android.app.Notification
+import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Build
+import android.os.PowerManager
 import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -14,6 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_ALARM_LABEL = "alarm_label"
         private const val PREFS_NAME = "com.example.upnow.AlarmPrefs"
         private const val KEY_HAS_PENDING_ALARMS = "has_pending_alarms"
+        private const val CHANNEL_ID = "alarm_channel"
         
         // Call this when alarms are scheduled or all cleared
         fun updatePendingAlarmsFlag(context: Context, hasPendingAlarms: Boolean) {
@@ -93,7 +101,26 @@ class AlarmReceiver : BroadcastReceiver() {
         
         Log.d(TAG, "Dispatching alarm to foreground service -> ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
 
-        AlarmForegroundService.start(
+        val powerManager = context.getSystemService(PowerManager::class.java)
+        val keyguardManager = context.getSystemService(KeyguardManager::class.java)
+        val isInteractive = powerManager?.isInteractive == true
+        val isLocked = keyguardManager?.isKeyguardLocked == true
+
+
+
+        if (!isInteractive || isLocked) {
+            Log.d(TAG, "Device locked or screen off; posting notification for $alarmId")
+            val notification = buildNotification(
+                context = context,
+                alarmId = alarmId,
+                alarmLabel = alarmLabel,
+                soundName = soundName,
+                repeatType = repeatType,
+                weekdays = weekdays
+            )
+            NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
+        } else {
+                    AlarmForegroundService.start(
             context = context,
             alarmId = alarmId,
             alarmLabel = alarmLabel,
@@ -103,5 +130,53 @@ class AlarmReceiver : BroadcastReceiver() {
             repeatType = repeatType,
             weekdays = weekdays
         )
+            Log.d(TAG, "Device unlocked; foreground service will surface AlarmActivity")
+        }
+    }
+
+    private fun buildNotification(
+        context: Context,
+        alarmId: String,
+        alarmLabel: String,
+        soundName: String,
+        repeatType: String,
+        weekdays: BooleanArray?
+    ): Notification {
+        val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_HISTORY
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+            putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+            putExtra("repeatType", repeatType)
+            putExtra("weekdays", weekdays)
+        }
+
+        val fullScreenIntent = PendingIntent.getActivity(
+            context,
+            alarmId.hashCode(),
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        return NotificationCompat.Builder(context, CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle(alarmLabel)
+            .setContentText("Tap to solve and dismiss")
+            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setCategory(NotificationCompat.CATEGORY_ALARM)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .setFullScreenIntent(fullScreenIntent, true)
+            .setContentIntent(fullScreenIntent)
+            .setOngoing(true)
+            .setAutoCancel(false)
+            .setSound(null)
+            .setDefaults(0)
+            .build()
     }
 } 
