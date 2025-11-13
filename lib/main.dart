@@ -197,6 +197,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
     debugPrint("App Lifecycle State Changed: $state");
   }
 
+  // ignore: unused_element
   void _showComingSoonDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -367,7 +368,7 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                             // ),
                             _NavItem(
                               width: segmentWidth,
-                              icon: navigationProvider.currentIndex == 1 ? Icons.track_changes : Icons.track_changes_outlined,
+                              icon: navigationProvider.currentIndex == 1 ? Icons.auto_graph : Icons.auto_graph_outlined,
                               label: 'Habits',
                               selected: navigationProvider.currentIndex == 1,
                               onTap: () => navigationProvider.setCurrentIndex(1),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
@@ -27,10 +28,14 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Habits'),
+        title: Text(
+          'My Habits',
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AppTheme.darkBackground,
         foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Consumer<HabitService>(
         builder: (context, habitService, child) {
@@ -81,10 +86,18 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.track_changes,
-            size: 80,
-            color: AppTheme.secondaryTextColor,
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              color: AppTheme.primaryColor.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.auto_graph,
+              size: 60,
+              color: AppTheme.primaryColor,
+            ),
           ),
           const SizedBox(height: 24),
           Text(
