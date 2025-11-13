@@ -1,10 +1,29 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:upnow/utils/app_theme.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:upnow/utils/app_theme.dart';
 
-class FeedbackScreen extends StatelessWidget {
+class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({Key? key}) : super(key: key);
+
+  @override
+  State<FeedbackScreen> createState() => _FeedbackScreenState();
+}
+
+class _FeedbackScreenState extends State<FeedbackScreen> {
+  final TextEditingController _feedbackController = TextEditingController();
+  final List<String> _attachments = [];
+  bool _isSending = false;
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,14 +38,11 @@ class FeedbackScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // Future: Implement send functionality
-              Navigator.pop(context);
-            },
+            onPressed: _isSending ? null : _sendFeedback,
             child: Text(
               'Send',
               style: TextStyle(
-                color: AppTheme.primaryColor,
+                color: _isSending ? AppTheme.secondaryTextColor : AppTheme.primaryColor,
                 fontSize: 16.sp,
                 fontWeight: FontWeight.bold,
               ),
@@ -47,6 +63,7 @@ class FeedbackScreen extends StatelessWidget {
             ),
             SizedBox(height: 24.h),
             TextField(
+              controller: _feedbackController,
               maxLines: 8,
               style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 16.sp),
               decoration: InputDecoration(
@@ -60,16 +77,50 @@ class FeedbackScreen extends StatelessWidget {
                 ),
               ),
             ),
+            if (_attachments.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              Wrap(
+                spacing: 8.w,
+                runSpacing: 8.h,
+                children: _attachments
+                    .map(
+                      (path) => Chip(
+                        label: Text(
+                          path.split('/').last,
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: AppTheme.primaryTextColor,
+                          ),
+                        ),
+                        backgroundColor: AppTheme.darkSurface,
+                        deleteIcon: Icon(
+                          Icons.close,
+                          size: 16.sp,
+                          color: AppTheme.secondaryTextColor,
+                        ),
+                        onDeleted: () => _removeAttachment(path),
+                      ),
+                    )
+                    .toList(),
+              ),
+            ],
             SizedBox(height: 24.h),
             _buildSettingGroup(
               children: [
                 _buildSettingTile(
                   icon: Icons.camera_alt_outlined,
                   title: 'Attach Screenshot',
+                  trailing: _attachments.isEmpty
+                      ? null
+                      : Text(
+                          '${_attachments.length} attached',
+                          style: TextStyle(
+                            fontSize: 14.sp,
+                            color: AppTheme.secondaryTextColor,
+                          ),
+                        ),
                   isLast: true,
-                  onTap: () {
-                    // Future: Implement image picker
-                  },
+                  onTap: _isSending ? null : _pickScreenshot,
                 ),
               ],
             )
@@ -77,6 +128,79 @@ class FeedbackScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _pickScreenshot() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image == null) {
+        return;
+      }
+      setState(() {
+        if (!_attachments.contains(image.path)) {
+          _attachments.add(image.path);
+        }
+      });
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Screenshot attached.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not access your gallery.')),
+      );
+    }
+  }
+
+  void _removeAttachment(String path) {
+    setState(() {
+      _attachments.remove(path);
+    });
+  }
+
+  Future<void> _sendFeedback() async {
+    final String message = _feedbackController.text.trim();
+    if (message.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please describe your feedback before sending.')),
+      );
+      return;
+    }
+
+    final email = Email(
+      body: message,
+      subject: 'UpNow Feedback',
+      recipients: const ['appweaverlabs@gmail.com'],
+      attachmentPaths: _attachments,
+      isHTML: false,
+    );
+
+    setState(() {
+      _isSending = true;
+    });
+
+    try {
+      await FlutterEmailSender.send(email);
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Opening your mail app...')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      final fallbackHandled = await _handleEmailSendError(error, message);
+      if (!fallbackHandled) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unable to open your mail app right now.')),
+        );
+      }
+    } finally {
+      if (!mounted) return;
+      setState(() {
+        _isSending = false;
+      });
+    }
   }
 
   // Duplicating helper methods for this self-contained screen
@@ -135,4 +259,39 @@ class FeedbackScreen extends StatelessWidget {
       ),
     );
   }
-} 
+
+  Future<bool> _handleEmailSendError(Object error, String body) async {
+    if (error is PlatformException && error.code == 'not_available') {
+      final Uri mailUri = Uri(
+        scheme: 'mailto',
+        path: 'appweaverlabs@gmail.com',
+        queryParameters: {
+          'subject': 'UpNow Feedback',
+          'body': body,
+        },
+      );
+
+      if (await canLaunchUrl(mailUri)) {
+        await launchUrl(mailUri);
+        if (!mounted) return true;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'No email app detected. Opened default mail composer; attachments were not added.',
+            ),
+          ),
+        );
+        return true;
+      } else {
+        if (!mounted) return false;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No email app detected. Please install one to send feedback.'),
+          ),
+        );
+        return true;
+      }
+    }
+    return false;
+  }
+}

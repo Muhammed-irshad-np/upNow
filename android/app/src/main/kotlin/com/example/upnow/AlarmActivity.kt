@@ -132,9 +132,8 @@ class AlarmActivity : AppCompatActivity() {
         })
     }
 
-    override fun onNewIntent(intent: Intent?) {
+    override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        if (intent == null) return
         setIntent(intent)
         // Keep track of the sound name if a new intent provides it
         intent.getStringExtra(EXTRA_ALARM_SOUND)?.let {

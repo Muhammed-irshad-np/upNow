@@ -106,18 +106,18 @@ class OnboardingPage extends StatelessWidget {
 final List<Widget> onboardingPages = [
   const OnboardingPage(
     title: 'Welcome to UpNow',
-    description: 'Your modern alarm clock and sleep tracker to help you wake up refreshed.',
+    description: 'Your modern alarm clock and habit tracker to help you wake up refreshed.',
     icon: Icons.watch_later_outlined,
   ),
   const OnboardingPage(
     title: 'Smart Alarm',
-    description: 'Set alarms with customizable options to ensure you wake up on time, every time.',
+    description: 'Schedule reminders for mornings, meetings, or any moment you don’t want to miss.',
     icon: Icons.alarm,
   ),
   const OnboardingPage(
-    title: 'Track Your Sleep',
-    description: 'Monitor your sleep patterns and get insights to improve your sleep quality.',
-    icon: Icons.nightlight_round,
+    title: 'Build Better Habits',
+    description: 'Plan routines and track habits across your day to stay consistent and motivated.',
+    icon: Icons.auto_graph,
   ),
   const OnboardingPage(
     title: 'You\'re All Set!',
