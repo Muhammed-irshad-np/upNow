@@ -158,6 +158,7 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
             putExtra("repeatType", repeatType)
             putExtra("weekdays", weekdays)
+            putExtra("service_started", true)
         }
 
         val fullScreenIntent = PendingIntent.getActivity(

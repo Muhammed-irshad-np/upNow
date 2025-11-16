@@ -75,7 +75,8 @@ class AlarmActivity : AppCompatActivity() {
         val repeatType = intent.getStringExtra("repeatType") ?: "once"
         val weekdays = intent.getBooleanArrayExtra("weekdays")
 
-        if (alarmId != null && alarmId != "unknown") {
+        val serviceStarted = intent.getBooleanExtra("service_started", false)
+        if (!serviceStarted && alarmId != null && alarmId != "unknown") {
             AlarmForegroundService.start(
                 this,
                 alarmId!!,
@@ -335,6 +336,7 @@ class AlarmActivity : AppCompatActivity() {
                 alarmId?.let { putExtra(EXTRA_ALARM_ID, it) }
                 intent.getStringExtra(EXTRA_ALARM_LABEL)?.let { putExtra(EXTRA_ALARM_LABEL, it) }
                 selectedSoundName?.let { putExtra(EXTRA_ALARM_SOUND, it) }
+                putExtra("service_started", true)
             }
             startActivity(relaunchIntent)
         }
