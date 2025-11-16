@@ -134,16 +134,6 @@ class AlarmForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Check if full-screen intents are allowed (Android 10+)
-        val canUseFullScreenIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val notificationManager = getSystemService(NotificationManager::class.java)
-            notificationManager?.canUseFullScreenIntent() == true
-        } else {
-            true // Always allowed before Android 10
-        }
-        
-        Log.d(TAG, "Full-screen intent capability: $canUseFullScreenIntent for alarm $alarmId")
-
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(alarmLabel)
@@ -151,7 +141,7 @@ class AlarmForegroundService : Service() {
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(fullScreenIntent, canUseFullScreenIntent) // Only set if allowed
+            .setFullScreenIntent(fullScreenIntent, true)
             .setContentIntent(fullScreenIntent)
             .setOngoing(true)
             .setAutoCancel(false)
@@ -199,38 +189,20 @@ class AlarmForegroundService : Service() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
             val existingChannel = notificationManager?.getNotificationChannel(CHANNEL_ID)
-            
-            // Always recreate channel with IMPORTANCE_MAX for full-screen intents to work reliably
-            // This is especially important for OEMs like Realme that reset channel settings after reinstall
-            val channel = NotificationChannel(
-                CHANNEL_ID,
-                "Alarm Alerts",
-                NotificationManager.IMPORTANCE_MAX // Changed from IMPORTANCE_HIGH to MAX for full-screen intents
-            ).apply {
-                description = "Alerts when an alarm is ringing"
-                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                enableVibration(true)
-                setSound(null, null)
-                setBypassDnd(true)
-                // Ensure full-screen intent capability
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    setAllowBubbles(false)
+            if (existingChannel == null) {
+                val channel = NotificationChannel(
+                    CHANNEL_ID,
+                    "Alarm Alerts",
+                    NotificationManager.IMPORTANCE_HIGH
+                ).apply {
+                    description = "Alerts when an alarm is ringing"
+                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                    enableVibration(true)
+                    setSound(null, null)
+                    setBypassDnd(true)
                 }
-            }
-            
-            // Delete existing channel if it exists to ensure fresh settings
-            if (existingChannel != null) {
-                notificationManager?.deleteNotificationChannel(CHANNEL_ID)
-                Log.d(TAG, "Deleted existing alarm channel to recreate with MAX importance")
-            }
-            
-            notificationManager?.createNotificationChannel(channel)
-            Log.d(TAG, "Created/updated alarm notification channel with IMPORTANCE_MAX")
-            
-            // Verify channel was created correctly
-            val createdChannel = notificationManager?.getNotificationChannel(CHANNEL_ID)
-            if (createdChannel != null) {
-                Log.d(TAG, "Channel importance: ${createdChannel.importance}, canShowBadge: ${createdChannel.canShowBadge()}")
+                notificationManager?.createNotificationChannel(channel)
+                Log.d(TAG, "Created alarm notification channel")
             }
         }
     }

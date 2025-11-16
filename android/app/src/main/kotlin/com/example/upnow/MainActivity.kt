@@ -14,8 +14,6 @@ import android.os.PowerManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.IntentFilter
-import android.app.Notification
-import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.SystemClock
 import java.util.Calendar
@@ -29,10 +27,6 @@ class MainActivity : FlutterActivity() {
         
         // Check for release mode-specific issues
         checkReleaseIssues()
-        
-        // Recreate notification channels on app startup to ensure proper settings
-        // This is especially important for OEMs like Realme that reset channel settings after reinstall
-        recreateNotificationChannels()
         
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
             Log.d("MainActivity", "Method call received: ${call.method}")
@@ -100,22 +94,6 @@ class MainActivity : FlutterActivity() {
                     // Add a new method to check all alarm-related permissions
                     val permissionsResult = checkAlarmPermissions()
                     result.success(permissionsResult)
-                }
-                "checkFullScreenIntentCapability" -> {
-                    // Check if app can use full-screen intents (Android 10+)
-                    val canUseFullScreenIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                        notificationManager.canUseFullScreenIntent()
-                    } else {
-                        true // Always allowed before Android 10
-                    }
-                    result.success(canUseFullScreenIntent)
-                }
-                "recreateNotificationChannels" -> {
-                    // Recreate notification channels with IMPORTANCE_MAX
-                    // This is especially important for OEMs like Realme that reset channel settings after reinstall
-                    recreateNotificationChannels()
-                    result.success(true)
                 }
                 "openCongratulationsScreen" -> {
                     // Open congratulations screen in Flutter
@@ -597,61 +575,6 @@ class MainActivity : FlutterActivity() {
         } catch (e: Exception) {
             Log.e("MainActivity", "❌ NATIVE ALARM: Failed to cancel all alarms: ${e.message}")
             return false
-        }
-    }
-    
-    /**
-     * Recreate notification channels with IMPORTANCE_MAX to ensure full-screen intents work
-     * This is especially important for OEMs like Realme that reset channel settings after reinstall
-     */
-    private fun recreateNotificationChannels() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            try {
-                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-                
-                // Recreate alarm channel
-                val alarmChannelId = "alarm_channel"
-                val existingAlarmChannel = notificationManager.getNotificationChannel(alarmChannelId)
-                
-                if (existingAlarmChannel != null) {
-                    // Delete existing channel to ensure fresh settings
-                    notificationManager.deleteNotificationChannel(alarmChannelId)
-                    Log.d("MainActivity", "Deleted existing alarm channel to recreate with MAX importance")
-                }
-                
-                val alarmChannel = NotificationChannel(
-                    alarmChannelId,
-                    "Alarm Alerts",
-                    NotificationManager.IMPORTANCE_MAX
-                ).apply {
-                    description = "Channel for ringing alarms"
-                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                    enableVibration(true)
-                    setSound(null, null)
-                    setBypassDnd(true)
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        setAllowBubbles(false)
-                    }
-                }
-                
-                notificationManager.createNotificationChannel(alarmChannel)
-                Log.d("MainActivity", "Recreated alarm notification channel with IMPORTANCE_MAX")
-                
-                // Verify channel was created correctly
-                val createdChannel = notificationManager.getNotificationChannel(alarmChannelId)
-                if (createdChannel != null) {
-                    Log.d("MainActivity", "Alarm channel importance: ${createdChannel.importance}")
-                }
-                
-                // Check full-screen intent capability
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    val canUseFullScreenIntent = notificationManager.canUseFullScreenIntent()
-                    Log.d("MainActivity", "Full-screen intent capability: $canUseFullScreenIntent")
-                }
-                
-            } catch (e: Exception) {
-                Log.e("MainActivity", "Error recreating notification channels: ${e.message}")
-            }
         }
     }
 }
