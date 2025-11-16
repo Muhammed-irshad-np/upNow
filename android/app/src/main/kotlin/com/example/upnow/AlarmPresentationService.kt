@@ -88,6 +88,16 @@ class AlarmPresentationService : Service() {
                 )
             }
 
+            // Check if full-screen intents are allowed (Android 10+)
+            val canUseFullScreenIntent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+                notificationManager.canUseFullScreenIntent()
+            } else {
+                true // Always allowed before Android 10
+            }
+            
+            Log.d(TAG, "Full-screen intent capability: $canUseFullScreenIntent for alarm $alarmId")
+            
             // Notification for the foreground service itself - with high priority and content intent
             val serviceNotification = NotificationCompat.Builder(this, NOTIFICATION_CHANNEL_ID)
                 .setContentTitle("Alarm Active")
@@ -95,11 +105,11 @@ class AlarmPresentationService : Service() {
                 .setTicker("Alarm is ringing!")
                 // Using a default system icon as a placeholder
                 .setSmallIcon(android.R.drawable.sym_def_app_icon)
-                .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setPriority(NotificationCompat.PRIORITY_MAX) // Changed to MAX for better reliability
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setContentIntent(pendingIntent)
-                .setFullScreenIntent(pendingIntent, true) // This is key for showing over lock screen
+                .setFullScreenIntent(pendingIntent, canUseFullScreenIntent) // Only set if allowed
                 .setOngoing(true)
                 .build()
 
@@ -188,18 +198,39 @@ class AlarmPresentationService : Service() {
 
     private fun createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val existingChannel = notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
+            
+            // Always recreate channel with IMPORTANCE_MAX for full-screen intents to work reliably
+            // This is especially important for OEMs like Realme that reset channel settings after reinstall
             val channelName = "Alarm Presentation Service"
-            val importance = NotificationManager.IMPORTANCE_HIGH // Higher importance for a better chance at showing
-            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, importance).apply {
+            val channel = NotificationChannel(NOTIFICATION_CHANNEL_ID, channelName, NotificationManager.IMPORTANCE_MAX).apply {
                 description = "Channel for the alarm presentation foreground service."
                 setShowBadge(true)
                 setBypassDnd(true) // Bypass Do Not Disturb
                 enableLights(true)
                 enableVibration(true)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                // Ensure full-screen intent capability
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    setAllowBubbles(false)
+                }
             }
-            val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            
+            // Delete existing channel if it exists to ensure fresh settings
+            if (existingChannel != null) {
+                notificationManager.deleteNotificationChannel(NOTIFICATION_CHANNEL_ID)
+                Log.d(TAG, "Deleted existing presentation channel to recreate with MAX importance")
+            }
+            
             notificationManager.createNotificationChannel(channel)
-            Log.d(TAG, "Notification channel created with HIGH importance")
+            Log.d(TAG, "Notification channel created with MAX importance")
+            
+            // Verify channel was created correctly
+            val createdChannel = notificationManager.getNotificationChannel(NOTIFICATION_CHANNEL_ID)
+            if (createdChannel != null) {
+                Log.d(TAG, "Channel importance: ${createdChannel.importance}")
+            }
         }
     }
 } 
