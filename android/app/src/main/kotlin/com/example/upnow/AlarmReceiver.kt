@@ -106,10 +106,23 @@ class AlarmReceiver : BroadcastReceiver() {
         val isInteractive = powerManager?.isInteractive == true
         val isLocked = keyguardManager?.isKeyguardLocked == true
 
-
+        Log.d(
+            TAG,
+            "Starting AlarmForegroundService (interactive=$isInteractive, locked=$isLocked) for $alarmId"
+        )
+        AlarmForegroundService.start(
+            context = context,
+            alarmId = alarmId,
+            alarmLabel = alarmLabel,
+            soundName = soundName,
+            hour = hour,
+            minute = minute,
+            repeatType = repeatType,
+            weekdays = weekdays
+        )
 
         if (!isInteractive || isLocked) {
-            Log.d(TAG, "Device locked or screen off; posting notification for $alarmId")
+            Log.d(TAG, "Device locked or screen off; also posting notification for $alarmId")
             val notification = buildNotification(
                 context = context,
                 alarmId = alarmId,
@@ -120,17 +133,7 @@ class AlarmReceiver : BroadcastReceiver() {
             )
             NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
         } else {
-                    AlarmForegroundService.start(
-            context = context,
-            alarmId = alarmId,
-            alarmLabel = alarmLabel,
-            soundName = soundName,
-            hour = hour,
-            minute = minute,
-            repeatType = repeatType,
-            weekdays = weekdays
-        )
-            Log.d(TAG, "Device unlocked; foreground service will surface AlarmActivity")
+            Log.d(TAG, "Device unlocked; relying on foreground service launch path for $alarmId")
         }
     }
 

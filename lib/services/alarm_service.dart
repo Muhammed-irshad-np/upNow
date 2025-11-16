@@ -19,6 +19,8 @@ AppLifecycleState currentAppState = AppLifecycleState.resumed;
 class AlarmService {
   static bool _isInitialized = false;
   static final FlutterLocalNotificationsPlugin _notifications = FlutterLocalNotificationsPlugin();
+  static bool _warnedNotificationPermission = false;
+  static bool _warnedExactAlarmPermission = false;
   
   // Define the platform channel
   static const MethodChannel _platformChannel = 
@@ -47,6 +49,8 @@ class AlarmService {
     
     // Initialize timezone
     tz_data.initializeTimeZones();
+
+    await _refreshAlarmNotificationChannel();
     
     // Request permissions first
     // await requestPermissions();
@@ -157,6 +161,37 @@ class AlarmService {
     }
   }
 
+  static Future<void> _refreshAlarmNotificationChannel() async {
+    if (!Platform.isAndroid) return;
+    try {
+      final bool? result = await _platformChannel.invokeMethod<bool>('resetAlarmChannel');
+      if (result == true) {
+        debugPrint('📱 ALARM SERVICE: alarm_channel refreshed on native side');
+      } else {
+        debugPrint('⚠️ ALARM SERVICE: Native alarm_channel reset returned false');
+      }
+    } on PlatformException catch (e) {
+      debugPrint('⚠️ ALARM SERVICE: Platform error refreshing alarm channel: ${e.message}');
+    } catch (e) {
+      debugPrint('⚠️ ALARM SERVICE: Unexpected error refreshing alarm channel: $e');
+    }
+  }
+
+  static Future<void> _warnIfNotificationPermissionMissing() async {
+    if (!Platform.isAndroid || _warnedNotificationPermission) return;
+    try {
+      final status = await Permission.notification.status;
+      if (!status.isGranted) {
+        _warnedNotificationPermission = true;
+        debugPrint(
+          '⚠️ ALARM SERVICE: Notifications permission is off. On Realme/ColorOS enable Notifications + Lock screen alerts for upNow so alarms can show over the lock screen.'
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ ALARM SERVICE: Failed to check notification permission for warning: $e');
+    }
+  }
+
   // Method to update the pending alarms flag in the native platform
   static Future<void> _updatePendingAlarmsFlag(bool hasPendingAlarms) async {
     try {
@@ -170,6 +205,14 @@ class AlarmService {
     } catch (e) {
       debugPrint("📱 ALARM SERVICE: Generic error updating pending alarms flag: $e");
     }
+  }
+
+  static Future<void> _syncPendingAlarmFlag({List<AlarmModel>? cachedAlarms, String? excludeAlarmId}) async {
+    final alarms = cachedAlarms ?? HiveDatabase.getAllAlarms();
+    final hasPending = alarms.any(
+      (alarm) => alarm.isEnabled && (excludeAlarmId == null || alarm.id != excludeAlarmId),
+    );
+    await _updatePendingAlarmsFlag(hasPending);
   }
   
   // ✅ CRITICAL FIX: Smart cleanup of expired notifications
@@ -260,7 +303,7 @@ class AlarmService {
     debugPrint('📅 Scheduling ${updatedAlarms.length} valid alarms');
     
     // Update the flag to indicate we have pending alarms
-    await _updatePendingAlarmsFlag(updatedAlarms.any((alarm) => alarm.isEnabled));
+    await _syncPendingAlarmFlag(cachedAlarms: updatedAlarms);
     
     for (final alarm in updatedAlarms) {
       if (alarm.isEnabled) {
@@ -272,6 +315,7 @@ class AlarmService {
   static Future<void> scheduleAlarm(AlarmModel alarm) async {
     try {
       debugPrint('🔔 SCHEDULING ALARM: Starting...');
+      await _warnIfNotificationPermissionMissing();
       // Get the current time for logging purposes
       final DateTime now = DateTime.now();
       final tz.TZDateTime tzNow = tz.TZDateTime.from(now, tz.local);
@@ -293,6 +337,7 @@ class AlarmService {
       // ✅ SCHEDULE NATIVE ALARM (Primary - Bulletproof)
       await _scheduleNativeAlarm(alarm, scheduledDate);
       
+      await _updatePendingAlarmsFlag(true);
       debugPrint('✅ ALARM SCHEDULED: Native alarm registered with full-screen fallback');
          } catch (e) {
       debugPrint('❌ ERROR SCHEDULING ALARM: $e');
@@ -407,12 +452,8 @@ class AlarmService {
         debugPrint('🗑️ Cancelled notification alarm with ID: $notificationId');
       }
       
-      // Check if there are any remaining enabled alarms
-      final allAlarms = HiveDatabase.getAllAlarms();
-      final hasEnabledAlarms = allAlarms.any((a) => a.id != alarmId && a.isEnabled);
-      
-      // Update the pending alarms flag
-      await _updatePendingAlarmsFlag(hasEnabledAlarms);
+      // Update the pending alarms flag to reflect the cancellation
+      await _syncPendingAlarmFlag(excludeAlarmId: alarmId);
       
       debugPrint('✅ ALARM CANCELLED: Successfully cancelled both notification and native notification $alarmId');
     } catch (e) {
@@ -460,6 +501,12 @@ class AlarmService {
           return true;
         } else {
           debugPrint('❌ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission not granted');
+          if (!_warnedExactAlarmPermission) {
+            _warnedExactAlarmPermission = true;
+            debugPrint(
+              '⚠️ NATIVE ALARM: Exact alarm permission missing. On Realme/ColorOS open Settings → Apps → Special app access → Alarm & reminders and allow upNow.'
+            );
+          }
           return false;
         }
       }
@@ -481,6 +528,12 @@ class AlarmService {
       return true;
         } else {
           debugPrint('❌ NATIVE ALARM: SCHEDULE_EXACT_ALARM permission denied');
+          if (!_warnedExactAlarmPermission) {
+            _warnedExactAlarmPermission = true;
+            debugPrint(
+              '⚠️ NATIVE ALARM: Realme/ColorOS devices often hide exact alarm permission under Settings → Apps → Special app access → Alarm & reminders. Enable it so alarms can ring on the lock screen.'
+            );
+          }
       return false;
     }
   }
@@ -574,7 +627,14 @@ class AlarmService {
         // Check if we have the necessary permissions
         final hasNotificationPermission = await Permission.notification.isGranted;
         final hasExactAlarmPermission = await Permission.scheduleExactAlarm.isGranted;
-        
+
+        if (!hasNotificationPermission && !_warnedNotificationPermission) {
+          _warnedNotificationPermission = true;
+          debugPrint(
+            '⚠️ ALARM SERVICE: Notifications are disabled. On Realme/ColorOS enable Notifications and Lock screen alerts for upNow to keep alarms visible.'
+          );
+        }
+
         return hasNotificationPermission && hasExactAlarmPermission;
       }
       return true; // iOS doesn't need these specific permissions

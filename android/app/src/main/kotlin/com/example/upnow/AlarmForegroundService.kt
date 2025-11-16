@@ -12,7 +12,9 @@ import android.media.AudioAttributes
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
@@ -65,6 +67,10 @@ class AlarmForegroundService : Service() {
     private var vibrator: Vibrator? = null
     private var wakeLock: PowerManager.WakeLock? = null
     private var currentAlarmId: String? = null
+    private val launchHandler = Handler(Looper.getMainLooper())
+    private var pendingLaunchIntent: Intent? = null
+    private var activityStartAttempts: Int = 0
+    private val maxLaunchAttempts = 5
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -163,33 +169,114 @@ class AlarmForegroundService : Service() {
         val keyguardManager = getSystemService(KeyguardManager::class.java)
         val isInteractive = powerManager?.isInteractive == true
         val isLocked = keyguardManager?.isKeyguardLocked == true
+        val stillLocked = !isInteractive || isLocked
 
-        if (isInteractive && !isLocked) {
-            Log.i(TAG, "Device unlocked; launching AlarmActivity directly for $alarmId")
-            val intent = Intent(this, AlarmActivity::class.java).apply {
-                flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
-                        Intent.FLAG_ACTIVITY_NO_HISTORY
-                putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
-                putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
-                putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
-                putExtra("hour", hour)
-                putExtra("minute", minute)
-                putExtra("repeatType", repeatType)
-                putExtra("weekdays", weekdays)
-            }
-            startActivity(intent)
+        pendingLaunchIntent = buildAlarmActivityIntent(
+            alarmId,
+            alarmLabel,
+            soundName,
+            hour,
+            minute,
+            repeatType,
+            weekdays
+        )
+        activityStartAttempts = 0
+
+        Log.i(
+            TAG,
+            "Attempting to launch AlarmActivity (locked=$stillLocked, interactive=$isInteractive) for $alarmId"
+        )
+        attemptLaunchAlarmActivity(reason = "initial")
+
+        if (stillLocked) {
+            scheduleActivityRetry()
+            Log.i(
+                TAG,
+                "Device locked; keeping foreground notification active and scheduling retries for $alarmId"
+            )
         } else {
-            Log.i(TAG, "Posting full-screen notification; system will surface AlarmActivity for $alarmId")
+            Log.i(TAG, "Device unlocked; relying on direct launch path for $alarmId")
         }
+    }
+
+    private fun buildAlarmActivityIntent(
+        alarmId: String,
+        alarmLabel: String,
+        soundName: String,
+        hour: Int,
+        minute: Int,
+        repeatType: String,
+        weekdays: BooleanArray?
+    ): Intent {
+        return Intent(this, AlarmActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                    Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                    Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                    Intent.FLAG_ACTIVITY_NO_HISTORY
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+            }
+            putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+            putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+            putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+            putExtra("hour", hour)
+            putExtra("minute", minute)
+            putExtra("repeatType", repeatType)
+            putExtra("weekdays", weekdays)
+        }
+    }
+
+    private fun attemptLaunchAlarmActivity(reason: String) {
+        val intent = pendingLaunchIntent ?: return
+        try {
+            startActivity(intent)
+            Log.d(
+                TAG,
+                "AlarmActivity launch attempt #${activityStartAttempts + 1} ($reason) dispatched for ${intent.getStringExtra(AlarmActivity.EXTRA_ALARM_ID)}"
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start AlarmActivity on attempt ${activityStartAttempts + 1}: ${e.message}")
+        }
+    }
+
+    private fun scheduleActivityRetry() {
+        val intent = pendingLaunchIntent ?: return
+        if (activityStartAttempts >= maxLaunchAttempts - 1) {
+            Log.e(TAG, "Max AlarmActivity launch attempts reached for ${intent.getStringExtra(AlarmActivity.EXTRA_ALARM_ID)}")
+            return
+        }
+
+        launchHandler.postDelayed({
+            activityStartAttempts += 1
+            val powerManager = getSystemService(PowerManager::class.java)
+            val keyguardManager = getSystemService(KeyguardManager::class.java)
+            val shouldRetry = keyguardManager?.isKeyguardLocked == true || powerManager?.isInteractive != true
+
+            if (!shouldRetry) {
+                Log.d(TAG, "Device unlocked; stopping retry loop for AlarmActivity launch")
+                return@postDelayed
+            }
+
+            attemptLaunchAlarmActivity(reason = "retry#$activityStartAttempts")
+            scheduleActivityRetry()
+        }, 800)
     }
 
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
             val existingChannel = notificationManager?.getNotificationChannel(CHANNEL_ID)
-            if (existingChannel == null) {
+            val needsRebuild = existingChannel == null ||
+                    existingChannel.importance < NotificationManager.IMPORTANCE_HIGH ||
+                    existingChannel.lockscreenVisibility != Notification.VISIBILITY_PUBLIC ||
+                    existingChannel.canBypassDnd().not()
+
+            if (needsRebuild) {
+                if (existingChannel != null) {
+                    Log.w(TAG, "Existing alarm channel missing critical flags; recreating for reliability")
+                    notificationManager?.deleteNotificationChannel(CHANNEL_ID)
+                }
+
                 val channel = NotificationChannel(
                     CHANNEL_ID,
                     "Alarm Alerts",
@@ -202,7 +289,7 @@ class AlarmForegroundService : Service() {
                     setBypassDnd(true)
                 }
                 notificationManager?.createNotificationChannel(channel)
-                Log.d(TAG, "Created alarm notification channel")
+                Log.d(TAG, "Created alarm notification channel with FORCE refresh")
             }
         }
     }
@@ -259,6 +346,10 @@ class AlarmForegroundService : Service() {
     }
 
     private fun stopAlarmPlayback() {
+        launchHandler.removeCallbacksAndMessages(null)
+        pendingLaunchIntent = null
+        activityStartAttempts = 0
+
         try {
             mediaPlayer?.let { player ->
                 if (player.isPlaying) {

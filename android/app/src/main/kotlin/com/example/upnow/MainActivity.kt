@@ -10,6 +10,8 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 import android.app.AlarmManager
+import android.app.Notification
+import android.app.NotificationChannel
 import android.os.PowerManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
@@ -139,6 +141,10 @@ class MainActivity : FlutterActivity() {
                     val success = cancelAllNativeAlarms()
                     result.success(success)
                 }
+                "resetAlarmChannel" -> {
+                    val reset = resetAlarmNotificationChannel()
+                    result.success(reset)
+                }
                 else -> {
                     Log.w("MainActivity", "Method ${call.method} not implemented.")
                     result.notImplemented()
@@ -241,6 +247,42 @@ class MainActivity : FlutterActivity() {
         // Just log that we're ready to handle notifications
         Log.d("MainActivity", "Notification handler set up")
         // The actual launching happens via the Intent registered in the manifest
+    }
+
+    private fun resetAlarmNotificationChannel(): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) {
+            Log.d("MainActivity", "Notification channels not supported on this API level")
+            return true
+        }
+
+        return try {
+            val notificationManager =
+                getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            val existingChannel = notificationManager.getNotificationChannel("alarm_channel")
+            if (existingChannel != null) {
+                Log.d("MainActivity", "Deleting stale alarm_channel before recreation")
+                notificationManager.deleteNotificationChannel("alarm_channel")
+            }
+
+            val channel = NotificationChannel(
+                "alarm_channel",
+                "Alarm Alerts",
+                NotificationManager.IMPORTANCE_HIGH
+            ).apply {
+                description = "Channel for ringing alarms"
+                enableVibration(true)
+                setSound(null, null)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
+            }
+
+            notificationManager.createNotificationChannel(channel)
+            Log.d("MainActivity", "alarm_channel recreated with high importance & lockscreen visibility")
+            true
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Failed to reset alarm channel: ${e.message}")
+            false
+        }
     }
     
     private fun launchAlarmActivity(alarmId: String, alarmLabel: String, soundName: String, hour: Int?, minute: Int?) {
