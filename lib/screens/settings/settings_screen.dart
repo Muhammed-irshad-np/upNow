@@ -8,6 +8,7 @@ import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
+import 'package:share_plus/share_plus.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -78,7 +79,8 @@ class SettingsScreen extends StatelessWidget {
                   onTap: () {
                     Navigator.push(
                       context,
-                      CupertinoPageRoute(builder: (_) => const FeedbackScreen()),
+                      CupertinoPageRoute(
+                          builder: (_) => const FeedbackScreen()),
                     );
                   },
                 ),
@@ -86,7 +88,8 @@ class SettingsScreen extends StatelessWidget {
                   icon: Icons.share_outlined,
                   title: 'Share App',
                   onTap: () {
-                    // Future: Implement share functionality
+                    Share.share(
+                        'Check out UpNow! https://play.google.com/store/apps/details?id=com.appweavers.upnow');
                   },
                   isLast: true,
                 ),
@@ -140,7 +143,7 @@ class SettingsScreen extends StatelessWidget {
         final hasMorningAlarm = alarmProvider.hasMorningAlarm;
         final isMorningAlarmEnabled = alarmProvider.isMorningAlarmEnabled;
         final morningAlarmTime = alarmProvider.morningAlarmTime;
-        
+
         return Container(
           decoration: BoxDecoration(
             color: AppTheme.darkSurface,
@@ -157,12 +160,15 @@ class SettingsScreen extends StatelessWidget {
                       // Create new morning alarm with default time
                       await alarmProvider.setMorningAlarm(7, 0);
                     } else {
-                      await alarmProvider.toggleMorningAlarm(!isMorningAlarmEnabled);
+                      await alarmProvider
+                          .toggleMorningAlarm(!isMorningAlarmEnabled);
                     }
                   },
-                  borderRadius: BorderRadius.vertical(top: Radius.circular(16.r)),
+                  borderRadius:
+                      BorderRadius.vertical(top: Radius.circular(16.r)),
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
                     decoration: BoxDecoration(
                       border: isMorningAlarmEnabled
                           ? Border(
@@ -223,7 +229,8 @@ class SettingsScreen extends StatelessWidget {
                             }
                           },
                           activeColor: AppTheme.primaryColor,
-                          activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
+                          activeTrackColor:
+                              AppTheme.primaryColor.withOpacity(0.3),
                         ),
                       ],
                     ),
@@ -235,10 +242,13 @@ class SettingsScreen extends StatelessWidget {
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _showMorningAlarmTimePicker(context, alarmProvider),
-                    borderRadius: BorderRadius.vertical(bottom: Radius.circular(16.r)),
+                    onTap: () =>
+                        _showMorningAlarmTimePicker(context, alarmProvider),
+                    borderRadius:
+                        BorderRadius.vertical(bottom: Radius.circular(16.r)),
                     child: Container(
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: 16.w, vertical: 14.h),
                       child: Row(
                         children: [
                           SizedBox(width: 38.w), // Align with the text above
@@ -288,9 +298,10 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
-  Future<void> _showMorningAlarmTimePicker(BuildContext context, AlarmProvider alarmProvider) async {
+  Future<void> _showMorningAlarmTimePicker(
+      BuildContext context, AlarmProvider alarmProvider) async {
     final currentTime = alarmProvider.morningAlarmTime;
-    
+
     final TimeOfDay? pickedTime = await showTimePicker(
       context: context,
       initialTime: currentTime,
@@ -311,9 +322,10 @@ class SettingsScreen extends StatelessWidget {
         );
       },
     );
-    
+
     if (pickedTime != null) {
-      await alarmProvider.updateMorningAlarm(pickedTime.hour, pickedTime.minute);
+      await alarmProvider.updateMorningAlarm(
+          pickedTime.hour, pickedTime.minute);
     }
   }
 
@@ -401,7 +413,8 @@ class SettingsScreen extends StatelessWidget {
           ),
           child: Row(
             children: [
-              Icon(icon, color: AppTheme.primaryColor.withOpacity(0.8), size: 22.sp),
+              Icon(icon,
+                  color: AppTheme.primaryColor.withOpacity(0.8), size: 22.sp),
               SizedBox(width: 16.w),
               Expanded(
                 child: Text(
@@ -426,4 +439,4 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}

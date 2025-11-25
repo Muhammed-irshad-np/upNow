@@ -1,10 +1,88 @@
-import 'package:flutter/cupertino.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_email_sender/flutter_email_sender.dart';
+import 'package:image_picker/image_picker.dart';
 
-class FeedbackScreen extends StatelessWidget {
+class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({Key? key}) : super(key: key);
+
+  @override
+  State<FeedbackScreen> createState() => _FeedbackScreenState();
+}
+
+class _FeedbackScreenState extends State<FeedbackScreen> {
+  final TextEditingController _feedbackController = TextEditingController();
+  String? _attachmentPath;
+  bool _isSending = false;
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(source: ImageSource.gallery);
+      if (image != null) {
+        setState(() {
+          _attachmentPath = image.path;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error picking image: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _sendFeedback() async {
+    if (_feedbackController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter your feedback')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSending = true;
+    });
+
+    final Email email = Email(
+      body: _feedbackController.text,
+      subject: 'UpNow Feedback',
+      recipients: ['appweaverlabs@gmail.com'],
+      attachmentPaths: _attachmentPath != null ? [_attachmentPath!] : [],
+      isHTML: false,
+    );
+
+    try {
+      await FlutterEmailSender.send(email);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Opening email client...')),
+        );
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error sending feedback: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSending = false;
+        });
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _feedbackController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,18 +97,21 @@ class FeedbackScreen extends StatelessWidget {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              // Future: Implement send functionality
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Send',
-              style: TextStyle(
-                color: AppTheme.primaryColor,
-                fontSize: 16.sp,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+            onPressed: _isSending ? null : _sendFeedback,
+            child: _isSending
+                ? SizedBox(
+                    width: 20.w,
+                    height: 20.w,
+                    child: const CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : Text(
+                    'Send',
+                    style: TextStyle(
+                      color: AppTheme.primaryColor,
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ],
       ),
@@ -47,11 +128,14 @@ class FeedbackScreen extends StatelessWidget {
             ),
             SizedBox(height: 24.h),
             TextField(
+              controller: _feedbackController,
               maxLines: 8,
-              style: TextStyle(color: AppTheme.primaryTextColor, fontSize: 16.sp),
+              style:
+                  TextStyle(color: AppTheme.primaryTextColor, fontSize: 16.sp),
               decoration: InputDecoration(
                 hintText: 'Describe your experience or suggestion...',
-                hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+                hintStyle: TextStyle(
+                    color: AppTheme.secondaryTextColor.withOpacity(0.5)),
                 filled: true,
                 fillColor: AppTheme.darkSurface,
                 border: OutlineInputBorder(
@@ -65,21 +149,51 @@ class FeedbackScreen extends StatelessWidget {
               children: [
                 _buildSettingTile(
                   icon: Icons.camera_alt_outlined,
-                  title: 'Attach Screenshot',
-                  isLast: true,
-                  onTap: () {
-                    // Future: Implement image picker
-                  },
+                  title: _attachmentPath != null
+                      ? 'Change Screenshot'
+                      : 'Attach Screenshot',
+                  trailing: _attachmentPath != null
+                      ? Icon(Icons.check_circle,
+                          color: AppTheme.primaryColor, size: 20.sp)
+                      : null,
+                  onTap: _pickImage,
                 ),
+                if (_attachmentPath != null) ...[
+                  Container(
+                    height: 1.h,
+                    color: AppTheme.darkBackground.withOpacity(0.5),
+                  ),
+                  _buildSettingTile(
+                    icon: Icons.delete_outline,
+                    title: 'Remove Screenshot',
+                    isLast: true,
+                    onTap: () {
+                      setState(() {
+                        _attachmentPath = null;
+                      });
+                    },
+                  ),
+                ],
               ],
-            )
+            ),
+            if (_attachmentPath != null) ...[
+              SizedBox(height: 16.h),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12.r),
+                child: Image.file(
+                  File(_attachmentPath!),
+                  height: 200.h,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                ),
+              ),
+            ],
           ],
         ),
       ),
     );
   }
 
-  // Duplicating helper methods for this self-contained screen
   Widget _buildSettingGroup({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
@@ -108,9 +222,20 @@ class FeedbackScreen extends StatelessWidget {
             : BorderRadius.zero,
         child: Container(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
+          decoration: BoxDecoration(
+            border: isLast
+                ? null
+                : Border(
+                    bottom: BorderSide(
+                      color: AppTheme.darkBackground.withOpacity(0.5),
+                      width: 1,
+                    ),
+                  ),
+          ),
           child: Row(
             children: [
-              Icon(icon, color: AppTheme.primaryColor.withOpacity(0.8), size: 22.sp),
+              Icon(icon,
+                  color: AppTheme.primaryColor.withOpacity(0.8), size: 22.sp),
               SizedBox(width: 16.w),
               Expanded(
                 child: Text(
@@ -135,4 +260,4 @@ class FeedbackScreen extends StatelessWidget {
       ),
     );
   }
-} 
+}
