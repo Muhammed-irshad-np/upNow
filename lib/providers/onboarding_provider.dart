@@ -15,7 +15,7 @@ class OnboardingProvider with ChangeNotifier {
     notifyListeners();
 
     final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
-    _hasCompletedOnboarding = false;
+    _hasCompletedOnboarding = hasCompleted;
     _isLoading = false;
     notifyListeners();
   }
