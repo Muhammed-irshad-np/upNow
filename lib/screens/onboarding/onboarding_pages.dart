@@ -4,16 +4,19 @@ import 'package:upnow/utils/app_theme.dart';
 class OnboardingPage extends StatelessWidget {
   final String title;
   final String description;
-  final IconData icon;
+  final IconData? icon;
+  final String? imagePath;
   final bool showPermissionInfo;
 
   const OnboardingPage({
     super.key,
     required this.title,
     required this.description,
-    required this.icon,
+    this.icon,
+    this.imagePath,
     this.showPermissionInfo = false,
-  });
+  }) : assert(icon != null || imagePath != null,
+            'Either icon or imagePath must be provided');
 
   @override
   Widget build(BuildContext context) {
@@ -22,22 +25,29 @@ class OnboardingPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Icon with background
+          // Icon or Image with background
           Container(
             width: 120,
             height: 120,
             decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.1),
+              color: imagePath != null
+                  ? null
+                  : AppTheme.primaryColor.withOpacity(0.1),
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 60,
-              color: AppTheme.primaryColor,
-            ),
+            child: imagePath != null
+                ? Image.asset(
+                    imagePath!,
+                    fit: BoxFit.contain,
+                  )
+                : Icon(
+                    icon,
+                    size: 60,
+                    color: AppTheme.primaryColor,
+                  ),
           ),
           const SizedBox(height: 40),
-          
+
           // Title
           Text(
             title,
@@ -49,7 +59,7 @@ class OnboardingPage extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 16),
-          
+
           // Description
           Text(
             description,
@@ -60,7 +70,7 @@ class OnboardingPage extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
-          
+
           // Permission info
           if (showPermissionInfo) ...[
             const SizedBox(height: 24),
@@ -106,23 +116,25 @@ class OnboardingPage extends StatelessWidget {
 final List<Widget> onboardingPages = [
   const OnboardingPage(
     title: 'Welcome to UpNow',
-    description: 'Your modern alarm clock and sleep tracker to help you wake up refreshed..',
-    icon: Icons.watch_later_outlined,
+    description: 'Your ultimate companion for productivity and habits.',
+    imagePath: 'assets/images/app_icon.png',
   ),
   const OnboardingPage(
-    title: 'Smart Alarm',
-    description: 'Set alarms with customizable options to ensure you wake up on time, every time.',
+    title: 'Versatile Alarms',
+    description:
+        'More than just a wake-up call. Schedule reminders for meetings, workouts, or any important event.',
     icon: Icons.alarm,
   ),
   const OnboardingPage(
-    title: 'Track Your Sleep',
-    description: 'Monitor your sleep patterns and get insights to improve your sleep quality.',
-    icon: Icons.nightlight_round,
+    title: 'Build Better Habits',
+    description:
+        'Create and track positive routines to stay consistent and achieve your goals.',
+    icon: Icons.track_changes,
   ),
   const OnboardingPage(
     title: 'You\'re All Set!',
-    description: 'Get ready to experience better mornings with UpNow.',
+    description: 'Start your journey with UpNow today.',
     icon: Icons.check_circle_outline,
     showPermissionInfo: true,
   ),
-]; 
+];

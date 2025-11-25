@@ -13,9 +13,9 @@ class OnboardingProvider with ChangeNotifier {
   Future<void> checkOnboardingStatus() async {
     _isLoading = true;
     notifyListeners();
-    
+
     final hasCompleted = await PreferencesHelper.hasCompletedOnboarding();
-    _hasCompletedOnboarding = hasCompleted;
+    _hasCompletedOnboarding = false;
     _isLoading = false;
     notifyListeners();
   }
@@ -28,7 +28,8 @@ class OnboardingProvider with ChangeNotifier {
   }
 
   void nextPage() {
-    if (_currentPage < 2) { // Assuming 3 pages (0, 1, 2)
+    if (_currentPage < 2) {
+      // Assuming 3 pages (0, 1, 2)
       _currentPage++;
       notifyListeners();
     }

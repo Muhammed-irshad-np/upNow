@@ -20,86 +20,89 @@ class HabitDetailScreen extends StatefulWidget {
 }
 
 class _HabitDetailScreenState extends State<HabitDetailScreen> {
-
   @override
   Widget build(BuildContext context) {
     return ChangeNotifierProvider(
       create: (_) => HabitDetailProvider(initialYear: DateTime.now().year),
       child: Consumer2<HabitService, HabitDetailProvider>(
         builder: (context, habitService, detailProvider, child) {
-        final habit = habitService.habits.firstWhere(
-          (h) => h.id == widget.habitId,
-          orElse: () => throw Exception('Habit not found'),
-        );
-        
-        final stats = habitService.getHabitStats(widget.habitId);
-        
-        return Scaffold(
-          backgroundColor: AppTheme.darkBackground,
-          appBar: AppBar(
-            title: Text(habit.name),
-            backgroundColor: habit.color,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            actions: [
-              PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert, color: Colors.white),
-                onSelected: (value) => _handleMenuAction(context, value, habit),
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'edit',
-                    child: ListTile(
-                      leading: Icon(Icons.edit),
-                      title: Text('Edit Habit'),
+          final habit = habitService.habits.firstWhere(
+            (h) => h.id == widget.habitId,
+            orElse: () => throw Exception('Habit not found'),
+          );
+
+          final stats = habitService.getHabitStats(widget.habitId);
+
+          return Scaffold(
+            backgroundColor: AppTheme.darkBackground,
+            appBar: AppBar(
+              title: Text(habit.name),
+              backgroundColor: habit.color,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              actions: [
+                PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  onSelected: (value) =>
+                      _handleMenuAction(context, value, habit),
+                  itemBuilder: (context) => [
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: ListTile(
+                        leading: Icon(Icons.edit),
+                        title: Text('Edit Habit'),
+                      ),
                     ),
-                  ),
-                  PopupMenuItem(
-                    value: 'alarm',
-                    child: ListTile(
-                      leading: Icon(habit.hasAlarm ? Icons.alarm_off : Icons.alarm),
-                      title: Text(habit.hasAlarm ? 'Turn Off Alarm' : 'Set Alarm'),
+                    PopupMenuItem(
+                      value: 'alarm',
+                      child: ListTile(
+                        leading: Icon(
+                            habit.hasAlarm ? Icons.alarm_off : Icons.alarm),
+                        title: Text(
+                            habit.hasAlarm ? 'Turn Off Alarm' : 'Set Alarm'),
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'archive',
-                    child: ListTile(
-                      leading: Icon(Icons.archive),
-                      title: Text('Archive Habit'),
+                    const PopupMenuItem(
+                      value: 'archive',
+                      child: ListTile(
+                        leading: Icon(Icons.archive),
+                        title: Text('Archive Habit'),
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'delete',
-                    child: ListTile(
-                      leading: Icon(Icons.delete, color: Colors.red),
-                      title: Text('Delete Habit', style: TextStyle(color: Colors.red)),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: ListTile(
+                        leading: Icon(Icons.delete, color: Colors.red),
+                        title: Text('Delete Habit',
+                            style: TextStyle(color: Colors.red)),
+                      ),
                     ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-          body: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHabitHeader(habit),
-                const SizedBox(height: 24),
-                _buildStreakSection(stats, habit),
-                const SizedBox(height: 24),
-                _buildStatsSection(stats),
-                const SizedBox(height: 24),
-                _buildYearSelector(detailProvider),
-                const SizedBox(height: 16),
-                _buildGridSection(habit, detailProvider),
-                const SizedBox(height: 24),
-                _buildQuickActions(context, habitService, habit),
-                const SizedBox(height: 24),
+                  ],
+                ),
               ],
             ),
-          ),
-        );
-      },
+            body: SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildHabitHeader(habit),
+                  const SizedBox(height: 24),
+                  _buildStreakSection(stats, habit),
+                  const SizedBox(height: 24),
+                  _buildStatsSection(stats),
+                  const SizedBox(height: 24),
+                  _buildYearSelector(detailProvider),
+                  const SizedBox(height: 16),
+                  _buildGridSection(habit, detailProvider),
+                  const SizedBox(height: 24),
+                  _buildQuickActions(context, habitService, habit),
+                  const SizedBox(height: 24),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -267,7 +270,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+      String title, String value, IconData icon, Color color) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -303,7 +307,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   Widget _buildYearSelector(HabitDetailProvider detailProvider) {
     final currentYear = DateTime.now().year;
     final years = List.generate(5, (index) => currentYear - index);
-    
+
     return Card(
       color: AppTheme.darkSurface,
       child: Padding(
@@ -340,7 +344,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildGridSection(HabitModel habit, HabitDetailProvider detailProvider) {
+  Widget _buildGridSection(
+      HabitModel habit, HabitDetailProvider detailProvider) {
     return Card(
       color: AppTheme.darkSurface,
       child: Padding(
@@ -359,7 +364,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                 ),
                 const Spacer(),
                 IconButton(
-                  icon: Icon(Icons.info_outline, color: AppTheme.secondaryTextColor),
+                  icon: Icon(Icons.info_outline,
+                      color: AppTheme.secondaryTextColor),
                   onPressed: () => _showGridInfo(context),
                 ),
               ],
@@ -377,7 +383,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  Widget _buildQuickActions(BuildContext context, HabitService habitService, HabitModel habit) {
+  Widget _buildQuickActions(
+      BuildContext context, HabitService habitService, HabitModel habit) {
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(widget.habitId, today);
     final isCompletedToday = todayEntry?.completed == true;
@@ -403,9 +410,12 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
                   child: ElevatedButton.icon(
                     onPressed: () => _toggleHabitCompletion(today),
                     icon: Icon(isCompletedToday ? Icons.undo : Icons.check),
-                    label: Text(isCompletedToday ? 'Undo Today' : 'Mark Complete'),
+                    label:
+                        Text(isCompletedToday ? 'Undo Today' : 'Mark Complete'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: isCompletedToday ? AppTheme.secondaryTextColor : habit.color,
+                      backgroundColor: isCompletedToday
+                          ? AppTheme.secondaryTextColor
+                          : habit.color,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
@@ -461,7 +471,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
   void _toggleHabitCompletion(DateTime date) {
     final habitService = context.read<HabitService>();
     final entry = habitService.getHabitEntryForDate(widget.habitId, date);
-    
+
     if (entry?.completed == true) {
       habitService.markHabitUncompleted(widget.habitId, date);
     } else {
@@ -493,10 +503,11 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  void _addNote(BuildContext context, HabitService habitService, DateTime date) {
+  void _addNote(
+      BuildContext context, HabitService habitService, DateTime date) {
     final controller = TextEditingController();
     final entry = habitService.getHabitEntryForDate(widget.habitId, date);
-    
+
     if (entry?.notes != null) {
       controller.text = entry!.notes!;
     }
@@ -542,7 +553,8 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
     );
   }
 
-  void _handleMenuAction(BuildContext context, String action, HabitModel habit) {
+  void _handleMenuAction(
+      BuildContext context, String action, HabitModel habit) {
     switch (action) {
       case 'edit':
         // TODO: Navigate to edit screen
@@ -578,16 +590,17 @@ class _HabitDetailScreenState extends State<HabitDetailScreen> {
       ).then((time) {
         if (time != null) {
           final now = DateTime.now();
-          final targetTime = DateTime(now.year, now.month, now.day, time.hour, time.minute);
-          
+          final targetTime =
+              DateTime(now.year, now.month, now.day, time.hour, time.minute);
+
           final updatedHabit = habit.copyWith(
             hasAlarm: true,
             targetTime: targetTime,
           );
-          
+
           context.read<HabitService>().updateHabit(updatedHabit);
           HabitAlarmService.scheduleHabitAlarm(updatedHabit);
-          
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Alarm set for ${time.format(context)}')),
           );
