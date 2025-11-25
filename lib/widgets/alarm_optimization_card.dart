@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/services/permissions_manager.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:upnow/utils/device_info_helper.dart';
 
 enum AlarmOptimizationStyle {
   card, // Card style with ExpansionTile (for alarm screen)
@@ -12,7 +13,7 @@ class AlarmOptimizationCard extends StatefulWidget {
   final AlarmOptimizationStyle style;
   final bool hideWhenOptimized; // Hide when score == 3
   final bool isLast; // For settings tile - is this the last item in group?
-  
+
   const AlarmOptimizationCard({
     Key? key,
     this.style = AlarmOptimizationStyle.card,
@@ -28,6 +29,7 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
   bool _loading = true;
   int _score = 0;
   late Map<String, bool> _statuses;
+  ManufacturerGuide? _manufacturerGuide;
 
   @override
   void initState() {
@@ -41,10 +43,15 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
     });
     final statuses = await PermissionsManager.getOptimizationStatuses();
     final score = await PermissionsManager.getOptimizationScore();
+
+    // Detect manufacturer and get specific guidance
+    final guide = await DeviceInfoHelper.getManufacturerGuide();
+
     if (!mounted) return;
     setState(() {
       _statuses = statuses;
       _score = score;
+      _manufacturerGuide = guide;
       _loading = false;
     });
   }
@@ -95,20 +102,23 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(color: AppTheme.primaryColor.withOpacity(0.20), width: 1),
+        border: Border.all(
+            color: AppTheme.primaryColor.withOpacity(0.20), width: 1),
       ),
       child: Theme(
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-          childrenPadding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
+          childrenPadding:
+              EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
           leading: Container(
             padding: EdgeInsets.all(10.w),
             decoration: BoxDecoration(
               color: AppTheme.primaryColor.withOpacity(0.18),
               borderRadius: BorderRadius.circular(12.r),
             ),
-            child: Icon(Icons.shield_moon_outlined, color: AppTheme.primaryColor, size: 20.sp),
+            child: Icon(Icons.shield_moon_outlined,
+                color: AppTheme.primaryColor, size: 20.sp),
           ),
           title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -140,7 +150,8 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
             children: [
               _ScoreBadge(score: _score, showPercentage: true),
               SizedBox(width: 8.w),
-              Icon(Icons.expand_more, color: AppTheme.secondaryTextColor, size: 20.sp),
+              Icon(Icons.expand_more,
+                  color: AppTheme.secondaryTextColor, size: 20.sp),
             ],
           ),
           children: [
@@ -164,6 +175,8 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
               granted: _statuses['notifications'] ?? false,
               onFix: _requestNotifications,
             ),
+            // Add manufacturer-specific guidance if applicable
+            if (_manufacturerGuide != null) ..._buildManufacturerSection(),
           ],
         ),
       ),
@@ -177,15 +190,18 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
         data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
         child: ExpansionTile(
           tilePadding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 14.h),
-          childrenPadding: EdgeInsets.only(left: 54.w, right: 16.w, bottom: 12.h),
+          childrenPadding:
+              EdgeInsets.only(left: 54.w, right: 16.w, bottom: 12.h),
           shape: widget.isLast
               ? RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16.r)),
+                  borderRadius:
+                      BorderRadius.vertical(bottom: Radius.circular(16.r)),
                 )
               : null,
           collapsedShape: widget.isLast
               ? RoundedRectangleBorder(
-                  borderRadius: BorderRadius.vertical(bottom: Radius.circular(16.r)),
+                  borderRadius:
+                      BorderRadius.vertical(bottom: Radius.circular(16.r)),
                 )
               : null,
           leading: Icon(
@@ -223,7 +239,8 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
             children: [
               _ScoreBadge(score: _score, showPercentage: true),
               SizedBox(width: 8.w),
-              Icon(Icons.expand_more, color: AppTheme.secondaryTextColor, size: 20.sp),
+              Icon(Icons.expand_more,
+                  color: AppTheme.secondaryTextColor, size: 20.sp),
             ],
           ),
           children: [
@@ -249,10 +266,207 @@ class _AlarmOptimizationCardState extends State<AlarmOptimizationCard> {
                   granted: _statuses['notifications'] ?? false,
                   onFix: _requestNotifications,
                 ),
+                // Add manufacturer-specific guidance if applicable
+                if (_manufacturerGuide != null)
+                  ..._buildManufacturerSectionForSettings(),
               ],
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  /// Build manufacturer-specific troubleshooting section for card style
+  List<Widget> _buildManufacturerSection() {
+    if (_manufacturerGuide == null) return [];
+
+    return [
+      _Divider(),
+      Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  _manufacturerGuide!.icon,
+                  style: TextStyle(fontSize: 18.sp),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _manufacturerGuide!.name,
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        _manufacturerGuide!.description,
+                        style: TextStyle(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            ..._manufacturerGuide!.steps
+                .map((step) => _buildGuideStep(step))
+                .toList(),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Build manufacturer-specific troubleshooting section for settings tile style
+  List<Widget> _buildManufacturerSectionForSettings() {
+    if (_manufacturerGuide == null) return [];
+
+    return [
+      SizedBox(height: 16.h),
+      Container(
+        padding: EdgeInsets.all(12.w),
+        decoration: BoxDecoration(
+          color: AppTheme.primaryColor.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(12.r),
+          border: Border.all(
+            color: AppTheme.primaryColor.withOpacity(0.2),
+            width: 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Text(
+                  _manufacturerGuide!.icon,
+                  style: TextStyle(fontSize: 18.sp),
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        _manufacturerGuide!.name,
+                        style: TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        _manufacturerGuide!.description,
+                        style: TextStyle(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 11.sp,
+                          fontWeight: FontWeight.w400,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            ..._manufacturerGuide!.steps
+                .map((step) => _buildGuideStep(step))
+                .toList(),
+          ],
+        ),
+      ),
+    ];
+  }
+
+  /// Build individual guide step
+  Widget _buildGuideStep(GuideStep step) {
+    return Container(
+      margin: EdgeInsets.only(bottom: 8.h),
+      padding: EdgeInsets.all(10.w),
+      decoration: BoxDecoration(
+        color: step.critical
+            ? Colors.orange.withOpacity(0.08)
+            : AppTheme.darkBackground.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8.r),
+        border: step.critical
+            ? Border.all(color: Colors.orange.withOpacity(0.3), width: 1)
+            : null,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            step.critical ? Icons.warning_amber_rounded : Icons.info_outline,
+            color: step.critical
+                ? Colors.orange
+                : AppTheme.primaryColor.withOpacity(0.7),
+            size: 18.sp,
+          ),
+          SizedBox(width: 10.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        step.title,
+                        style: TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 13.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    if (step.critical)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          'CRITICAL',
+                          style: TextStyle(
+                            color: Colors.orange,
+                            fontSize: 9.sp,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  step.description,
+                  style: TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 11.sp,
+                    fontWeight: FontWeight.w400,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -276,17 +490,23 @@ class _ScoreBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final String label = showPercentage 
-        ? '${((score / 3) * 100).round()}%'
-        : '$score/3';
+    final String label =
+        showPercentage ? '${((score / 3) * 100).round()}%' : '$score/3';
     final Color bg = score == 3
         ? Colors.green.withOpacity(0.20)
-        : (score == 2 ? Colors.orange.withOpacity(0.20) : Colors.red.withOpacity(0.20));
-    final Color fg = score == 3 ? Colors.greenAccent : (score == 2 ? Colors.orange : Colors.redAccent);
+        : (score == 2
+            ? Colors.orange.withOpacity(0.20)
+            : Colors.red.withOpacity(0.20));
+    final Color fg = score == 3
+        ? Colors.greenAccent
+        : (score == 2 ? Colors.orange : Colors.redAccent);
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
-      child: Text(label, style: TextStyle(color: fg, fontWeight: FontWeight.w700, fontSize: 12.sp)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(999)),
+      child: Text(label,
+          style: TextStyle(
+              color: fg, fontWeight: FontWeight.w700, fontSize: 12.sp)),
     );
   }
 }
@@ -307,7 +527,11 @@ class _PermissionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: granted ? Colors.greenAccent : AppTheme.primaryColor.withOpacity(0.8), size: 18.sp),
+        Icon(icon,
+            color: granted
+                ? Colors.greenAccent
+                : AppTheme.primaryColor.withOpacity(0.8),
+            size: 18.sp),
         SizedBox(width: 12.w),
         Expanded(
           child: Text(
@@ -330,5 +554,3 @@ class _PermissionRow extends StatelessWidget {
     );
   }
 }
-
-
