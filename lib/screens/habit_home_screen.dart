@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
-import 'package:upnow/screens/habit_detail_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
 
 class HabitHomeScreen extends StatefulWidget {
@@ -19,7 +19,9 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<HabitService>().loadHabits();
+      final habitService = context.read<HabitService>();
+      habitService.loadHabits();
+      habitService.loadHabitEntries(); // Load habit entries from database
     });
   }
 
@@ -27,10 +29,13 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('My Habits'),
+        title: Text(
+          'My Habits',
+          style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
+        ),
         backgroundColor: AppTheme.darkBackground,
-        foregroundColor: AppTheme.primaryTextColor,
         elevation: 0,
+        centerTitle: true,
       ),
       body: Consumer<HabitService>(
         builder: (context, habitService, child) {
@@ -129,101 +134,144 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   Widget _buildHabitCard(HabitModel habit, HabitService habitService) {
     final stats = habitService.getHabitStats(habit.id);
-    final yearGrid = habitService.getYearlyGridData(habit.id, DateTime.now().year);
+    final yearGrid =
+        habitService.getYearlyGridData(habit.id, DateTime.now().year);
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(habit.id, today);
     final isCompletedToday = todayEntry?.completed == true;
 
-    return Card(
-      color: AppTheme.darkSurface,
+    return Container(
       margin: const EdgeInsets.only(bottom: 16),
-      child: GestureDetector(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => HabitDetailScreen(habitId: habit.id),
-            ),
-          ).then((_) {
-            if (mounted) {
-              habitService.loadHabits();
-              habitService.loadHabitEntries();
-            }
-          });
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
+      decoration: BoxDecoration(
+        color: AppTheme.darkSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border(
+          left: BorderSide(
+            color: habit.color,
+            width: 4,
+          ),
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: habit.color.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.circle,
+                    color: habit.color,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        habit.name,
+                        style: AppTheme.titleStyle.copyWith(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      Text(
+                        '${stats.currentStreak} day streak',
+                        style: AppTheme.captionStyle.copyWith(
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () =>
+                      _toggleHabitCompletion(habit.id, today, habitService),
+                  child: Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: habit.color.withOpacity(0.2),
+                      color: isCompletedToday
+                          ? habit.color.withOpacity(0.2)
+                          : AppTheme.secondaryTextColor.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isCompletedToday
+                            ? habit.color
+                            : AppTheme.secondaryTextColor.withOpacity(0.3),
+                        width: 1,
+                      ),
                     ),
                     child: Icon(
-                      Icons.circle,
-                      color: habit.color,
+                      Icons.check,
+                      color: isCompletedToday
+                          ? habit.color
+                          : AppTheme.secondaryTextColor.withOpacity(0.5),
                       size: 24,
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          habit.name,
-                          style: AppTheme.titleStyle.copyWith(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          '${stats.currentStreak} day streak',
-                          style: AppTheme.captionStyle.copyWith(
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
+                ),
+                const SizedBox(width: 8),
+                PopupMenuButton<String>(
+                  icon: Icon(
+                    Icons.more_vert,
+                    color: AppTheme.secondaryTextColor,
                   ),
-                  GestureDetector(
-                    onTap: () => _toggleHabitCompletion(habit.id, today, habitService),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isCompletedToday 
-                            ? habit.color.withOpacity(0.2)
-                            : AppTheme.secondaryTextColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isCompletedToday 
-                              ? habit.color
-                              : AppTheme.secondaryTextColor.withOpacity(0.3),
-                          width: 1,
-                        ),
-                      ),
-                      child: Icon(
-                        Icons.check,
-                        color: isCompletedToday 
-                            ? habit.color
-                            : AppTheme.secondaryTextColor.withOpacity(0.5),
-                        size: 24,
+                  color: AppTheme.darkCardColor,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  onSelected: (value) {
+                    if (value == 'edit') {
+                      _editHabit(habit);
+                    } else if (value == 'delete') {
+                      _deleteHabit(habit, habitService);
+                    }
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    PopupMenuItem<String>(
+                      value: 'edit',
+                      child: Row(
+                        children: [
+                          Icon(Icons.edit,
+                              color: AppTheme.primaryColor, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Edit',
+                            style: TextStyle(color: AppTheme.textColor),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              _buildStatsRow(stats),
-              const SizedBox(height: 16),
-              _buildContributionGrid(yearGrid, habit.color),
-            ],
-          ),
+                    PopupMenuItem<String>(
+                      value: 'delete',
+                      child: Row(
+                        children: [
+                          Icon(Icons.delete, color: Colors.red, size: 20),
+                          const SizedBox(width: 12),
+                          Text(
+                            'Delete',
+                            style: TextStyle(color: AppTheme.textColor),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _buildStatsRow(stats),
+            const SizedBox(height: 16),
+            _buildContributionGrid(yearGrid, habit.color),
+          ],
         ),
       ),
     );
@@ -284,7 +332,8 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     );
   }
 
-  Widget _buildContributionGrid(List<List<HabitGridDay>> yearGrid, Color habitColor) {
+  Widget _buildContributionGrid(
+      List<List<HabitGridDay>> yearGrid, Color habitColor) {
     if (yearGrid.isEmpty) {
       return SizedBox(
         height: 100,
@@ -300,11 +349,12 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     // Create ScrollController and calculate current month position
     final ScrollController scrollController = ScrollController();
     final currentMonth = DateTime.now().month;
-    
+
     // Calculate scroll position for current month
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (scrollController.hasClients) {
-        final scrollPosition = _calculateScrollPositionForMonth(yearGrid, currentMonth);
+        final scrollPosition =
+            _calculateScrollPositionForMonth(yearGrid, currentMonth);
         scrollController.animateTo(
           scrollPosition,
           duration: const Duration(milliseconds: 800),
@@ -365,7 +415,8 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: Tooltip(
-                            message: '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
+                            message:
+                                '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
                             child: const SizedBox.expand(),
                           ),
                         );
@@ -383,34 +434,53 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   Widget _buildMonthLabelsRow(List<List<HabitGridDay>> yearGrid) {
     if (yearGrid.isEmpty) return const SizedBox.shrink();
-    
-    // Calculate actual months present in the data
-    final months = <int>[];
-    for (var week in yearGrid) {
-      for (var day in week) {
-        if (!months.contains(day.date.month)) {
-          months.add(day.date.month);
+
+    // Track which month each week belongs to and find first occurrence
+    final Map<int, int> monthFirstWeekIndex = {};
+
+    for (int weekIndex = 0; weekIndex < yearGrid.length; weekIndex++) {
+      final week = yearGrid[weekIndex];
+      if (week.isNotEmpty) {
+        final month = week.first.date.month;
+        if (!monthFirstWeekIndex.containsKey(month)) {
+          monthFirstWeekIndex[month] = weekIndex;
         }
       }
     }
-    
-    if (months.isEmpty) return const SizedBox.shrink();
-    
-    // Create month labels with proper spacing
-    final monthLabels = <Widget>[];
+
+    if (monthFirstWeekIndex.isEmpty) return const SizedBox.shrink();
+
     final currentYear = DateTime.now().year;
-    
-    // Add offset for day labels
+    final monthLabels = <Widget>[];
+
+    // Add offset for day labels (S M T W T F S)
     monthLabels.add(const SizedBox(width: 20));
-    
-    // Add month labels at appropriate positions
-    for (int i = 0; i < months.length; i++) {
-      final month = months[i];
-      final monthName = DateFormat('MMM').format(DateTime(currentYear, month, 1));
-      
+
+    // Sort months by their order
+    final sortedMonths = monthFirstWeekIndex.keys.toList()..sort();
+
+    // Each week column is 14px wide (11px square + 3px margin)
+    const double weekWidth = 14.0;
+
+    for (int i = 0; i < sortedMonths.length; i++) {
+      final month = sortedMonths[i];
+      final weekIndex = monthFirstWeekIndex[month]!;
+      final monthName =
+          DateFormat('MMM').format(DateTime(currentYear, month, 1));
+
+      // Calculate how many weeks until next month (or end of grid)
+      int weeksInThisMonth;
+      if (i < sortedMonths.length - 1) {
+        final nextMonth = sortedMonths[i + 1];
+        final nextWeekIndex = monthFirstWeekIndex[nextMonth]!;
+        weeksInThisMonth = nextWeekIndex - weekIndex;
+      } else {
+        weeksInThisMonth = yearGrid.length - weekIndex;
+      }
+
       monthLabels.add(
         Container(
-          width: 50, // Fixed width for each month
+          width: weeksInThisMonth * weekWidth,
           child: Text(
             monthName,
             style: TextStyle(
@@ -418,12 +488,12 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               color: AppTheme.primaryTextColor,
               fontFamily: 'Poppins',
             ),
-            textAlign: TextAlign.center,
+            textAlign: TextAlign.left,
           ),
         ),
       );
     }
-    
+
     return Row(
       children: monthLabels,
     );
@@ -433,40 +503,42 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     if (!day.completed) {
       return AppTheme.darkSurfaceLight;
     }
-    
+
     // Simple completed/not completed - completed days show in habit color
     return habitColor;
   }
 
-  double _calculateScrollPositionForMonth(List<List<HabitGridDay>> yearGrid, int targetMonth) {
+  double _calculateScrollPositionForMonth(
+      List<List<HabitGridDay>> yearGrid, int targetMonth) {
     // Each grid square is 11px + 3px margin = 14px
     // Each week has 7 days = 7 * 14px = 98px
     double currentPosition = 20.0; // Offset for day labels (S M T W T F S)
-    
+
     for (int weekIndex = 0; weekIndex < yearGrid.length; weekIndex++) {
       final week = yearGrid[weekIndex];
       if (week.isNotEmpty) {
         final firstDay = week.first;
         final month = firstDay.date.month;
-        
+
         // If we found the target month, return the position
         if (month == targetMonth) {
           // Center the current month in the view
           return currentPosition - 100; // Offset to center the month
         }
-        
+
         // Move to next week position
         currentPosition += 98.0; // 7 days * 14px per day
       }
     }
-    
+
     // If target month not found, scroll to end
     return currentPosition;
   }
 
-  void _toggleHabitCompletion(String habitId, DateTime date, HabitService habitService) {
+  void _toggleHabitCompletion(
+      String habitId, DateTime date, HabitService habitService) {
     final entry = habitService.getHabitEntryForDate(habitId, date);
-    
+
     if (entry?.completed == true) {
       // Mark as uncompleted
       habitService.markHabitUncompleted(habitId, date);
@@ -490,4 +562,67 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     }
   }
 
+  void _editHabit(HabitModel habit) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => AddHabitScreen(habit: habit),
+      ),
+    ).then((_) {
+      if (mounted) {
+        context.read<HabitService>().loadHabits();
+      }
+    });
+  }
+
+  void _deleteHabit(HabitModel habit, HabitService habitService) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: AppTheme.darkCardColor,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Delete Habit',
+            style: TextStyle(color: AppTheme.textColor),
+          ),
+          content: Text(
+            'Are you sure you want to delete "${habit.name}"? This action cannot be undone.',
+            style: TextStyle(color: AppTheme.secondaryTextColor),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                'Cancel',
+                style: TextStyle(color: AppTheme.secondaryTextColor),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(context);
+                await habitService.deleteHabit(habit.id);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('"${habit.name}" deleted'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              child: Text(
+                'Delete',
+                style:
+                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
 }

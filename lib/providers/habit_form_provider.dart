@@ -6,14 +6,35 @@ class HabitFormProvider with ChangeNotifier {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _descriptionController = TextEditingController();
-  
+
   HabitFrequency _selectedFrequency = HabitFrequency.daily;
   Color _selectedColor = Colors.blue;
   String? _selectedIcon;
   bool _hasAlarm = false;
   TimeOfDay _alarmTime = TimeOfDay.now();
   List<int> _selectedDays = [1, 2, 3, 4, 5, 6, 7]; // All days by default
-  
+  String? _habitId; // Store habit ID for editing
+
+  // Constructor with optional initial habit data
+  HabitFormProvider({HabitModel? initialHabit}) {
+    if (initialHabit != null) {
+      _habitId = initialHabit.id;
+      _nameController.text = initialHabit.name;
+      _descriptionController.text = initialHabit.description ?? '';
+      _selectedFrequency = initialHabit.frequency;
+      _selectedColor = initialHabit.color;
+      _selectedIcon = initialHabit.icon;
+      _hasAlarm = initialHabit.hasAlarm;
+      if (initialHabit.targetTime != null) {
+        _alarmTime = TimeOfDay(
+          hour: initialHabit.targetTime!.hour,
+          minute: initialHabit.targetTime!.minute,
+        );
+      }
+      _selectedDays = List<int>.from(initialHabit.daysOfWeek);
+    }
+  }
+
   final List<Color> _habitColors = [
     Colors.blue,
     Colors.green,
@@ -52,6 +73,7 @@ class HabitFormProvider with ChangeNotifier {
   List<int> get selectedDays => _selectedDays;
   List<Color> get habitColors => _habitColors;
   List<Map<String, dynamic>> get habitIcons => _habitIcons;
+  String? get habitId => _habitId; // Getter for habit ID
 
   // Setters
   void setSelectedFrequency(HabitFrequency frequency) {
@@ -99,7 +121,7 @@ class HabitFormProvider with ChangeNotifier {
       context: context,
       initialTime: _alarmTime,
     );
-    
+
     if (picked != null && picked != _alarmTime) {
       _alarmTime = picked;
       notifyListeners();
