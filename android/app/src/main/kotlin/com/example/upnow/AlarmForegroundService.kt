@@ -142,15 +142,18 @@ class AlarmForegroundService : Service() {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(alarmLabel)
             .setContentText("Tap to solve and dismiss")
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(NotificationCompat.PRIORITY_MAX)  // Match channel importance
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(fullScreenIntent, true)
+            .setFullScreenIntent(fullScreenIntent, true)  // Critical: true enables lockscreen launch
             .setContentIntent(fullScreenIntent)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setSound(null)
-            .setDefaults(0)
+            .setSound(null)  // Sound handled separately
+            .setDefaults(0)  // No defaults, we control everything
+            .setShowWhen(true)  // Show timestamp
+            .setWhen(System.currentTimeMillis())  // Set current time
+            .setTimeoutAfter(10 * 60 * 1000)  // Auto-dismiss after 10 minutes
             .build()
     }
 
@@ -240,16 +243,19 @@ class AlarmForegroundService : Service() {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
                     "Alarm Alerts",
-                    NotificationManager.IMPORTANCE_HIGH
+                    NotificationManager.IMPORTANCE_MAX  // Changed from HIGH to MAX for ColorOS/Realme
                 ).apply {
                     description = "Alerts when an alarm is ringing"
                     lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                     enableVibration(true)
                     setSound(null, null)
                     setBypassDnd(true)
+                    setShowBadge(false)  // Critical for ColorOS
+                    enableLights(true)   // Enable LED lights
+                    lightColor = android.graphics.Color.RED  // Alarm color
                 }
                 notificationManager?.createNotificationChannel(channel)
-                Log.d(TAG, "Created alarm notification channel with FORCE refresh")
+                Log.d(TAG, "Created alarm notification channel with IMPORTANCE_MAX for lockscreen")
             } else if (needsWarning) {
                 Log.w(
                     TAG,

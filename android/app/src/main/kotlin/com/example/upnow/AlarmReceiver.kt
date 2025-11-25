@@ -172,15 +172,18 @@ class AlarmReceiver : BroadcastReceiver() {
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(alarmLabel)
             .setContentText("Tap to solve and dismiss")
-            .setPriority(NotificationCompat.PRIORITY_MAX)
+            .setPriority(NotificationCompat.PRIORITY_MAX)  // Changed from PRIORITY_MAX for consistency
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .setFullScreenIntent(fullScreenIntent, true)
+            .setFullScreenIntent(fullScreenIntent, true)  // Critical: true enables lockscreen launch
             .setContentIntent(fullScreenIntent)
             .setOngoing(true)
             .setAutoCancel(false)
-            .setSound(null)
-            .setDefaults(0)
+            .setSound(null)  // Sound handled by service
+            .setDefaults(0)  // No defaults, we control everything
+            .setShowWhen(true)  // Show timestamp
+            .setWhen(System.currentTimeMillis())  // Set current time
+            .setTimeoutAfter(10 * 60 * 1000)  // Auto-dismiss after 10 minutes
             .build()
     }
 } 

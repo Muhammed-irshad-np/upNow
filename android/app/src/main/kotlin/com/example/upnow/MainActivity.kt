@@ -267,13 +267,16 @@ class MainActivity : FlutterActivity() {
             val channel = NotificationChannel(
                 "alarm_channel",
                 "Alarm Alerts",
-                NotificationManager.IMPORTANCE_HIGH
+                NotificationManager.IMPORTANCE_MAX  // Changed from HIGH to MAX for ColorOS/Realme
             ).apply {
                 description = "Channel for ringing alarms"
                 enableVibration(true)
                 setSound(null, null)
                 lockscreenVisibility = Notification.VISIBILITY_PUBLIC
                 setBypassDnd(true)
+                setShowBadge(false)  // Critical for ColorOS
+                enableLights(true)   // Enable LED lights
+                lightColor = android.graphics.Color.RED  // Alarm color
             }
 
             notificationManager.createNotificationChannel(channel)
