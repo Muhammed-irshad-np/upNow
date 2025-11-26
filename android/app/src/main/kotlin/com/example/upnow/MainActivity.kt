@@ -258,14 +258,23 @@ class MainActivity : FlutterActivity() {
         return try {
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            val existingChannel = notificationManager.getNotificationChannel("alarm_channel")
-            if (existingChannel != null) {
-                Log.d("MainActivity", "Deleting stale alarm_channel before recreation")
+            
+            // Delete old channel if it exists to clean up
+            val oldChannel = notificationManager.getNotificationChannel("alarm_channel")
+            if (oldChannel != null) {
+                Log.d("MainActivity", "Deleting old alarm_channel")
                 notificationManager.deleteNotificationChannel("alarm_channel")
+            }
+            
+            // Also check if current v2 channel exists and delete to force refresh if needed
+            val existingChannel = notificationManager.getNotificationChannel("upnow_alarm_channel_v2")
+            if (existingChannel != null) {
+                Log.d("MainActivity", "Deleting stale upnow_alarm_channel_v2 before recreation")
+                notificationManager.deleteNotificationChannel("upnow_alarm_channel_v2")
             }
 
             val channel = NotificationChannel(
-                "alarm_channel",
+                "upnow_alarm_channel_v2",
                 "Alarm Alerts",
                 NotificationManager.IMPORTANCE_MAX  // Changed from HIGH to MAX for ColorOS/Realme
             ).apply {
@@ -280,7 +289,7 @@ class MainActivity : FlutterActivity() {
             }
 
             notificationManager.createNotificationChannel(channel)
-            Log.d("MainActivity", "alarm_channel recreated with high importance & lockscreen visibility")
+            Log.d("MainActivity", "upnow_alarm_channel_v2 recreated with high importance & lockscreen visibility")
             true
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to reset alarm channel: ${e.message}")

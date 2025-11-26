@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
         const val EXTRA_ALARM_LABEL = "alarm_label"
         private const val PREFS_NAME = "com.example.upnow.AlarmPrefs"
         private const val KEY_HAS_PENDING_ALARMS = "has_pending_alarms"
-        private const val CHANNEL_ID = "alarm_channel"
+        private const val CHANNEL_ID = "upnow_alarm_channel_v2"
         
         // Call this when alarms are scheduled or all cleared
         fun updatePendingAlarmsFlag(context: Context, hasPendingAlarms: Boolean) {

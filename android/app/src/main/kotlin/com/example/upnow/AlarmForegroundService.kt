@@ -27,7 +27,7 @@ class AlarmForegroundService : Service() {
 
     companion object {
         private const val TAG = "AlarmForegroundService"
-        private const val CHANNEL_ID = "alarm_channel"
+        private const val CHANNEL_ID = "upnow_alarm_channel_v2"
         private const val ACTION_START = "com.example.upnow.action.START_ALARM"
         private const val ACTION_STOP = "com.example.upnow.action.STOP_ALARM"
 
