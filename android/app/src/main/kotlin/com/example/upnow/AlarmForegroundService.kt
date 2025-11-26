@@ -176,6 +176,18 @@ class AlarmForegroundService : Service() {
             .build()
     }
 
+    private fun buildKeepAliveNotification(): Notification {
+        return NotificationCompat.Builder(this, SERVICE_CHANNEL_ID)
+            .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
+            .setContentTitle("Alarm is set")
+            .setContentText("Tap to open app")
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_SERVICE)
+            .setOngoing(true)
+            .setShowWhen(false)
+            .build()
+    }
+
     private fun maybeLaunchAlarmActivity(
         alarmId: String,
         alarmLabel: String,
@@ -249,12 +261,37 @@ class AlarmForegroundService : Service() {
 
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            val notificationManager = getSystemService(NotificationManager::class.java)
-                    "Alarm channel exists but missing critical flags (importance=${existingChannel.importance}, " +
-                            "lockVisibility=${existingChannel.lockscreenVisibility}, bypassDnd=${existingChannel.canBypassDnd()}). " +
-                            "Consider resetting via AlarmService.init() call."
-                )
+            val manager = getSystemService(NotificationManager::class.java)
+            
+            // Alarm Channel (High Importance)
+            val alarmChannel = NotificationChannel(
+                CHANNEL_ID,
+                "Alarm Alerts",
+                NotificationManager.IMPORTANCE_MAX
+            ).apply {
+                description = "Channel for ringing alarms"
+                enableVibration(true)
+                setSound(null, null)
+                lockscreenVisibility = Notification.VISIBILITY_PUBLIC
+                setBypassDnd(true)
+                setShowBadge(false)
+                enableLights(true)
+                lightColor = android.graphics.Color.RED
             }
+            manager.createNotificationChannel(alarmChannel)
+            
+            // Service Channel (Low Importance - Silent)
+            val serviceChannel = NotificationChannel(
+                SERVICE_CHANNEL_ID,
+                "Alarm Service",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps alarm service running"
+                enableVibration(false)
+                setSound(null, null)
+                setShowBadge(false)
+            }
+            manager.createNotificationChannel(serviceChannel)
         }
     }
 
