@@ -288,8 +288,21 @@ class MainActivity : FlutterActivity() {
                 lightColor = android.graphics.Color.RED  // Alarm color
             }
 
+            // Create Service Channel (Low Importance)
+            val serviceChannel = NotificationChannel(
+                "upnow_service_channel",
+                "Alarm Service",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = "Keeps alarm service running"
+                enableVibration(false)
+                setSound(null, null)
+                setShowBadge(false)
+            }
+
             notificationManager.createNotificationChannel(channel)
-            Log.d("MainActivity", "upnow_alarm_channel_v2 recreated with high importance & lockscreen visibility")
+            notificationManager.createNotificationChannel(serviceChannel)
+            Log.d("MainActivity", "Notification channels recreated")
             true
         } catch (e: Exception) {
             Log.e("MainActivity", "Failed to reset alarm channel: ${e.message}")
@@ -557,6 +570,12 @@ class MainActivity : FlutterActivity() {
             }
             
             Log.d("MainActivity", "✅ NATIVE ALARM: Successfully scheduled alarm $alarmId")
+            Log.d("MainActivity", "✅ NATIVE ALARM: Successfully scheduled alarm $alarmId")
+            
+            // START KEEP-ALIVE SERVICE
+            // This ensures the process is not killed by aggressive battery optimization
+            AlarmForegroundService.startKeepAlive(this)
+            
             return true
             
         } catch (e: Exception) {
@@ -624,6 +643,11 @@ class MainActivity : FlutterActivity() {
             }
             
             Log.d("MainActivity", "✅ NATIVE ALARM: Successfully cancelled all alarms")
+            Log.d("MainActivity", "✅ NATIVE ALARM: Successfully cancelled all alarms")
+            
+            // Stop the keep-alive service since no alarms are pending
+            AlarmForegroundService.stop(this, null)
+            
             return true
             
         } catch (e: Exception) {

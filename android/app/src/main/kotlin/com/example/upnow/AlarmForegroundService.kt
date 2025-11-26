@@ -29,8 +29,21 @@ class AlarmForegroundService : Service() {
     companion object {
         private const val TAG = "AlarmForegroundService"
         private const val CHANNEL_ID = "upnow_alarm_channel_v2"
+        private const val SERVICE_CHANNEL_ID = "upnow_service_channel"
         private const val ACTION_START = "com.example.upnow.action.START_ALARM"
         private const val ACTION_STOP = "com.example.upnow.action.STOP_ALARM"
+        private const val ACTION_KEEP_ALIVE = "com.example.upnow.action.KEEP_ALIVE"
+
+        fun startKeepAlive(context: Context) {
+            val intent = Intent(context, AlarmForegroundService::class.java).apply {
+                action = ACTION_KEEP_ALIVE
+            }
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                ContextCompat.startForegroundService(context, intent)
+            } else {
+                context.startService(intent)
+            }
+        }
 
         fun start(
             context: Context,
@@ -84,6 +97,11 @@ class AlarmForegroundService : Service() {
             }
             ACTION_START, null -> {
                 handleStart(intent)
+            }
+            ACTION_KEEP_ALIVE -> {
+                Log.d(TAG, "Starting Keep-Alive Foreground Service")
+                ensureNotificationChannel()
+                startForeground(99999, buildKeepAliveNotification())
             }
             else -> Log.d(TAG, "Ignoring unknown action: ${intent.action}")
         }
@@ -232,34 +250,6 @@ class AlarmForegroundService : Service() {
     private fun ensureNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
-            val existingChannel = notificationManager?.getNotificationChannel(CHANNEL_ID)
-            val needsCreate = existingChannel == null
-            val needsWarning = existingChannel != null && (
-                    existingChannel.importance < NotificationManager.IMPORTANCE_HIGH ||
-                            existingChannel.lockscreenVisibility != Notification.VISIBILITY_PUBLIC ||
-                            existingChannel.canBypassDnd().not()
-                    )
-
-            if (needsCreate) {
-                val channel = NotificationChannel(
-                    CHANNEL_ID,
-                    "Alarm Alerts",
-                    NotificationManager.IMPORTANCE_MAX  // Changed from HIGH to MAX for ColorOS/Realme
-                ).apply {
-                    description = "Alerts when an alarm is ringing"
-                    lockscreenVisibility = Notification.VISIBILITY_PUBLIC
-                    enableVibration(true)
-                    setSound(null, null)
-                    setBypassDnd(true)
-                    setShowBadge(false)  // Critical for ColorOS
-                    enableLights(true)   // Enable LED lights
-                    lightColor = android.graphics.Color.RED  // Alarm color
-                }
-                notificationManager?.createNotificationChannel(channel)
-                Log.d(TAG, "Created alarm notification channel with IMPORTANCE_MAX for lockscreen")
-            } else if (needsWarning) {
-                Log.w(
-                    TAG,
                     "Alarm channel exists but missing critical flags (importance=${existingChannel.importance}, " +
                             "lockVisibility=${existingChannel.lockscreenVisibility}, bypassDnd=${existingChannel.canBypassDnd()}). " +
                             "Consider resetting via AlarmService.init() call."
