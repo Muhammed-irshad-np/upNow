@@ -110,16 +110,31 @@ class AlarmReceiver : BroadcastReceiver() {
             TAG,
             "Starting AlarmForegroundService (interactive=$isInteractive, locked=$isLocked) for $alarmId"
         )
-        AlarmForegroundService.start(
-            context = context,
-            alarmId = alarmId,
-            alarmLabel = alarmLabel,
-            soundName = soundName,
-            hour = hour,
-            minute = minute,
-            repeatType = repeatType,
-            weekdays = weekdays
-        )
+        try {
+            AlarmForegroundService.start(
+                context = context,
+                alarmId = alarmId,
+                alarmLabel = alarmLabel,
+                soundName = soundName,
+                hour = hour,
+                minute = minute,
+                repeatType = repeatType,
+                weekdays = weekdays
+            )
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start AlarmForegroundService: ${e.message}")
+            // Fallback: Post a standard notification if service fails to start
+            // This often happens on Android 12+ due to background start restrictions
+            val notification = buildNotification(
+                context = context,
+                alarmId = alarmId,
+                alarmLabel = alarmLabel,
+                soundName = soundName,
+                repeatType = repeatType,
+                weekdays = weekdays
+            )
+            NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
+        }
 
         if (!isInteractive || isLocked) {
             Log.d(TAG, "Device locked or screen off; also posting notification for $alarmId")
