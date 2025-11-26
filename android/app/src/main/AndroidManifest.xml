@@ -54,6 +54,13 @@
                 <action android:name="com.example.upnow.ALARM_TRIGGERED" />
                 <action android:name="com.example.upnow.ALARM_TRIGGER" />
                 <action android:name="com.example.upnow.NATIVE_ALARM_TRIGGER" />
+            </intent-filter>
+        </receiver>
+        <receiver
+            android:name=".BootCompletedReceiver"
+            android:exported="true"
+            android:enabled="true">
+            <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>

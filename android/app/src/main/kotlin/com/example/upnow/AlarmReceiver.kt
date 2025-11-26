@@ -47,28 +47,9 @@ class AlarmReceiver : BroadcastReceiver() {
         // Check if this is a direct alarm trigger, native alarm trigger, or boot completed event
         val isDirectAlarmTrigger = intent.action == "com.example.upnow.ALARM_TRIGGER"
         val isNativeAlarmTrigger = intent.action == "com.example.upnow.NATIVE_ALARM_TRIGGER"
-        val isBootCompleted = intent.action == Intent.ACTION_BOOT_COMPLETED
-
         // Only proceed if this is a recognized action
-        if (!isDirectAlarmTrigger && !isNativeAlarmTrigger && !isBootCompleted) {
+        if (!isDirectAlarmTrigger && !isNativeAlarmTrigger) {
             Log.d(TAG, "Ignoring unknown action: ${intent.action}")
-            return
-        }
-        
-        // If it's a boot completed event, check if we have any pending alarms
-        if (isBootCompleted) {
-            val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            val hasPendingAlarms = prefs.getBoolean(KEY_HAS_PENDING_ALARMS, false)
-            
-            if (!hasPendingAlarms) {
-                Log.d(TAG, "Boot completed but no pending alarms, ignoring")
-                return
-            }
-            
-            // Continue with boot handling in the Flutter app
-            // Return early - don't show the alarm screen yet
-            // The Flutter app will schedule proper alarms after boot
-            Log.d(TAG, "Boot completed with pending alarms, letting Flutter handle it")
             return
         }
         
