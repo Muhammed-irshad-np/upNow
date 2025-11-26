@@ -110,6 +110,27 @@ class AlarmReceiver : BroadcastReceiver() {
             TAG,
             "Starting AlarmForegroundService (interactive=$isInteractive, locked=$isLocked) for $alarmId"
         )
+        // 1. ALWAYS post notification first (Reliability Layer)
+        // This ensures that even if the Service fails to start (background restrictions),
+        // the user still sees a notification they can tap.
+        val notification = buildNotification(
+            context = context,
+            alarmId = alarmId,
+            alarmLabel = alarmLabel,
+            soundName = soundName,
+            repeatType = repeatType,
+            weekdays = weekdays
+        )
+        
+        try {
+            // Use the same ID so the Service can "take over" this notification
+            NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
+            Log.d(TAG, "✅ Posted immediate notification for alarm $alarmId")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to post immediate notification: ${e.message}")
+        }
+
+        // 2. Try to start the service (Sound/Vibration/Full Screen Activity Layer)
         try {
             AlarmForegroundService.start(
                 context = context,
@@ -122,33 +143,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 weekdays = weekdays
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start AlarmForegroundService: ${e.message}")
-            // Fallback: Post a standard notification if service fails to start
-            // This often happens on Android 12+ due to background start restrictions
-            val notification = buildNotification(
-                context = context,
-                alarmId = alarmId,
-                alarmLabel = alarmLabel,
-                soundName = soundName,
-                repeatType = repeatType,
-                weekdays = weekdays
-            )
-            NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
-        }
-
-        if (!isInteractive || isLocked) {
-            Log.d(TAG, "Device locked or screen off; also posting notification for $alarmId")
-            val notification = buildNotification(
-                context = context,
-                alarmId = alarmId,
-                alarmLabel = alarmLabel,
-                soundName = soundName,
-                repeatType = repeatType,
-                weekdays = weekdays
-            )
-            NotificationManagerCompat.from(context).notify(alarmId.hashCode(), notification)
-        } else {
-            Log.d(TAG, "Device unlocked; relying on foreground service launch path for $alarmId")
+            Log.e(TAG, "❌ Failed to start AlarmForegroundService: ${e.message}")
+            // We already posted the notification, so the user is at least alerted.
         }
     }
 
