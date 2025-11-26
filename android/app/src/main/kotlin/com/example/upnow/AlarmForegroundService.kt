@@ -18,6 +18,7 @@ import android.os.Looper
 import android.os.PowerManager
 import android.os.VibrationEffect
 import android.os.Vibrator
+import android.provider.Settings
 import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -105,7 +106,7 @@ class AlarmForegroundService : Service() {
         acquireWakeLock()
         ensureNotificationChannel()
         startForeground(alarmId.hashCode(), buildNotification(alarmId, alarmLabel, soundName, repeatType, weekdays))
-        startAlarmPlayback(soundName)
+        startAlarmPlayback(alarmId, alarmLabel, soundName, repeatType, weekdays, hour, minute)
         maybeLaunchAlarmActivity(alarmId, alarmLabel, soundName, hour, minute, repeatType, weekdays)
     }
 
@@ -267,21 +268,58 @@ class AlarmForegroundService : Service() {
         }
     }
 
-    private fun startAlarmPlayback(soundName: String) {
+    private fun startAlarmPlayback(
+        alarmId: String,
+        alarmLabel: String,
+        soundName: String,
+        repeatType: String,
+        weekdays: BooleanArray?,
+        hour: Int,
+        minute: Int
+    ) {
         stopAlarmPlayback()
 
         try {
             val vibratorService = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
             vibrator = vibratorService
-            val vibrationPattern = longArrayOf(0, 500, 500)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                vibratorService.vibrate(VibrationEffect.createWaveform(vibrationPattern, 0))
+            // Start vibration
+            if (vibrator?.hasVibrator() == true) {
+                val pattern = longArrayOf(0, 1000, 1000)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    vibrator?.vibrate(VibrationEffect.createWaveform(pattern, 0))
+                } else {
+                    @Suppress("DEPRECATION")
+                    vibrator?.vibrate(pattern, 0)
+                }
+            }
+
+            // NUCLEAR OPTION: Force launch activity if we have overlay permission
+            // This bypasses lockscreen restrictions on ColorOS/MIUI
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && Settings.canDrawOverlays(this)) {
+                Log.d(TAG, "Overlay permission granted, FORCE LAUNCHING AlarmActivity directly")
+                val alarmIntent = Intent(this, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                            Intent.FLAG_ACTIVITY_NO_HISTORY
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    }
+                    putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+                    putExtra(AlarmActivity.EXTRA_ALARM_LABEL, alarmLabel)
+                    putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+                    putExtra("repeatType", repeatType)
+                    putExtra("weekdays", weekdays)
+                    putExtra("service_started", true)
+                    putExtra("hour", hour)
+                    putExtra("minute", minute)
+                }
+                startActivity(alarmIntent)
             } else {
-                @Suppress("DEPRECATION")
-                vibratorService.vibrate(vibrationPattern, 0)
+                Log.w(TAG, "Overlay permission MISSING, relying on FullScreenIntent only")
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to start vibration: ${e.message}")
+            Log.e(TAG, "Failed to start vibration or force launch activity: ${e.message}")
         }
 
         try {
