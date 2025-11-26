@@ -532,28 +532,48 @@ class MainActivity : FlutterActivity() {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            
-            // Schedule the alarm
-            when {
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.M -> {
-                    // Use setExactAndAllowWhileIdle for Android 6+ (Doze mode support)
-                    alarmManager.setExactAndAllowWhileIdle(
-                        AlarmManager.RTC_WAKEUP,
-                        triggerTime,
-                        pendingIntent
-                    )
-                    Log.d("MainActivity", "🔔 NATIVE ALARM: Used setExactAndAllowWhileIdle")
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                // Build the intent that launches the alarm UI when the user taps the status-bar indicator
+                val alarmActivityIntent = Intent(this, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                            Intent.FLAG_ACTIVITY_NO_HISTORY
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    }
+                    putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
+                    putExtra(AlarmActivity.EXTRA_ALARM_LABEL, label)
+                    putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
+                    putExtra("hour", hour)
+                    putExtra("minute", minute)
+                    putExtra("repeatType", repeatType)
+                    putExtra("weekdays", weekdays.toBooleanArray())
+                    putExtra("service_started", false)
                 }
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT -> {
-                    // Use setExact for Android 4.4+
-                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                    Log.d("MainActivity", "🔔 NATIVE ALARM: Used setExact")
-                }
-                else -> {
-                    // Fallback for older versions
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, triggerTime, pendingIntent)
-                    Log.d("MainActivity", "🔔 NATIVE ALARM: Used set (legacy)")
-                }
+
+                val showIntent = PendingIntent.getActivity(
+                    this,
+                    requestCode,
+                    alarmActivityIntent,
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                )
+
+                val alarmClockInfo = AlarmManager.AlarmClockInfo(triggerTime, showIntent)
+                alarmManager.setAlarmClock(alarmClockInfo, pendingIntent)
+                Log.d(
+                    "MainActivity",
+                    "🔔 NATIVE ALARM: Used setAlarmClock with indicator intent for ColorOS/Realme compatibility"
+                )
+            } else {
+                // Fallback for very old Android versions
+                alarmManager.set(
+                    AlarmManager.RTC_WAKEUP,
+                    triggerTime,
+                    pendingIntent
+                )
+                Log.d("MainActivity", "🔔 NATIVE ALARM: Used set (legacy)")
             }
             
             Log.d("MainActivity", "✅ NATIVE ALARM: Successfully scheduled alarm $alarmId")
