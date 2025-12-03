@@ -1,6 +1,5 @@
 import 'package:uuid/uuid.dart';
 import 'package:hive/hive.dart';
-import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 part 'alarm_model.g.dart';
@@ -41,34 +40,34 @@ enum DismissType {
 class AlarmModel {
   @HiveField(0)
   final String id;
-  
+
   @HiveField(1)
   int hour;
-  
+
   @HiveField(2)
   int minute;
-  
+
   @HiveField(3)
   bool isEnabled;
-  
+
   @HiveField(4)
   String label;
-  
+
   @HiveField(5)
   DismissType dismissType;
-  
+
   @HiveField(6)
   AlarmRepeat repeat;
-  
+
   @HiveField(7)
   List<bool> weekdays; // [mon, tue, wed, thu, fri, sat, sun]
-  
+
   @HiveField(8)
   String soundPath;
-  
+
   @HiveField(9)
   int volume;
-  
+
   @HiveField(10)
   bool vibrate;
 
@@ -88,8 +87,8 @@ class AlarmModel {
     this.volume = 70,
     this.vibrate = true,
     this.isMorningAlarm = false,
-  }) : id = id ?? const Uuid().v4(),
-       weekdays = weekdays ?? List.filled(7, false);
+  })  : id = id ?? const Uuid().v4(),
+        weekdays = weekdays ?? List.filled(7, false);
 
   String getFormattedTime(bool is24HourFormat) {
     final time = DateTime(2023, 1, 1, hour, minute);
@@ -170,7 +169,7 @@ class AlarmModel {
       isMorningAlarm: isMorningAlarm ?? this.isMorningAlarm,
     );
   }
-  
+
   // JSON Serialization
   Map<String, dynamic> toJson() {
     return {
@@ -188,7 +187,7 @@ class AlarmModel {
       'isMorningAlarm': isMorningAlarm,
     };
   }
-  
+
   factory AlarmModel.fromJson(Map<String, dynamic> json) {
     return AlarmModel(
       id: json['id'],
@@ -209,7 +208,7 @@ class AlarmModel {
   // Get the next alarm time as a DateTime
   DateTime getNextAlarmTime() {
     final now = DateTime.now();
-    
+
     // Create a date with today and the alarm time
     var alarmTime = DateTime(
       now.year,
@@ -218,75 +217,95 @@ class AlarmModel {
       hour,
       minute,
     );
-    
-    // If alarm time is in the past, adjust based on repeat type
-    if (alarmTime.isBefore(now)) {
-      if (repeat == AlarmRepeat.once) {
-        // One-time alarm: schedule for tomorrow
+
+    // Check if we need to move to the next occurrence
+    final needsNextOccurrence =
+        alarmTime.isBefore(now) || alarmTime.isAtSameMomentAs(now);
+
+    if (repeat == AlarmRepeat.once) {
+      // One-time alarm: if passed, schedule for tomorrow
+      if (needsNextOccurrence) {
         alarmTime = alarmTime.add(const Duration(days: 1));
-      } else if (repeat == AlarmRepeat.daily) {
-        // Daily alarm: schedule for tomorrow
+      }
+    } else if (repeat == AlarmRepeat.daily) {
+      // Daily alarm: if passed today, schedule for tomorrow
+      if (needsNextOccurrence) {
         alarmTime = alarmTime.add(const Duration(days: 1));
-      } else if (repeat == AlarmRepeat.weekdays) {
-        // Weekdays: find next weekday
-        do {
-          alarmTime = alarmTime.add(const Duration(days: 1));
-        } while (alarmTime.weekday > 5); // Skip Saturday (6) and Sunday (7)
-      } else if (repeat == AlarmRepeat.weekends) {
-        // Weekends: find next weekend
-        do {
-          alarmTime = alarmTime.add(const Duration(days: 1));
-        } while (alarmTime.weekday != 6 && alarmTime.weekday != 7); // Only Saturday (6) and Sunday (7)
-      } else if (repeat == AlarmRepeat.custom && weekdays.any((day) => day)) {
-        // Custom: find next enabled day
-        int days = 1;
-        bool foundDay = false;
-        
-        // Try up to 7 days
-        while (days <= 7 && !foundDay) {
-          final nextDay = alarmTime.add(Duration(days: days));
-          final weekdayIndex = (nextDay.weekday - 1) % 7;
-          
-          if (weekdays[weekdayIndex]) {
-            alarmTime = nextDay;
-            foundDay = true;
-          } else {
-            days++;
-          }
+      }
+    } else if (repeat == AlarmRepeat.weekdays) {
+      // Weekdays (Monday=1 to Friday=5): find next weekday
+      if (needsNextOccurrence) {
+        // Move to next day first
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+      // Keep moving forward until we hit a weekday (Mon-Fri)
+      while (alarmTime.weekday > 5) {
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+    } else if (repeat == AlarmRepeat.weekends) {
+      // Weekends (Saturday=6, Sunday=7): find next weekend day
+      if (needsNextOccurrence) {
+        // Move to next day first
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+      // Keep moving forward until we hit a weekend (Sat or Sun)
+      while (alarmTime.weekday < 6) {
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+    } else if (repeat == AlarmRepeat.custom && weekdays.any((day) => day)) {
+      // Custom: find next enabled day
+      // weekdays array: [Mon, Tue, Wed, Thu, Fri, Sat, Sun] (indices 0-6)
+      // DateTime.weekday: Mon=1, Tue=2, ..., Sun=7
+
+      if (needsNextOccurrence) {
+        // Move to next day first
+        alarmTime = alarmTime.add(const Duration(days: 1));
+      }
+
+      // Find the next enabled day (max 7 days to check)
+      int daysChecked = 0;
+      while (daysChecked < 7) {
+        // Convert DateTime.weekday (1-7) to array index (0-6)
+        // Mon=1 -> index 0, Tue=2 -> index 1, ..., Sun=7 -> index 6
+        final weekdayIndex = alarmTime.weekday - 1;
+
+        if (weekdays[weekdayIndex]) {
+          // Found an enabled day
+          break;
         }
-        
-        // If no day is enabled, default to tomorrow
-        if (!foundDay) {
-          alarmTime = alarmTime.add(const Duration(days: 1));
-        }
+
+        // Not enabled, move to next day
+        alarmTime = alarmTime.add(const Duration(days: 1));
+        daysChecked++;
       }
     }
-    
+
     return alarmTime;
   }
-  
+
   // Get a formatted string for the next alarm time (e.g., "Tomorrow at 7:00 AM")
   String get nextAlarmString {
     if (!isEnabled) {
       return 'Disabled';
     }
-    
+
     final nextTime = getNextAlarmTime();
     final now = DateTime.now();
     final tomorrow = DateTime(now.year, now.month, now.day + 1);
     final formatter = DateFormat('E, MMM d'); // Format: Mon, Jan 1
-    
-    // Calculate days difference
-    final difference = nextTime.difference(now).inDays;
-    
+
     // Check if it's today, tomorrow, or another day
-    if (nextTime.year == now.year && nextTime.month == now.month && nextTime.day == now.day) {
+    if (nextTime.year == now.year &&
+        nextTime.month == now.month &&
+        nextTime.day == now.day) {
       return 'Today at $getFormattedTime(false)';
-    } else if (nextTime.year == tomorrow.year && nextTime.month == tomorrow.month && nextTime.day == tomorrow.day) {
+    } else if (nextTime.year == tomorrow.year &&
+        nextTime.month == tomorrow.month &&
+        nextTime.day == tomorrow.day) {
       return 'Tomorrow at $getFormattedTime(false)';
     } else {
       // Format with day name, month and date
       return '${formatter.format(nextTime)} at $getFormattedTime(false)';
     }
   }
-} 
+}

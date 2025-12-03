@@ -377,7 +377,7 @@ class AlarmService {
       AlarmModel alarm, DateTime scheduledDate) async {
     try {
       debugPrint(
-          '🔔 NATIVE ALARM: Scheduling bulletproof native alarm for ${alarm.hour}:${alarm.minute}');
+          '🔔 NATIVE ALARM: Scheduling bulletproof native alarm for ${alarm.hour}:${alarm.minute} on ${scheduledDate.year}-${scheduledDate.month}-${scheduledDate.day}');
 
       // Check native alarm permissions first
       if (!await hasNativeAlarmPermissions()) {
@@ -416,6 +416,9 @@ class AlarmService {
         'alarmId': alarm.id,
         'hour': alarm.hour,
         'minute': alarm.minute,
+        'year': scheduledDate.year,
+        'month': scheduledDate.month,
+        'day': scheduledDate.day,
         'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
         'soundName': alarm.soundPath.isNotEmpty
             ? p.basenameWithoutExtension(alarm.soundPath)

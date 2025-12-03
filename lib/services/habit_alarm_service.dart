@@ -3,13 +3,18 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
+import 'package:upnow/screens/habit_activity_screen.dart';
+import 'package:upnow/utils/navigation_service.dart';
+import 'package:provider/provider.dart';
+import 'package:flutter/material.dart';
 
 class HabitAlarmService {
   static const String _habitChannelId = 'habit_reminders';
   static const String _habitChannelName = 'Habit Reminders';
-  static const String _habitChannelDescription = 'Notifications for habit reminders';
+  static const String _habitChannelDescription =
+      'Notifications for habit reminders';
 
-  static final FlutterLocalNotificationsPlugin _notificationsPlugin = 
+  static final FlutterLocalNotificationsPlugin _notificationsPlugin =
       FlutterLocalNotificationsPlugin();
 
   static Future<void> initialize() async {
@@ -22,7 +27,8 @@ class HabitAlarmService {
     );
 
     await _notificationsPlugin
-        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin>()
         ?.createNotificationChannel(channel);
 
     // Initialize notification plugin
@@ -36,7 +42,8 @@ class HabitAlarmService {
       requestAlertPermission: true,
     );
 
-    const InitializationSettings initializationSettings = InitializationSettings(
+    const InitializationSettings initializationSettings =
+        InitializationSettings(
       android: initializationSettingsAndroid,
       iOS: initializationSettingsIOS,
     );
@@ -48,10 +55,31 @@ class HabitAlarmService {
   }
 
   static void _onNotificationTapped(NotificationResponse response) {
-    // Handle notification tap - you can navigate to habit screen
+    // Handle notification tap - navigate to habit activity screen
     if (response.payload != null) {
       debugPrint('Habit alarm tapped: ${response.payload}');
-      // Navigate to habit detail or mark as completed
+      final String habitId = response.payload!;
+
+      // Get context from global navigator key
+      final context = navigationKey.currentContext;
+      if (context != null) {
+        try {
+          final habitService =
+              Provider.of<HabitService>(context, listen: false);
+          final habit = habitService.habits.firstWhere(
+            (h) => h.id == habitId,
+            orElse: () => throw Exception('Habit not found'),
+          );
+
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => HabitActivityScreen(habit: habit),
+            ),
+          );
+        } catch (e) {
+          debugPrint('Error navigating to habit activity screen: $e');
+        }
+      }
     }
   }
 
@@ -63,7 +91,7 @@ class HabitAlarmService {
 
     final now = DateTime.now();
     final targetTime = habit.targetTime!;
-    
+
     // Create the scheduled date for today
     DateTime scheduledDate = DateTime(
       now.year,
@@ -78,7 +106,8 @@ class HabitAlarmService {
       scheduledDate = scheduledDate.add(const Duration(days: 1));
     }
 
-    final tz.TZDateTime scheduledTZDate = tz.TZDateTime.from(scheduledDate, tz.local);
+    final tz.TZDateTime scheduledTZDate =
+        tz.TZDateTime.from(scheduledDate, tz.local);
 
     await _notificationsPlugin.zonedSchedule(
       _getHabitNotificationId(habit.id),
@@ -87,7 +116,8 @@ class HabitAlarmService {
       scheduledTZDate,
       _getNotificationDetails(habit),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: _getDateTimeComponents(habit.frequency),
       payload: habit.id,
     );
@@ -128,8 +158,9 @@ class HabitAlarmService {
         _habitChannelId,
         _habitChannelName,
         channelDescription: _habitChannelDescription,
-        importance: Importance.high,
-        priority: Priority.high,
+        importance: Importance.max,
+        priority: Priority.max,
+        fullScreenIntent: true,
         color: habit.color,
         icon: '@mipmap/ic_launcher',
         largeIcon: const DrawableResourceAndroidBitmap('@mipmap/ic_launcher'),
@@ -158,16 +189,16 @@ class HabitAlarmService {
 
   // Get notification body
   static String _getHabitNotificationBody(HabitModel habit) {
-    final time = habit.targetTime != null 
+    final time = habit.targetTime != null
         ? '${habit.targetTime!.hour.toString().padLeft(2, '0')}:${habit.targetTime!.minute.toString().padLeft(2, '0')}'
         : 'now';
-    
+
     String body = "Time to work on your habit!";
-    
+
     if (habit.description != null && habit.description!.isNotEmpty) {
       body = habit.description!;
     }
-    
+
     switch (habit.frequency) {
       case HabitFrequency.daily:
         body += " • Daily at $time";
@@ -181,7 +212,7 @@ class HabitAlarmService {
       default:
         body += " • Custom reminder";
     }
-    
+
     return body;
   }
 
@@ -200,7 +231,8 @@ class HabitAlarmService {
   }
 
   // Show immediate habit reminder
-  static Future<void> showHabitReminder(HabitModel habit, {String? customMessage}) async {
+  static Future<void> showHabitReminder(HabitModel habit,
+      {String? customMessage}) async {
     await _notificationsPlugin.show(
       _getHabitNotificationId(habit.id),
       '${habit.name} Reminder',
@@ -213,10 +245,10 @@ class HabitAlarmService {
   // Snooze habit alarm
   static Future<void> snoozeHabitAlarm(String habitId, int minutes) async {
     await cancelHabitAlarm(habitId);
-    
+
     final snoozeTime = DateTime.now().add(Duration(minutes: minutes));
     final snoozeTZTime = tz.TZDateTime.from(snoozeTime, tz.local);
-    
+
     await _notificationsPlugin.zonedSchedule(
       _getHabitNotificationId(habitId),
       'Habit Reminder (Snoozed)',
@@ -231,16 +263,20 @@ class HabitAlarmService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       payload: habitId,
     );
   }
 
   // Get pending habit notifications
-  static Future<List<PendingNotificationRequest>> getPendingHabitAlarms() async {
+  static Future<List<PendingNotificationRequest>>
+      getPendingHabitAlarms() async {
     final pending = await _notificationsPlugin.pendingNotificationRequests();
-    return pending.where((notification) => 
-      notification.id.toString().startsWith('habit_')).toList();
+    return pending
+        .where(
+            (notification) => notification.id.toString().startsWith('habit_'))
+        .toList();
   }
 
   // Update habit alarms when habit changes
@@ -255,14 +291,14 @@ class HabitAlarmService {
   // Check if habit has pending alarm
   static Future<bool> hasHabitAlarm(String habitId) async {
     final pending = await getPendingHabitAlarms();
-    return pending.any((notification) => 
-      notification.payload == habitId);
+    return pending.any((notification) => notification.payload == habitId);
   }
 
   // Send motivational notification
-  static Future<void> sendMotivationalNotification(HabitModel habit, HabitStats stats) async {
+  static Future<void> sendMotivationalNotification(
+      HabitModel habit, HabitStats stats) async {
     String message;
-    
+
     if (stats.currentStreak == 0) {
       message = "Start your ${habit.name} streak today! 💪";
     } else if (stats.currentStreak < 7) {
@@ -270,7 +306,8 @@ class HabitAlarmService {
     } else if (stats.currentStreak < 30) {
       message = "Amazing! ${stats.currentStreak} days strong! 🎉";
     } else {
-      message = "Incredible! ${stats.currentStreak} days - you're unstoppable! 🏆";
+      message =
+          "Incredible! ${stats.currentStreak} days - you're unstoppable! 🏆";
     }
 
     await _notificationsPlugin.show(
@@ -317,7 +354,8 @@ class HabitAlarmService {
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
       matchDateTimeComponents: DateTimeComponents.dayOfWeekAndTime,
       payload: 'weekly_summary',
     );
@@ -349,7 +387,7 @@ extension HabitAlarmActions on HabitAlarmService {
 // Habit alarm provider for state management
 class HabitAlarmProvider extends ChangeNotifier {
   final HabitService _habitService;
-  
+
   HabitAlarmProvider(this._habitService);
 
   Future<void> enableHabitAlarm(String habitId, DateTime time) async {
@@ -358,7 +396,7 @@ class HabitAlarmProvider extends ChangeNotifier {
       hasAlarm: true,
       targetTime: time,
     );
-    
+
     await _habitService.updateHabit(updatedHabit);
     await HabitAlarmService.scheduleHabitAlarm(updatedHabit);
     notifyListeners();
@@ -367,7 +405,7 @@ class HabitAlarmProvider extends ChangeNotifier {
   Future<void> disableHabitAlarm(String habitId) async {
     final habit = _habitService.habits.firstWhere((h) => h.id == habitId);
     final updatedHabit = habit.copyWith(hasAlarm: false);
-    
+
     await _habitService.updateHabit(updatedHabit);
     await HabitAlarmService.cancelHabitAlarm(habitId);
     notifyListeners();
@@ -376,7 +414,7 @@ class HabitAlarmProvider extends ChangeNotifier {
   Future<void> updateHabitAlarmTime(String habitId, DateTime time) async {
     final habit = _habitService.habits.firstWhere((h) => h.id == habitId);
     final updatedHabit = habit.copyWith(targetTime: time);
-    
+
     await _habitService.updateHabit(updatedHabit);
     if (habit.hasAlarm) {
       await HabitAlarmService.scheduleHabitAlarm(updatedHabit);

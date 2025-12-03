@@ -124,12 +124,16 @@ class MainActivity : FlutterActivity() {
                     val alarmId = call.argument<String>("alarmId") ?: ""
                     val hour = call.argument<Int>("hour") ?: 0
                     val minute = call.argument<Int>("minute") ?: 0
+                    // Safely cast to Number then Int to handle potential Long/Integer differences
+                    val year = (call.argument<Any>("year") as? Number)?.toInt() ?: -1
+                    val month = (call.argument<Any>("month") as? Number)?.toInt() ?: -1
+                    val day = (call.argument<Any>("day") as? Number)?.toInt() ?: -1
                     val label = call.argument<String>("label") ?: "Alarm"
                     val soundName = call.argument<String>("soundName") ?: "alarm_sound"
                     val repeatType = call.argument<String>("repeatType") ?: "once"
                     val weekdays = call.argument<List<Boolean>>("weekdays") ?: listOf(false, false, false, false, false, false, false)
                     
-                    val success = scheduleNativeAlarm(alarmId, hour, minute, label, soundName, repeatType, weekdays)
+                    val success = scheduleNativeAlarm(alarmId, hour, minute, year, month, day, label, soundName, repeatType, weekdays)
                     result.success(success)
                 }
                 "cancelNativeAlarm" -> {
@@ -488,23 +492,34 @@ class MainActivity : FlutterActivity() {
         alarmId: String,
         hour: Int,
         minute: Int,
+        year: Int,
+        month: Int,
+        day: Int,
         label: String,
         soundName: String,
         repeatType: String,
         weekdays: List<Boolean>
     ): Boolean {
         try {
-            Log.d("MainActivity", "🔔 NATIVE ALARM: Scheduling alarm $alarmId for $hour:$minute")
+            Log.d("MainActivity", "🔔 NATIVE ALARM: Scheduling alarm $alarmId for $hour:$minute on $year-$month-$day")
             
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val calendar = Calendar.getInstance().apply {
+                // If valid date passed from Dart, use it
+                if (year != -1 && month != -1 && day != -1) {
+                    set(Calendar.YEAR, year)
+                    set(Calendar.MONTH, month - 1) // Dart month is 1-12, Java Calendar is 0-11
+                    set(Calendar.DAY_OF_MONTH, day)
+                }
+                
                 set(Calendar.HOUR_OF_DAY, hour)
                 set(Calendar.MINUTE, minute)
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
                 
-                // If the time has already passed today, schedule for tomorrow
-                if (timeInMillis <= System.currentTimeMillis()) {
+                // Fallback: If no date provided or date is in past (safety check), add 1 day if time passed
+                // But generally rely on Dart providing correct future date
+                if ((year == -1) && timeInMillis <= System.currentTimeMillis()) {
                     add(Calendar.DAY_OF_MONTH, 1)
                 }
             }
@@ -593,7 +608,12 @@ class MainActivity : FlutterActivity() {
             Log.d("MainActivity", "🗑️ NATIVE ALARM: Cancelling alarm $alarmId")
             
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
-            val intent = Intent(this, AlarmReceiver::class.java)
+            
+            // CRITICAL: Intent must match exactly what was used in scheduleNativeAlarm
+            val intent = Intent(this, AlarmReceiver::class.java).apply {
+                action = "com.example.upnow.NATIVE_ALARM_TRIGGER"
+            }
+            
             val requestCode = alarmId.hashCode()
             val pendingIntent = PendingIntent.getBroadcast(
                 this,

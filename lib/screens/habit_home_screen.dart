@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
@@ -141,143 +142,225 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     final isCompletedToday = todayEntry?.completed == true;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: AppTheme.darkSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border(
-          left: BorderSide(
-            color: habit.color,
-            width: 4,
-          ),
+        // Use a gradient that blends the habit color with a dark background
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color.alphaBlend(
+                habit.color.withOpacity(0.25), const Color(0xFF121212)),
+            Color.alphaBlend(
+                habit.color.withOpacity(0.1), const Color(0xFF000000)),
+          ],
         ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+          color: habit.color.withOpacity(0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.5),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+          BoxShadow(
+            color: habit.color.withOpacity(0.15),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Stack(
           children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: habit.color.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    Icons.circle,
-                    color: habit.color,
-                    size: 24,
+            // Decorative background glow - enhanced for more "pop"
+            Positioned(
+              right: -60,
+              top: -60,
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: habit.color.withOpacity(0.2),
+                ),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                  child: Container(
+                    color: Colors.transparent,
                   ),
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+              ),
+            ),
+
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header
+                  Row(
                     children: [
-                      Text(
-                        habit.name,
-                        style: AppTheme.titleStyle.copyWith(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              habit.name,
+                              style: AppTheme.titleStyle.copyWith(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5,
+                                shadows: [
+                                  Shadow(
+                                    color: Colors.black.withOpacity(0.5),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 4,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (habit.description != null &&
+                                habit.description!.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                habit.description!,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w400,
+                                  height: 1.4,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ],
                         ),
                       ),
-                      Text(
-                        '${stats.currentStreak} day streak',
-                        style: AppTheme.captionStyle.copyWith(
-                          fontSize: 12,
+                      // Check Button
+                      GestureDetector(
+                        onTap: () => _toggleHabitCompletion(
+                            habit.id, today, habitService),
+                        child: AnimatedContainer(
+                          duration: const Duration(milliseconds: 300),
+                          curve: Curves.easeInOut,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: isCompletedToday
+                                ? habit.color
+                                : Colors.black.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isCompletedToday
+                                  ? habit.color
+                                  : habit.color.withOpacity(0.3),
+                              width: 2,
+                            ),
+                            boxShadow: isCompletedToday
+                                ? [
+                                    BoxShadow(
+                                      color: habit.color.withOpacity(0.6),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    )
+                                  ]
+                                : [],
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            color: isCompletedToday
+                                ? Colors.white
+                                : habit.color.withOpacity(0.5),
+                            size: 28,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Menu Button
+                      Material(
+                        color: Colors.transparent,
+                        child: PopupMenuButton<String>(
+                          icon: Icon(
+                            Icons.more_vert,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                          color: const Color(0xFF2A2A2A),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          onSelected: (value) {
+                            if (value == 'edit') {
+                              _editHabit(habit);
+                            } else if (value == 'delete') {
+                              _deleteHabit(habit, habitService);
+                            }
+                          },
+                          itemBuilder: (BuildContext context) => [
+                            PopupMenuItem<String>(
+                              value: 'edit',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.edit,
+                                      color: AppTheme.primaryColor, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text('Edit',
+                                      style: TextStyle(color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                            PopupMenuItem<String>(
+                              value: 'delete',
+                              child: Row(
+                                children: [
+                                  Icon(Icons.delete,
+                                      color: Colors.red, size: 20),
+                                  const SizedBox(width: 12),
+                                  Text('Delete',
+                                      style: TextStyle(color: Colors.white)),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                GestureDetector(
-                  onTap: () =>
-                      _toggleHabitCompletion(habit.id, today, habitService),
-                  child: Container(
-                    padding: const EdgeInsets.all(12),
+
+                  const SizedBox(height: 24),
+
+                  // Stats Row
+                  Container(
+                    padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: isCompletedToday
-                          ? habit.color.withOpacity(0.2)
-                          : AppTheme.secondaryTextColor.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.black.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(16),
                       border: Border.all(
-                        color: isCompletedToday
-                            ? habit.color
-                            : AppTheme.secondaryTextColor.withOpacity(0.3),
+                        color: Colors.white.withOpacity(0.05),
                         width: 1,
                       ),
                     ),
-                    child: Icon(
-                      Icons.check,
-                      color: isCompletedToday
-                          ? habit.color
-                          : AppTheme.secondaryTextColor.withOpacity(0.5),
-                      size: 24,
-                    ),
+                    child: _buildStatsRow(stats, habit.color),
                   ),
-                ),
-                const SizedBox(width: 8),
-                PopupMenuButton<String>(
-                  icon: Icon(
-                    Icons.more_vert,
-                    color: AppTheme.secondaryTextColor,
-                  ),
-                  color: AppTheme.darkCardColor,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  onSelected: (value) {
-                    if (value == 'edit') {
-                      _editHabit(habit);
-                    } else if (value == 'delete') {
-                      _deleteHabit(habit, habitService);
-                    }
-                  },
-                  itemBuilder: (BuildContext context) => [
-                    PopupMenuItem<String>(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit,
-                              color: AppTheme.primaryColor, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Edit',
-                            style: TextStyle(color: AppTheme.textColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red, size: 20),
-                          const SizedBox(width: 12),
-                          Text(
-                            'Delete',
-                            style: TextStyle(color: AppTheme.textColor),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+
+                  const SizedBox(height: 24),
+
+                  // Contribution Grid
+                  _buildContributionGrid(yearGrid, habit.color),
+                ],
+              ),
             ),
-            const SizedBox(height: 16),
-            _buildStatsRow(stats),
-            const SizedBox(height: 16),
-            _buildContributionGrid(yearGrid, habit.color),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildStatsRow(HabitStats stats) {
+  Widget _buildStatsRow(HabitStats stats, Color color) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
@@ -285,47 +368,57 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           '${stats.completedDays}',
           'Completed',
           Icons.check_circle_outline,
+          color,
         ),
         _buildStatItem(
           '${stats.currentStreak}',
           'Current Streak',
           Icons.local_fire_department,
+          color,
         ),
         _buildStatItem(
           '${stats.longestStreak}',
           'Best Streak',
           Icons.emoji_events_outlined,
+          color,
         ),
         _buildStatItem(
           '${stats.completionRate.toStringAsFixed(0)}%',
           'Success',
           Icons.trending_up,
+          color,
         ),
       ],
     );
   }
 
-  Widget _buildStatItem(String value, String label, IconData icon) {
+  Widget _buildStatItem(
+      String value, String label, IconData icon, Color color) {
     return Expanded(
       child: Column(
         children: [
           Icon(
             icon,
-            color: AppTheme.primaryColor,
-            size: 20,
+            color: color,
+            size: 24,
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 8),
           Text(
             value,
             style: AppTheme.bodyStyle.copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+              fontSize: 18,
+              color: Colors.white,
             ),
           ),
+          const SizedBox(height: 4),
           Text(
             label,
             textAlign: TextAlign.center,
-            style: AppTheme.captionStyle.copyWith(fontSize: 10),
+            style: AppTheme.captionStyle.copyWith(
+              fontSize: 10,
+              color: Colors.white.withOpacity(0.5),
+            ),
           ),
         ],
       ),
@@ -366,8 +459,8 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: AppTheme.darkBackground,
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: SingleChildScrollView(
         controller: scrollController,
@@ -501,7 +594,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   Color _getDayColor(HabitGridDay day, Color habitColor) {
     if (!day.completed) {
-      return AppTheme.darkSurfaceLight;
+      return Colors.white.withOpacity(0.05);
     }
 
     // Simple completed/not completed - completed days show in habit color
