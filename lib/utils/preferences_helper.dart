@@ -3,7 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 class PreferencesHelper {
   static const String _hasCompletedOnboardingKey = 'has_completed_onboarding';
   static const String _is24HourFormatKey = 'is_24_hour_format';
-  static const String _wakeUpAlarmReminderDismissedKey = 'wake_up_alarm_reminder_dismissed';
+  static const String _wakeUpAlarmReminderDismissedKey =
+      'wake_up_alarm_reminder_dismissed';
+  static const String _isHapticFeedbackEnabledKey =
+      'is_haptic_feedback_enabled';
 
   // Time Format
   static Future<bool> is24HourFormat() async {
@@ -39,6 +42,18 @@ class PreferencesHelper {
     await prefs.setBool(_wakeUpAlarmReminderDismissedKey, dismissed);
   }
 
+  // Haptic feedback enabled state
+  static Future<bool> isHapticFeedbackEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_isHapticFeedbackEnabledKey) ??
+        true; // Default to enabled
+  }
+
+  static Future<void> setHapticFeedbackEnabled(bool enabled) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isHapticFeedbackEnabledKey, enabled);
+  }
+
   // Generic method to get a boolean value
   static Future<bool?> getBoolValue(String key) async {
     final prefs = await SharedPreferences.getInstance();
@@ -50,4 +65,4 @@ class PreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
   }
-} 
+}

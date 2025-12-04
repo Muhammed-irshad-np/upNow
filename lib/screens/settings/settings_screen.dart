@@ -51,6 +51,11 @@ class SettingsScreen extends StatelessWidget {
             _buildSettingGroup(
               children: [
                 _buildTimeFormatSetting(context),
+                Container(
+                  height: 1.h,
+                  color: AppTheme.darkBackground.withOpacity(0.5),
+                ),
+                _buildHapticFeedbackSetting(context),
                 _buildSettingTile(
                   icon: Icons.language_outlined,
                   title: 'Language',
@@ -131,6 +136,26 @@ class SettingsScreen extends StatelessWidget {
               fontSize: 14.sp,
               color: AppTheme.secondaryTextColor,
             ),
+          ),
+          isLast: false,
+        );
+      },
+    );
+  }
+
+  Widget _buildHapticFeedbackSetting(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return _buildSettingTile(
+          icon: Icons.vibration_outlined,
+          title: 'Haptic Feedback',
+          trailing: Switch(
+            value: settings.isHapticFeedbackEnabled,
+            onChanged: (bool value) {
+              settings.updateHapticFeedback(value);
+            },
+            activeColor: AppTheme.primaryColor,
+            activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
           ),
           isLast: false,
         );

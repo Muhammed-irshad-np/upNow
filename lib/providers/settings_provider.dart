@@ -3,8 +3,10 @@ import 'package:upnow/utils/preferences_helper.dart';
 
 class SettingsProvider with ChangeNotifier {
   bool _is24HourFormat = false;
+  bool _isHapticFeedbackEnabled = true;
 
   bool get is24HourFormat => _is24HourFormat;
+  bool get isHapticFeedbackEnabled => _isHapticFeedbackEnabled;
 
   SettingsProvider() {
     loadSettings();
@@ -12,6 +14,8 @@ class SettingsProvider with ChangeNotifier {
 
   Future<void> loadSettings() async {
     _is24HourFormat = await PreferencesHelper.is24HourFormat();
+    _isHapticFeedbackEnabled =
+        await PreferencesHelper.isHapticFeedbackEnabled();
     notifyListeners();
   }
 
@@ -20,4 +24,10 @@ class SettingsProvider with ChangeNotifier {
     await PreferencesHelper.set24HourFormat(is24Hour);
     notifyListeners();
   }
-} 
+
+  Future<void> updateHapticFeedback(bool enabled) async {
+    _isHapticFeedbackEnabled = enabled;
+    await PreferencesHelper.setHapticFeedbackEnabled(enabled);
+    notifyListeners();
+  }
+}
