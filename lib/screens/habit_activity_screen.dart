@@ -104,13 +104,22 @@ class _HabitActivityScreenState extends State<HabitActivityScreen>
 
   Widget _buildIcon() {
     IconData iconData = Icons.star;
+    // Map of icon codes to IconData to avoid non-constant invocations
+    const Map<String, IconData> iconMap = {
+      '0xe3a7': Icons.fitness_center,
+      '0xe0bb': Icons.book,
+      '0xe798': Icons.water_drop,
+      '0xe3e4': Icons.bedtime,
+      '0xe4ba': Icons.self_improvement,
+      '0xe57a': Icons.restaurant,
+      '0xe566': Icons.directions_run,
+      '0xe4cd': Icons.psychology,
+      '0xe405': Icons.music_note,
+      '0xe3a9': Icons.brush,
+    };
+
     if (widget.habit.icon != null) {
-      try {
-        iconData = IconData(int.parse(widget.habit.icon!),
-            fontFamily: 'MaterialIcons');
-      } catch (e) {
-        debugPrint('Error parsing icon code: $e');
-      }
+      iconData = iconMap[widget.habit.icon] ?? Icons.star;
     }
 
     return ScaleTransition(
