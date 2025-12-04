@@ -14,6 +14,7 @@ import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 import 'package:upnow/utils/preferences_helper.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
+import 'package:upnow/utils/haptic_feedback_helper.dart';
 
 class AlarmScreen extends StatefulWidget {
   const AlarmScreen({Key? key}) : super(key: key);
@@ -116,24 +117,25 @@ class _AlarmScreenState extends State<AlarmScreen> {
               child: SizedBox(height: 8.h),
             ),
             alarms.isEmpty
-              ? SliverPadding(
-                  padding: EdgeInsets.only(bottom: 96.h),
-                  sliver: SliverToBoxAdapter(
-                    child: _buildEmptyState(context),
+                ? SliverPadding(
+                    padding: EdgeInsets.only(bottom: 96.h),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildEmptyState(context),
+                    ),
+                  )
+                : SliverPadding(
+                    padding: EdgeInsets.only(bottom: 96.h),
+                    sliver: SliverToBoxAdapter(
+                      child: _buildAlarmList(context, alarms),
+                    ),
                   ),
-                )
-              : SliverPadding(
-                  padding: EdgeInsets.only(bottom: 96.h),
-                  sliver: SliverToBoxAdapter(
-                    child: _buildAlarmList(context, alarms),
-                  ),
-                ),
           ],
         ),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'alarmFab',
         onPressed: () async {
+          HapticFeedbackHelper.trigger();
           try {
             await Navigator.pushNamed(context, '/create_alarm');
           } catch (e, s) {
@@ -158,7 +160,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
       if (!alarm.isEnabled) continue;
 
       DateTime alarmDateTime = _getNextAlarmDateTime(alarm, now);
-      
+
       if (nextAlarmTime == null || alarmDateTime.isBefore(nextAlarmTime)) {
         nextAlarmTime = alarmDateTime;
         nextAlarm = alarm;
@@ -170,13 +172,14 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   // Calculate the next occurrence of an alarm
   DateTime _getNextAlarmDateTime(AlarmModel alarm, DateTime now) {
-    DateTime alarmToday = DateTime(now.year, now.month, now.day, alarm.hour, alarm.minute);
-    
+    DateTime alarmToday =
+        DateTime(now.year, now.month, now.day, alarm.hour, alarm.minute);
+
     // If the alarm time has passed today, schedule for tomorrow
     if (alarmToday.isBefore(now) || alarmToday.isAtSameMomentAs(now)) {
       return alarmToday.add(const Duration(days: 1));
     }
-    
+
     return alarmToday;
   }
 
@@ -184,7 +187,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
   String _formatTimeRemaining(DateTime alarmTime) {
     final now = DateTime.now();
     final difference = alarmTime.difference(now);
-    
+
     if (difference.inDays > 0) {
       return 'Rings in ${difference.inDays}d ${difference.inHours % 24}h';
     } else if (difference.inHours > 0) {
@@ -212,14 +215,15 @@ class _AlarmScreenState extends State<AlarmScreen> {
   Widget _buildNextAlarmSection(BuildContext context, List<dynamic> alarms) {
     final settings = Provider.of<SettingsProvider>(context);
     final nextAlarm = _findNextAlarm(alarms);
-    
+
     if (nextAlarm == null) {
       return const SizedBox.shrink(); // Don't show anything if no next alarm
     }
 
     final nextAlarmTime = _getNextAlarmDateTime(nextAlarm, DateTime.now());
     final timeRemaining = _formatTimeRemaining(nextAlarmTime);
-    final alarmTimeString = _formatTime(nextAlarm.hour, nextAlarm.minute, settings.is24HourFormat);
+    final alarmTimeString =
+        _formatTime(nextAlarm.hour, nextAlarm.minute, settings.is24HourFormat);
 
     return Container(
       margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -318,32 +322,34 @@ class _AlarmScreenState extends State<AlarmScreen> {
     if (!await PermissionsManager.hasAllCriticalPermissions()) {
       // Show explanation dialog
       final bool shouldContinue = await showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (context) => AlertDialog(
-          title: Row(
-            children: [
-              Icon(Icons.notification_important, color: AppTheme.primaryColor),
-               SizedBox(width: 10.w),
-              const Text('Permissions Required'),
-            ],
-          ),
-          content: Text(
-            'we need to request some important permissions.',
-            style: TextStyle(fontSize: 14.sp),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(false),
-              child: const Text('Later'),
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => AlertDialog(
+              title: Row(
+                children: [
+                  Icon(Icons.notification_important,
+                      color: AppTheme.primaryColor),
+                  SizedBox(width: 10.w),
+                  const Text('Permissions Required'),
+                ],
+              ),
+              content: Text(
+                'we need to request some important permissions.',
+                style: TextStyle(fontSize: 14.sp),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(false),
+                  child: const Text('Later'),
+                ),
+                ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(true),
+                  child: const Text('Continue'),
+                ),
+              ],
             ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(true),
-              child: const Text('Continue'),
-            ),
-          ],
-        ),
-      ) ?? false;
+          ) ??
+          false;
 
       if (!shouldContinue) {
         return false;
@@ -396,7 +402,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
               // if (!await _checkCriticalPermissions(context)) {
               //   return;
               // }
-              
+
               // Navigate to create alarm screen
               await Navigator.pushNamed(context, '/create_alarm');
               // AlarmProvider will automatically reload alarms
@@ -420,7 +426,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
     // Ensure morning (wake-up) alarm is the first item if present and enabled
     final alarmProvider = Provider.of<AlarmProvider>(context);
     if (alarmProvider.isMorningAlarmEnabled) {
-      final int morningIndex = sortedAlarms.indexWhere((a) => a.isMorningAlarm == true);
+      final int morningIndex =
+          sortedAlarms.indexWhere((a) => a.isMorningAlarm == true);
       if (morningIndex > 0) {
         final morningAlarm = sortedAlarms.removeAt(morningIndex);
         sortedAlarms.insert(0, morningAlarm);
@@ -444,8 +451,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
     // Calculate the height needed for stacked cards
     final double cardHeight = 150.h;
-    final double stackOffset = 120.h; // Show more of each card while keeping stacked effect
-    final double totalHeight = (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
+    final double stackOffset =
+        120.h; // Show more of each card while keeping stacked effect
+    final double totalHeight =
+        (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
 
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
@@ -460,19 +469,22 @@ class _AlarmScreenState extends State<AlarmScreen> {
               right: 0,
               child: AlarmCard(
                 alarm: sortedAlarms[i],
-                cardColor: sortedAlarms[i].isEnabled 
-                  ? activeCardColors[i % activeCardColors.length]
-                  : inactiveCardColor,
+                cardColor: sortedAlarms[i].isEnabled
+                    ? activeCardColors[i % activeCardColors.length]
+                    : inactiveCardColor,
                 isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
                 stackOffset: 0,
                 onDelete: () {
+                  HapticFeedbackHelper.trigger();
                   Provider.of<AlarmProvider>(context, listen: false)
                       .deleteAlarm(sortedAlarms[i].id);
                 },
                 onToggle: (value) async {
+                  HapticFeedbackHelper.trigger();
                   if (value) {
                     final hasPermission =
-                        await PermissionsManager.ensureNotificationPermission(context);
+                        await PermissionsManager.ensureNotificationPermission(
+                            context);
                     if (!hasPermission) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -491,6 +503,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                       .toggleAlarm(sortedAlarms[i].id, value);
                 },
                 onTap: () async {
+                  HapticFeedbackHelper.trigger();
                   // Navigate to edit alarm screen
                   await Navigator.pushNamed(
                     context,
@@ -499,7 +512,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   );
                   // AlarmProvider will automatically reload alarms
                 },
-                onSkipOnce: () => _skipAlarmOnce(context, sortedAlarms[i]),
+                onSkipOnce: () {
+                  HapticFeedbackHelper.trigger();
+                  _skipAlarmOnce(context, sortedAlarms[i]);
+                },
               ),
             ),
         ],
@@ -526,7 +542,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
   // Helper method to create and schedule a quick alarm
   Future<void> _createQuickAlarm(BuildContext context, int minutes) async {
     try {
-      debugPrint('QUICK ALARM: Starting quick alarm creation for $minutes minutes...');
+      debugPrint(
+          'QUICK ALARM: Starting quick alarm creation for $minutes minutes...');
 
       final notificationsGranted =
           await PermissionsManager.ensureNotificationPermission(context);
@@ -549,7 +566,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
       final alarmHour = alarmTime.hour;
       final alarmMinute = alarmTime.minute;
 
-      debugPrint('QUICK ALARM: New quick alarm time set to ${alarmHour}:${alarmMinute}');
+      debugPrint(
+          'QUICK ALARM: New quick alarm time set to ${alarmHour}:${alarmMinute}');
 
       final AlarmModel newAlarm = AlarmModel(
         hour: alarmHour,
@@ -558,23 +576,27 @@ class _AlarmScreenState extends State<AlarmScreen> {
         dismissType: DismissType.normal,
         vibrate: true,
         repeat: AlarmRepeat.once,
-        label: 'Quick Alarm - $minutes min', 
+        label: 'Quick Alarm - $minutes min',
       );
 
-      debugPrint('QUICK ALARM: Created quick alarm with label: ${newAlarm.label}');
+      debugPrint(
+          'QUICK ALARM: Created quick alarm with label: ${newAlarm.label}');
 
       // Use AlarmProvider to add the alarm, which handles saving, scheduling, and UI update
-      await Provider.of<AlarmProvider>(context, listen: false).addAlarm(newAlarm);
+      await Provider.of<AlarmProvider>(context, listen: false)
+          .addAlarm(newAlarm);
       debugPrint('QUICK ALARM: Alarm added via AlarmProvider.');
-      
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Quick alarm set for $minutes minutes (${alarmHour}:${alarmMinute.toString().padLeft(2, '0')})'),
+          content: Text(
+              'Quick alarm set for $minutes minutes (${alarmHour}:${alarmMinute.toString().padLeft(2, '0')})'),
           backgroundColor: Colors.green,
         ),
       );
 
-      debugPrint('QUICK ALARM: Quick alarm creation process completed successfully');
+      debugPrint(
+          'QUICK ALARM: Quick alarm creation process completed successfully');
     } catch (e, stackTrace) {
       debugPrint('QUICK ALARM ERROR: $e');
       debugPrint('QUICK ALARM STACK TRACE: $stackTrace');
@@ -660,7 +682,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: () => _createQuickAlarm(context, minutes),
+            onTap: () {
+              HapticFeedbackHelper.trigger();
+              _createQuickAlarm(context, minutes);
+            },
             borderRadius: BorderRadius.circular(16.r),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -765,7 +790,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
               Expanded(
                 child: GradientButton(
                   text: 'Set Time',
-                 
                   gradient: AppTheme.primaryGradient,
                   icon: Icon(Icons.alarm_add, color: Colors.white, size: 18.sp),
                   onPressed: () async {
@@ -775,7 +799,10 @@ class _AlarmScreenState extends State<AlarmScreen> {
               ),
               SizedBox(width: 12.w),
               TextButton(
-                onPressed: _dismissWakeUpReminder,
+                onPressed: () {
+                  HapticFeedbackHelper.trigger();
+                  _dismissWakeUpReminder();
+                },
                 child: Text(
                   'Maybe Later',
                   style: TextStyle(
@@ -794,7 +821,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
   Future<void> _showWakeUpTimePicker(BuildContext context) async {
     final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
     final currentTime = alarmProvider.morningAlarmTime;
-    
+
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: currentTime,
@@ -820,7 +847,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
         );
       },
     );
-    
+
     if (pickedTime != null) {
       await alarmProvider.setMorningAlarm(pickedTime.hour, pickedTime.minute);
       await _dismissWakeUpReminder();
@@ -828,5 +855,4 @@ class _AlarmScreenState extends State<AlarmScreen> {
   }
 
   // Overlay-specific dialogs removed; notification permissions are now handled via PermissionsManager.
-  
-} 
+}

@@ -9,6 +9,7 @@ import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:upnow/utils/haptic_feedback_helper.dart';
 
 class HabitHomeScreen extends StatefulWidget {
   const HabitHomeScreen({Key? key}) : super(key: key);
@@ -103,6 +104,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
+          HapticFeedbackHelper.trigger();
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const AddHabitScreen()),
@@ -149,6 +151,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           const SizedBox(height: 32),
           ElevatedButton.icon(
             onPressed: () {
+              HapticFeedbackHelper.trigger();
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const AddHabitScreen()),
@@ -282,8 +285,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                       ),
                       // Check Button
                       GestureDetector(
-                        onTap: () => _toggleHabitCompletion(
-                            habit.id, today, habitService),
+                        onTap: () {
+                          HapticFeedbackHelper.trigger();
+                          _toggleHabitCompletion(habit.id, today, habitService);
+                        },
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 300),
                           curve: Curves.easeInOut,
@@ -332,6 +337,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                             borderRadius: BorderRadius.circular(16),
                           ),
                           onSelected: (value) {
+                            HapticFeedbackHelper.trigger();
                             if (value == 'edit') {
                               _editHabit(habit);
                             } else if (value == 'delete') {
@@ -729,7 +735,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                HapticFeedbackHelper.trigger();
+                Navigator.pop(context);
+              },
               child: Text(
                 'Cancel',
                 style: TextStyle(color: AppTheme.secondaryTextColor),
@@ -737,6 +746,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             ),
             TextButton(
               onPressed: () async {
+                HapticFeedbackHelper.trigger();
                 Navigator.pop(context);
                 await habitService.deleteHabit(habit.id);
                 if (mounted) {

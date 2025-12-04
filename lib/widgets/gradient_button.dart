@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:upnow/utils/haptic_feedback_helper.dart';
 
 class GradientButton extends StatelessWidget {
   final String text;
@@ -36,9 +37,10 @@ class GradientButton extends StatelessWidget {
         // ],
       ),
       child: ElevatedButton(
-        
-        onPressed: onPressed,
-         
+        onPressed: () {
+          HapticFeedbackHelper.trigger();
+          onPressed();
+        },
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.transparent,
           shadowColor: Colors.transparent,
@@ -67,4 +69,4 @@ class GradientButton extends StatelessWidget {
       ),
     );
   }
-} 
+}

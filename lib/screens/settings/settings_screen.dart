@@ -9,6 +9,7 @@ import 'package:upnow/providers/alarm_provider.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
 import 'package:share_plus/share_plus.dart';
+import 'package:upnow/utils/haptic_feedback_helper.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -156,6 +157,7 @@ class SettingsScreen extends StatelessWidget {
                 color: Colors.transparent,
                 child: InkWell(
                   onTap: () async {
+                    HapticFeedbackHelper.trigger();
                     if (!hasMorningAlarm) {
                       // Create new morning alarm with default time
                       await alarmProvider.setMorningAlarm(7, 0);
@@ -215,6 +217,7 @@ class SettingsScreen extends StatelessWidget {
                         Switch(
                           value: isMorningAlarmEnabled,
                           onChanged: (bool value) async {
+                            HapticFeedbackHelper.trigger();
                             if (value) {
                               if (!hasMorningAlarm) {
                                 // Create new morning alarm with default time
@@ -242,8 +245,10 @@ class SettingsScreen extends StatelessWidget {
                 Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () =>
-                        _showMorningAlarmTimePicker(context, alarmProvider),
+                    onTap: () {
+                      HapticFeedbackHelper.trigger();
+                      _showMorningAlarmTimePicker(context, alarmProvider);
+                    },
                     borderRadius:
                         BorderRadius.vertical(bottom: Radius.circular(16.r)),
                     child: Container(
@@ -395,7 +400,12 @@ class SettingsScreen extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          if (onTap != null) {
+            HapticFeedbackHelper.trigger();
+            onTap();
+          }
+        },
         borderRadius: isLast
             ? BorderRadius.vertical(bottom: Radius.circular(16.r))
             : BorderRadius.zero,
