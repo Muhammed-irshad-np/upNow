@@ -1,8 +1,10 @@
 import 'dart:ui';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import 'package:confetti/confetti.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
@@ -16,14 +18,24 @@ class HabitHomeScreen extends StatefulWidget {
 }
 
 class _HabitHomeScreenState extends State<HabitHomeScreen> {
+  late ConfettiController _confettiController;
+
   @override
   void initState() {
     super.initState();
+    _confettiController =
+        ConfettiController(duration: const Duration(seconds: 3));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final habitService = context.read<HabitService>();
       habitService.loadHabits();
       habitService.loadHabitEntries(); // Load habit entries from database
     });
+  }
+
+  @override
+  void dispose() {
+    _confettiController.dispose();
+    super.dispose();
   }
 
   @override
@@ -38,30 +50,56 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         elevation: 0,
         centerTitle: true,
       ),
-      body: Consumer<HabitService>(
-        builder: (context, habitService, child) {
-          final activeHabits = habitService.getActiveHabits();
+      body: Stack(
+        children: [
+          Consumer<HabitService>(
+            builder: (context, habitService, child) {
+              final activeHabits = habitService.getActiveHabits();
 
-          if (activeHabits.isEmpty) {
-            return _buildEmptyState();
-          }
+              if (activeHabits.isEmpty) {
+                return _buildEmptyState();
+              }
 
-          return RefreshIndicator(
-            onRefresh: () async {
-              await habitService.loadHabits();
-              await habitService.loadHabitEntries();
+              return RefreshIndicator(
+                onRefresh: () async {
+                  await habitService.loadHabits();
+                  await habitService.loadHabitEntries();
+                },
+                color: AppTheme.primaryColor,
+                child: ListView.builder(
+                  padding: const EdgeInsets.all(16),
+                  itemCount: activeHabits.length,
+                  itemBuilder: (context, index) {
+                    final habit = activeHabits[index];
+                    return _buildHabitCard(habit, habitService);
+                  },
+                ),
+              );
             },
-            color: AppTheme.primaryColor,
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: activeHabits.length,
-              itemBuilder: (context, index) {
-                final habit = activeHabits[index];
-                return _buildHabitCard(habit, habitService);
-              },
+          ),
+          // Confetti widget
+          Align(
+            alignment: Alignment.topCenter,
+            child: ConfettiWidget(
+              confettiController: _confettiController,
+              blastDirection: pi / 2, // downward
+              maxBlastForce: 5,
+              minBlastForce: 2,
+              emissionFrequency: 0.05,
+              numberOfParticles: 50,
+              gravity: 0.3,
+              shouldLoop: false,
+              colors: const [
+                Colors.green,
+                Colors.blue,
+                Colors.pink,
+                Colors.orange,
+                Colors.purple,
+                Colors.yellow,
+              ],
             ),
-          );
-        },
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
@@ -645,6 +683,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     } else {
       // Mark as completed
       habitService.markHabitCompleted(habitId, date);
+
+      // Trigger confetti animation! 🎉
+      _confettiController.play();
+
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text('Great job! Habit completed! 🎉'),

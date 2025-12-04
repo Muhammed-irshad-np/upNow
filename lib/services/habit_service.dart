@@ -57,13 +57,15 @@ class HabitService extends ChangeNotifier {
   }
 
   // Mark habit as completed for a specific date (git-like commit)
-  Future<HabitEntry> markHabitCompleted(String habitId, DateTime date, {
+  Future<HabitEntry> markHabitCompleted(
+    String habitId,
+    DateTime date, {
     String? notes,
     HabitIntensity? intensity,
     int completionCount = 1,
   }) async {
     final existingEntry = getHabitEntryForDate(habitId, date);
-    
+
     HabitEntry entry;
     if (existingEntry != null) {
       // Update existing entry
@@ -88,7 +90,7 @@ class HabitService extends ChangeNotifier {
     }
 
     await HiveDatabase.saveHabitEntry(entry);
-    
+
     // Update local list
     final index = _habitEntries.indexWhere((e) => e.id == entry.id);
     if (index != -1) {
@@ -96,26 +98,26 @@ class HabitService extends ChangeNotifier {
     } else {
       _habitEntries.add(entry);
     }
-    
+
     _habitEntries.sort((a, b) => b.date.compareTo(a.date));
     notifyListeners();
-    
+
     return entry;
   }
 
   // Mark habit as not completed for a specific date
   Future<void> markHabitUncompleted(String habitId, DateTime date) async {
     final existingEntry = getHabitEntryForDate(habitId, date);
-    
+
     if (existingEntry != null) {
       final updatedEntry = existingEntry.copyWith(
         completed: false,
         completionCount: 0,
         completedAt: null,
       );
-      
+
       await HiveDatabase.saveHabitEntry(updatedEntry);
-      
+
       final index = _habitEntries.indexWhere((e) => e.id == updatedEntry.id);
       if (index != -1) {
         _habitEntries[index] = updatedEntry;
@@ -126,14 +128,15 @@ class HabitService extends ChangeNotifier {
 
   // Get habit entry for a specific date
   HabitEntry? getHabitEntryForDate(String habitId, DateTime date) {
-    final dateKey = '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-    
+    final dateKey =
+        '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+
     for (var entry in _habitEntries) {
       if (entry.habitId == habitId && entry.dateKey == dateKey) {
         return entry;
       }
     }
-    
+
     return null;
   }
 
@@ -146,13 +149,13 @@ class HabitService extends ChangeNotifier {
   Map<String, HabitEntry> getHabitYearData(String habitId, int year) {
     final entries = getHabitEntries(habitId);
     final Map<String, HabitEntry> yearData = {};
-    
+
     for (var entry in entries) {
       if (entry.date.year == year) {
         yearData[entry.dateKey] = entry;
       }
     }
-    
+
     return yearData;
   }
 
@@ -160,21 +163,21 @@ class HabitService extends ChangeNotifier {
   int getCurrentStreak(String habitId) {
     final entries = getHabitEntries(habitId);
     entries.sort((a, b) => b.date.compareTo(a.date));
-    
+
     int streak = 0;
     final today = DateTime.now();
-    
+
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
       final entry = getHabitEntryForDate(habitId, checkDate);
-      
+
       if (entry != null && entry.completed) {
         streak++;
       } else {
         break;
       }
     }
-    
+
     return streak;
   }
 
@@ -182,20 +185,19 @@ class HabitService extends ChangeNotifier {
   int getLongestStreak(String habitId) {
     final entries = getHabitEntries(habitId);
     entries.sort((a, b) => a.date.compareTo(b.date));
-    
+
     int maxStreak = 0;
     int currentStreak = 0;
     DateTime? lastDate;
-    
+
     for (var entry in entries) {
       if (entry.completed) {
-        if (lastDate == null || 
-            entry.date.difference(lastDate).inDays == 1) {
+        if (lastDate == null || entry.date.difference(lastDate).inDays == 1) {
           currentStreak++;
         } else {
           currentStreak = 1;
         }
-        
+
         maxStreak = currentStreak > maxStreak ? currentStreak : maxStreak;
         lastDate = entry.date;
       } else {
@@ -203,26 +205,27 @@ class HabitService extends ChangeNotifier {
         lastDate = null;
       }
     }
-    
+
     return maxStreak;
   }
 
   // Get completion rate for a habit in percentage
   double getCompletionRate(String habitId, {int? days}) {
     final entries = getHabitEntries(habitId);
-    
+
     if (days != null) {
       final cutoffDate = DateTime.now().subtract(Duration(days: days));
-      final recentEntries = entries.where((e) => e.date.isAfter(cutoffDate)).toList();
-      
+      final recentEntries =
+          entries.where((e) => e.date.isAfter(cutoffDate)).toList();
+
       if (recentEntries.isEmpty) return 0.0;
-      
+
       final completedCount = recentEntries.where((e) => e.completed).length;
       return (completedCount / recentEntries.length) * 100;
     }
-    
+
     if (entries.isEmpty) return 0.0;
-    
+
     final completedCount = entries.where((e) => e.completed).length;
     return (completedCount / entries.length) * 100;
   }
@@ -231,7 +234,7 @@ class HabitService extends ChangeNotifier {
   HabitStats getHabitStats(String habitId) {
     final entries = getHabitEntries(habitId);
     final completedEntries = entries.where((e) => e.completed).toList();
-    
+
     return HabitStats(
       totalDays: entries.length,
       completedDays: completedEntries.length,
@@ -240,18 +243,19 @@ class HabitService extends ChangeNotifier {
       completionRate: getCompletionRate(habitId),
       weeklyRate: getCompletionRate(habitId, days: 7),
       monthlyRate: getCompletionRate(habitId, days: 30),
-      totalCompletions: completedEntries.fold(0, (sum, entry) => sum + entry.completionCount),
+      totalCompletions:
+          completedEntries.fold(0, (sum, entry) => sum + entry.completionCount),
     );
   }
 
   // Get weekly grid data (7 days)
   List<HabitGridDay> getWeeklyGridData(String habitId, DateTime startDate) {
     final List<HabitGridDay> weekData = [];
-    
+
     for (int i = 0; i < 7; i++) {
       final date = startDate.add(Duration(days: i));
       final entry = getHabitEntryForDate(habitId, date);
-      
+
       weekData.add(HabitGridDay(
         date: date,
         completed: entry?.completed ?? false,
@@ -259,7 +263,7 @@ class HabitService extends ChangeNotifier {
         intensity: entry?.intensity,
       ));
     }
-    
+
     return weekData;
   }
 
@@ -268,11 +272,11 @@ class HabitService extends ChangeNotifier {
     final List<HabitGridDay> monthData = [];
     final firstDay = DateTime(month.year, month.month, 1);
     final lastDay = DateTime(month.year, month.month + 1, 0);
-    
+
     for (int day = 1; day <= lastDay.day; day++) {
       final date = DateTime(month.year, month.month, day);
       final entry = getHabitEntryForDate(habitId, date);
-      
+
       monthData.add(HabitGridDay(
         date: date,
         completed: entry?.completed ?? false,
@@ -280,7 +284,7 @@ class HabitService extends ChangeNotifier {
         intensity: entry?.intensity,
       ));
     }
-    
+
     return monthData;
   }
 
@@ -288,20 +292,20 @@ class HabitService extends ChangeNotifier {
   List<List<HabitGridDay>> getYearlyGridData(String habitId, int year) {
     final List<List<HabitGridDay>> yearGrid = [];
     final startDate = DateTime(year, 1, 1);
-    
+
     // Calculate weeks in year
     int totalDays = DateTime(year, 12, 31).difference(startDate).inDays + 1;
     int totalWeeks = (totalDays / 7).ceil();
-    
+
     DateTime currentDate = startDate;
-    
+
     for (int week = 0; week < totalWeeks; week++) {
       final List<HabitGridDay> weekData = [];
-      
+
       for (int day = 0; day < 7; day++) {
         if (currentDate.year == year) {
           final entry = getHabitEntryForDate(habitId, currentDate);
-          
+
           weekData.add(HabitGridDay(
             date: currentDate,
             completed: entry?.completed ?? false,
@@ -309,15 +313,15 @@ class HabitService extends ChangeNotifier {
             intensity: entry?.intensity,
           ));
         }
-        
+
         currentDate = currentDate.add(const Duration(days: 1));
       }
-      
+
       if (weekData.isNotEmpty) {
         yearGrid.add(weekData);
       }
     }
-    
+
     return yearGrid;
   }
 
@@ -379,7 +383,7 @@ class HabitGridDay {
   int get intensityLevel {
     if (!completed) return 0;
     if (intensity == null) return 1;
-    
+
     switch (intensity!) {
       case HabitIntensity.low:
         return 1;
