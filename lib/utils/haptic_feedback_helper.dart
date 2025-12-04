@@ -10,7 +10,7 @@ class HapticFeedbackHelper {
       return; // Don't trigger if disabled
     }
 
-    // Use heavyImpact for stronger, more noticeable vibration
-    await HapticFeedback.heavyImpact();
+    // Use vibrate() for traditional, long-lasting vibration (most reliable)
+    await HapticFeedback.vibrate();
   }
 }
