@@ -18,8 +18,11 @@ class HabitHomeScreen extends StatefulWidget {
   State<HabitHomeScreen> createState() => _HabitHomeScreenState();
 }
 
+enum HabitGridLayout { weekly, monthly, yearly }
+
 class _HabitHomeScreenState extends State<HabitHomeScreen> {
   late ConfettiController _confettiController;
+  HabitGridLayout _selectedLayout = HabitGridLayout.yearly;
 
   @override
   void initState() {
@@ -50,6 +53,59 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         backgroundColor: AppTheme.darkBackground,
         elevation: 0,
         centerTitle: true,
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(60),
+          child: Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: SegmentedButton<HabitGridLayout>(
+              segments: const [
+                ButtonSegment<HabitGridLayout>(
+                  value: HabitGridLayout.weekly,
+                  label: Text('Weekly'),
+                  icon: Icon(Icons.view_week),
+                ),
+                ButtonSegment<HabitGridLayout>(
+                  value: HabitGridLayout.monthly,
+                  label: Text('Monthly'),
+                  icon: Icon(Icons.calendar_view_month),
+                ),
+                ButtonSegment<HabitGridLayout>(
+                  value: HabitGridLayout.yearly,
+                  label: Text('Yearly'),
+                  icon: Icon(Icons.calendar_today),
+                ),
+              ],
+              selected: {_selectedLayout},
+              onSelectionChanged: (Set<HabitGridLayout> newSelection) {
+                setState(() {
+                  _selectedLayout = newSelection.first;
+                });
+                HapticFeedbackHelper.trigger();
+              },
+              style: ButtonStyle(
+                backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                  (Set<MaterialState> states) {
+                    if (states.contains(MaterialState.selected)) {
+                      return AppTheme.primaryColor;
+                    }
+                    return Colors.transparent;
+                  },
+                ),
+                foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                  (Set<MaterialState> states) {
+                    if (states.contains(MaterialState.selected)) {
+                      return Colors.white;
+                    }
+                    return AppTheme.secondaryTextColor;
+                  },
+                ),
+                side: MaterialStateProperty.all(
+                  BorderSide(color: AppTheme.primaryColor.withOpacity(0.5)),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
       body: Stack(
         children: [
@@ -176,8 +232,6 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   Widget _buildHabitCard(HabitModel habit, HabitService habitService) {
     final stats = habitService.getHabitStats(habit.id);
-    final yearGrid =
-        habitService.getYearlyGridData(habit.id, DateTime.now().year);
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(habit.id, today);
     final isCompletedToday = todayEntry?.completed == true;
@@ -239,21 +293,58 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             ),
 
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Header
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Habit Icon
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: habit.color.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: habit.color.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(
+                          () {
+                            const Map<String, IconData> iconMap = {
+                              '0xe3a7': Icons.fitness_center,
+                              '0xe0bb': Icons.book,
+                              '0xe798': Icons.water_drop,
+                              '0xe3e4': Icons.bedtime,
+                              '0xe4ba': Icons.self_improvement,
+                              '0xe57a': Icons.restaurant,
+                              '0xe566': Icons.directions_run,
+                              '0xe4cd': Icons.psychology,
+                              '0xe405': Icons.music_note,
+                              '0xe3a9': Icons.brush,
+                            };
+                            return iconMap[habit.icon] ?? Icons.star;
+                          }(),
+                          color: habit.color,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Habit Name & Description
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.start,
                           children: [
                             Text(
                               habit.name,
+                              textAlign: TextAlign.left,
                               style: AppTheme.titleStyle.copyWith(
-                                fontSize: 24,
+                                fontSize: 18,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5,
                                 shadows: [
@@ -283,6 +374,9 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                           ],
                         ),
                       ),
+
+                      const SizedBox(width: 8),
+
                       // Check Button
                       GestureDetector(
                         onTap: () {
@@ -319,82 +413,40 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                             color: isCompletedToday
                                 ? Colors.white
                                 : habit.color.withOpacity(0.5),
-                            size: 28,
+                            size: 20,
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      // Menu Button
-                      Material(
-                        color: Colors.transparent,
-                        child: PopupMenuButton<String>(
-                          icon: Icon(
-                            Icons.more_vert,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
-                          color: const Color(0xFF2A2A2A),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          onSelected: (value) {
-                            HapticFeedbackHelper.trigger();
-                            if (value == 'edit') {
-                              _editHabit(habit);
-                            } else if (value == 'delete') {
-                              _deleteHabit(habit, habitService);
-                            }
-                          },
-                          itemBuilder: (BuildContext context) => [
-                            PopupMenuItem<String>(
-                              value: 'edit',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.edit,
-                                      color: AppTheme.primaryColor, size: 20),
-                                  const SizedBox(width: 12),
-                                  Text('Edit',
-                                      style: TextStyle(color: Colors.white)),
-                                ],
-                              ),
-                            ),
-                            PopupMenuItem<String>(
-                              value: 'delete',
-                              child: Row(
-                                children: [
-                                  Icon(Icons.delete,
-                                      color: Colors.red, size: 20),
-                                  const SizedBox(width: 12),
-                                  Text('Delete',
-                                      style: TextStyle(color: Colors.white)),
-                                ],
-                              ),
-                            ),
-                          ],
                         ),
                       ),
                     ],
                   ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 12),
 
-                  // Stats Row
-                  Container(
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: Colors.white.withOpacity(0.05),
-                        width: 1,
+                  const SizedBox(height: 12),
+
+                  // Layout based on selection
+                  if (_selectedLayout == HabitGridLayout.monthly)
+                    _buildMonthlyLayout(habit, habitService, stats)
+                  else ...[
+                    // Stats Row
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.05),
+                          width: 1,
+                        ),
                       ),
+                      child: _buildStatsRow(stats, habit.color),
                     ),
-                    child: _buildStatsRow(stats, habit.color),
-                  ),
 
-                  const SizedBox(height: 24),
+                    const SizedBox(height: 12),
 
-                  // Contribution Grid
-                  _buildContributionGrid(yearGrid, habit.color),
+                    // Contribution Grid based on selected layout
+                    _buildGridForLayout(habit, habitService),
+                  ],
                 ],
               ),
             ),
@@ -404,9 +456,223 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     );
   }
 
+  Widget _buildMonthlyLayout(
+      HabitModel habit, HabitService habitService, HabitStats stats) {
+    final monthData = habitService.getMonthlyGridData(habit.id, DateTime.now());
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildMonthlyGrid(monthData, habit.color),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildCompactStats(stats, habit.color),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCompactStats(HabitStats stats, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.05),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            children: [
+              _buildStatItem(
+                '${stats.completedDays}',
+                'Done',
+                Icons.check_circle_outline,
+                color,
+              ),
+              _buildStatItem(
+                '${stats.currentStreak}',
+                'Streak',
+                Icons.local_fire_department,
+                color,
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildStatItem(
+                '${stats.longestStreak}',
+                'Best',
+                Icons.emoji_events_outlined,
+                color,
+              ),
+              _buildStatItem(
+                '${stats.completionRate.toStringAsFixed(0)}%',
+                'Rate',
+                Icons.trending_up,
+                color,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGridForLayout(HabitModel habit, HabitService habitService) {
+    switch (_selectedLayout) {
+      case HabitGridLayout.weekly:
+        final weekData = habitService.getWeeklyGridData(
+            habit.id, DateTime.now().subtract(const Duration(days: 6)));
+        return _buildWeeklyGrid(weekData, habit.color);
+      case HabitGridLayout.monthly:
+        // Should not be called in new layout, but keeping as fallback
+        final monthData =
+            habitService.getMonthlyGridData(habit.id, DateTime.now());
+        return _buildMonthlyGrid(monthData, habit.color);
+      case HabitGridLayout.yearly:
+        final yearGrid =
+            habitService.getYearlyGridData(habit.id, DateTime.now().year);
+        return _buildContributionGrid(yearGrid, habit.color);
+    }
+  }
+
+  Widget _buildWeeklyGrid(List<HabitGridDay> weekData, Color habitColor) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: weekData.map((day) {
+          final isToday = day.date.day == DateTime.now().day &&
+              day.date.month == DateTime.now().month &&
+              day.date.year == DateTime.now().year;
+
+          return Column(
+            children: [
+              Text(
+                DateFormat('E').format(day.date)[0],
+                style: TextStyle(
+                  color: isToday
+                      ? habitColor
+                      : AppTheme.secondaryTextColor.withOpacity(0.7),
+                  fontSize: 12,
+                  fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: day.completed
+                      ? habitColor
+                      : Colors.white.withOpacity(0.05),
+                  shape: BoxShape.circle,
+                  border: isToday
+                      ? Border.all(color: habitColor.withOpacity(0.5), width: 1)
+                      : null,
+                ),
+                child: day.completed
+                    ? const Icon(Icons.check, size: 16, color: Colors.white)
+                    : null,
+              ),
+            ],
+          );
+        }).toList(),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyGrid(List<HabitGridDay> monthData, Color habitColor) {
+    // Calculate width for 7 columns with 24px items and 4px spacing
+    const double itemSize = 24.0;
+    const double spacing = 4.0;
+    const double gridWidth = (itemSize * 7) + (spacing * 6);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.black.withOpacity(0.2),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            DateFormat('MMMM yyyy').format(DateTime.now()),
+            style: TextStyle(
+              color: AppTheme.secondaryTextColor,
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: gridWidth,
+            child: GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 7,
+                crossAxisSpacing: spacing,
+                mainAxisSpacing: spacing,
+                childAspectRatio: 1.0, // Square items
+              ),
+              itemCount: monthData.length,
+              itemBuilder: (context, index) {
+                final day = monthData[index];
+                final isToday = day.date.day == DateTime.now().day &&
+                    day.date.month == DateTime.now().month &&
+                    day.date.year == DateTime.now().year;
+
+                return Tooltip(
+                  message:
+                      '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: day.completed
+                          ? habitColor
+                          : Colors.white.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(4),
+                      border: isToday
+                          ? Border.all(
+                              color: habitColor.withOpacity(0.5), width: 1)
+                          : null,
+                    ),
+                    child: Center(
+                      child: Text(
+                        '${day.date.day}',
+                        style: TextStyle(
+                          color: day.completed
+                              ? Colors.white
+                              : AppTheme.secondaryTextColor.withOpacity(0.5),
+                          fontSize: 10,
+                          fontWeight:
+                              isToday ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildStatsRow(HabitStats stats, Color color) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      // mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
         _buildStatItem(
           '${stats.completedDays}',
@@ -444,14 +710,14 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           Icon(
             icon,
             color: color,
-            size: 24,
+            size: 16,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 4),
           Text(
             value,
             style: AppTheme.bodyStyle.copyWith(
               fontWeight: FontWeight.bold,
-              fontSize: 18,
+              fontSize: 12,
               color: Colors.white,
             ),
           ),
@@ -501,52 +767,65 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     });
 
     return Container(
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
+      // padding: const EdgeInsets.all(8),
+      // decoration: BoxDecoration(
+      //   color: Colors.black.withOpacity(0.2),
+      //   borderRadius: BorderRadius.circular(12),
+      // ),
       child: SingleChildScrollView(
         controller: scrollController,
         scrollDirection: Axis.horizontal,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Month labels row
-            _buildMonthLabelsRow(yearGrid),
-            const SizedBox(height: 4),
+            Container(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.2),
+                borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(12),
+                    topRight: Radius.circular(12)),
+              ),
+              child: _buildMonthLabelsRow(yearGrid),
+            ),
+            // const SizedBox(height: 4),
             // Weekday labels and grid row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Weekday labels
-                Column(
-                  children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                      .map((day) => SizedBox(
-                            height: 11,
-                            child: Center(
-                              child: Text(
-                                day,
-                                style: TextStyle(
-                                  color: AppTheme.secondaryTextColor,
-                                  fontSize: 10,
-                                  fontFamily: 'Poppins',
-                                ),
-                              ),
-                            ),
-                          ))
-                      .toList(),
-                ),
-                const SizedBox(width: 4),
+                // Column(
+                //   children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
+                //       .map((day) => SizedBox(
+                //             height: 11,
+                //             child: Center(
+                //               child: Text(
+                //                 day,
+                //                 style: TextStyle(
+                //                   color: AppTheme.secondaryTextColor,
+                //                   fontSize: 10,
+                //                   fontFamily: 'Poppins',
+                //                 ),
+                //               ),
+                //             ),
+                //           ))
+                //       .toList(),
+                // ),
+                // const SizedBox(width: 4),
                 // Grid without separate scrolling
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: yearGrid.map((week) {
+                  children: yearGrid.asMap().entries.map((entry) {
+                    final index = entry.key;
+                    final week = entry.value;
                     return Column(
                       children: week.map((day) {
                         return Container(
                           width: 11,
                           height: 11,
-                          margin: const EdgeInsets.only(left: 3, bottom: 3),
+                          margin: EdgeInsets.only(
+                              left: index == 0 ? 0 : 3, bottom: 3),
                           decoration: BoxDecoration(
                             color: _getDayColor(day, habitColor),
                             borderRadius: BorderRadius.circular(2),
@@ -591,7 +870,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     final monthLabels = <Widget>[];
 
     // Add offset for day labels (S M T W T F S)
-    monthLabels.add(const SizedBox(width: 20));
+    monthLabels.add(const SizedBox(width: 3));
 
     // Sort months by their order
     final sortedMonths = monthFirstWeekIndex.keys.toList()..sort();
@@ -624,6 +903,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               fontSize: 10,
               color: AppTheme.primaryTextColor,
               fontFamily: 'Poppins',
+              fontWeight: FontWeight.bold,
             ),
             textAlign: TextAlign.left,
           ),
@@ -649,7 +929,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
       List<List<HabitGridDay>> yearGrid, int targetMonth) {
     // Each grid square is 11px + 3px margin = 14px
     // Each week has 7 days = 7 * 14px = 98px
-    double currentPosition = 20.0; // Offset for day labels (S M T W T F S)
+    double currentPosition = 0.0; // Offset for day labels (S M T W T F S)
 
     for (int weekIndex = 0; weekIndex < yearGrid.length; weekIndex++) {
       final week = yearGrid[weekIndex];
@@ -664,7 +944,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         }
 
         // Move to next week position
-        currentPosition += 98.0; // 7 days * 14px per day
+        currentPosition += 14.0; // 1 week width
       }
     }
 
@@ -701,73 +981,5 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         ),
       );
     }
-  }
-
-  void _editHabit(HabitModel habit) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => AddHabitScreen(habit: habit),
-      ),
-    ).then((_) {
-      if (mounted) {
-        context.read<HabitService>().loadHabits();
-      }
-    });
-  }
-
-  void _deleteHabit(HabitModel habit, HabitService habitService) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: AppTheme.darkCardColor,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Delete Habit',
-            style: TextStyle(color: AppTheme.textColor),
-          ),
-          content: Text(
-            'Are you sure you want to delete "${habit.name}"? This action cannot be undone.',
-            style: TextStyle(color: AppTheme.secondaryTextColor),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                HapticFeedbackHelper.trigger();
-                Navigator.pop(context);
-              },
-              child: Text(
-                'Cancel',
-                style: TextStyle(color: AppTheme.secondaryTextColor),
-              ),
-            ),
-            TextButton(
-              onPressed: () async {
-                HapticFeedbackHelper.trigger();
-                Navigator.pop(context);
-                await habitService.deleteHabit(habit.id);
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('"${habit.name}" deleted'),
-                      backgroundColor: Colors.red,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-              child: Text(
-                'Delete',
-                style:
-                    TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        );
-      },
-    );
   }
 }

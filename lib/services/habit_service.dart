@@ -206,28 +206,45 @@ class HabitService extends ChangeNotifier {
       }
     }
 
-    return maxStreak;
+    // Ensure we count the last streak
+    if (currentStreak > maxStreak) {
+      maxStreak = currentStreak;
+    }
+
+    // The longest streak should at least be the current streak
+    final current = getCurrentStreak(habitId);
+    return maxStreak > current ? maxStreak : current;
   }
 
   // Get completion rate for a habit in percentage
   double getCompletionRate(String habitId, {int? days}) {
     final entries = getHabitEntries(habitId);
 
+    // Calculate based on days since creation or specific duration
+    int totalDays;
+
     if (days != null) {
+      totalDays = days;
       final cutoffDate = DateTime.now().subtract(Duration(days: days));
       final recentEntries =
           entries.where((e) => e.date.isAfter(cutoffDate)).toList();
 
-      if (recentEntries.isEmpty) return 0.0;
+      if (recentEntries.isEmpty && totalDays > 0) return 0.0;
 
       final completedCount = recentEntries.where((e) => e.completed).length;
-      return (completedCount / recentEntries.length) * 100;
+      return (completedCount / totalDays) * 100;
+    } else {
+      // For all-time stats, use days since creation
+      final habit = _habits.firstWhere((h) => h.id == habitId,
+          orElse: () => HabitModel(name: 'Unknown'));
+      if (habit.name == 'Unknown') return 0.0;
+
+      totalDays = DateTime.now().difference(habit.createdAt).inDays + 1;
+      if (totalDays < 1) totalDays = 1;
+
+      final completedCount = entries.where((e) => e.completed).length;
+      return (completedCount / totalDays) * 100;
     }
-
-    if (entries.isEmpty) return 0.0;
-
-    final completedCount = entries.where((e) => e.completed).length;
-    return (completedCount / entries.length) * 100;
   }
 
   // Get habit statistics
