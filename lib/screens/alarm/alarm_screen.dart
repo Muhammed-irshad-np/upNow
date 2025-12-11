@@ -832,7 +832,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
           data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
           child: Theme(
             data: ThemeData.dark().copyWith(
-              colorScheme: const ColorScheme.dark(
+              colorScheme: ColorScheme.dark(
                 primary: AppTheme.primaryColor,
                 onSurface: AppTheme.textColor,
               ),

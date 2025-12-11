@@ -10,6 +10,7 @@ import 'package:upnow/services/habit_service.dart';
 import 'package:upnow/screens/add_habit_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
+import 'package:upnow/screens/habit_detail_screen.dart';
 
 class HabitHomeScreen extends StatefulWidget {
   const HabitHomeScreen({Key? key}) : super(key: key);
@@ -268,189 +269,206 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(24),
-        child: Stack(
-          children: [
-            // Decorative background glow - enhanced for more "pop"
-            Positioned(
-              right: -60,
-              top: -60,
-              child: Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: habit.color.withOpacity(0.2),
-                ),
-                child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
-                  child: Container(
-                    color: Colors.transparent,
+      child: GestureDetector(
+        onTap: () {
+          HapticFeedbackHelper.trigger();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => HabitDetailScreen(habit: habit),
+            ),
+          ).then((_) {
+            if (mounted) {
+              // Refresh habits when returning from detail screen (in case of edits/deletes)
+              context.read<HabitService>().loadHabits();
+            }
+          });
+        },
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // Decorative background glow - enhanced for more "pop"
+              Positioned(
+                right: -60,
+                top: -60,
+                child: Container(
+                  width: 180,
+                  height: 180,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: habit.color.withOpacity(0.2),
+                  ),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 60, sigmaY: 60),
+                    child: Container(
+                      color: Colors.transparent,
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Header
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Habit Icon
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: habit.color.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: habit.color.withOpacity(0.3),
-                            width: 1,
-                          ),
-                        ),
-                        child: Icon(
-                          () {
-                            const Map<String, IconData> iconMap = {
-                              '0xe3a7': Icons.fitness_center,
-                              '0xe0bb': Icons.book,
-                              '0xe798': Icons.water_drop,
-                              '0xe3e4': Icons.bedtime,
-                              '0xe4ba': Icons.self_improvement,
-                              '0xe57a': Icons.restaurant,
-                              '0xe566': Icons.directions_run,
-                              '0xe4cd': Icons.psychology,
-                              '0xe405': Icons.music_note,
-                              '0xe3a9': Icons.brush,
-                            };
-                            return iconMap[habit.icon] ?? Icons.star;
-                          }(),
-                          color: habit.color,
-                          size: 20,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Habit Name & Description
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.start,
-                          children: [
-                            Text(
-                              habit.name,
-                              textAlign: TextAlign.left,
-                              style: AppTheme.titleStyle.copyWith(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                letterSpacing: 0.5,
-                                shadows: [
-                                  Shadow(
-                                    color: Colors.black.withOpacity(0.5),
-                                    offset: const Offset(0, 2),
-                                    blurRadius: 4,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (habit.description != null &&
-                                habit.description!.isNotEmpty) ...[
-                              const SizedBox(height: 8),
-                              Text(
-                                habit.description!,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.7),
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w400,
-                                  height: 1.4,
-                                ),
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ],
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(width: 8),
-
-                      // Check Button
-                      GestureDetector(
-                        onTap: () {
-                          HapticFeedbackHelper.trigger();
-                          _toggleHabitCompletion(habit.id, today, habitService);
-                        },
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
+              Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Header
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Habit Icon
+                        Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isCompletedToday
-                                ? habit.color
-                                : Colors.black.withOpacity(0.3),
+                            color: habit.color.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: isCompletedToday
-                                  ? habit.color
-                                  : habit.color.withOpacity(0.3),
-                              width: 2,
+                              color: habit.color.withOpacity(0.3),
+                              width: 1,
                             ),
-                            boxShadow: isCompletedToday
-                                ? [
-                                    BoxShadow(
-                                      color: habit.color.withOpacity(0.6),
-                                      blurRadius: 16,
-                                      offset: const Offset(0, 4),
-                                    )
-                                  ]
-                                : [],
                           ),
                           child: Icon(
-                            Icons.check,
-                            color: isCompletedToday
-                                ? Colors.white
-                                : habit.color.withOpacity(0.5),
+                            () {
+                              const Map<String, IconData> iconMap = {
+                                '0xe3a7': Icons.fitness_center,
+                                '0xe0bb': Icons.book,
+                                '0xe798': Icons.water_drop,
+                                '0xe3e4': Icons.bedtime,
+                                '0xe4ba': Icons.self_improvement,
+                                '0xe57a': Icons.restaurant,
+                                '0xe566': Icons.directions_run,
+                                '0xe4cd': Icons.psychology,
+                                '0xe405': Icons.music_note,
+                                '0xe3a9': Icons.brush,
+                              };
+                              return iconMap[habit.icon] ?? Icons.star;
+                            }(),
+                            color: habit.color,
                             size: 20,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
+                        const SizedBox(width: 12),
 
-                  const SizedBox(height: 12),
-
-                  const SizedBox(height: 12),
-
-                  // Layout based on selection
-                  if (_selectedLayout == HabitGridLayout.monthly)
-                    _buildMonthlyLayout(habit, habitService, stats)
-                  else ...[
-                    // Stats Row
-                    Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.3),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: Colors.white.withOpacity(0.05),
-                          width: 1,
+                        // Habit Name & Description
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Text(
+                                habit.name,
+                                textAlign: TextAlign.left,
+                                style: AppTheme.titleStyle.copyWith(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black.withOpacity(0.5),
+                                      offset: const Offset(0, 2),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              if (habit.description != null &&
+                                  habit.description!.isNotEmpty) ...[
+                                const SizedBox(height: 8),
+                                Text(
+                                  habit.description!,
+                                  style: TextStyle(
+                                    color: Colors.white.withOpacity(0.7),
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.4,
+                                  ),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ],
+                            ],
+                          ),
                         ),
-                      ),
-                      child: _buildStatsRow(stats, habit.color),
+
+                        const SizedBox(width: 8),
+
+                        // Check Button
+                        GestureDetector(
+                          onTap: () {
+                            HapticFeedbackHelper.trigger();
+                            _toggleHabitCompletion(
+                                habit.id, today, habitService);
+                          },
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: isCompletedToday
+                                  ? habit.color
+                                  : Colors.black.withOpacity(0.3),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: isCompletedToday
+                                    ? habit.color
+                                    : habit.color.withOpacity(0.3),
+                                width: 2,
+                              ),
+                              boxShadow: isCompletedToday
+                                  ? [
+                                      BoxShadow(
+                                        color: habit.color.withOpacity(0.6),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      )
+                                    ]
+                                  : [],
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              color: isCompletedToday
+                                  ? Colors.white
+                                  : habit.color.withOpacity(0.5),
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
 
                     const SizedBox(height: 12),
 
-                    // Contribution Grid based on selected layout
-                    _buildGridForLayout(habit, habitService),
+                    const SizedBox(height: 12),
+
+                    // Layout based on selection
+                    if (_selectedLayout == HabitGridLayout.monthly)
+                      _buildMonthlyLayout(habit, habitService, stats)
+                    else ...[
+                      // Stats Row
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.05),
+                            width: 1,
+                          ),
+                        ),
+                        child: _buildStatsRow(stats, habit.color),
+                      ),
+
+                      const SizedBox(height: 12),
+
+                      // Contribution Grid based on selected layout
+                      _buildGridForLayout(habit, habitService),
+                    ],
                   ],
-                ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

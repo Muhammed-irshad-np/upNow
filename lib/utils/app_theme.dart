@@ -1,112 +1,212 @@
 import 'package:flutter/material.dart';
 
+enum AppThemeType {
+  tealOrange,
+  redOrange,
+  blueYellow,
+  purplePink,
+  pastelPink,
+  pastelBlue,
+  pastelMint,
+}
+
 class AppTheme {
-  // Primary colors - Changed to red theme
-  static const Color primaryColor = Color(0xFFE53935);
-  static const Color primaryColorLight = Color(0xFFFF6659);
-  static const Color primaryColorDark = Color(0xFFAB000D);
-  
+  static AppThemeType currentTheme = AppThemeType.tealOrange;
+
+  // Primary colors
+  static Color get primaryColor {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFFF9800);
+      case AppThemeType.blueYellow:
+        return const Color(0xFF2196F3);
+      case AppThemeType.purplePink:
+        return const Color(0xFF9C27B0);
+      case AppThemeType.pastelPink:
+        return const Color(0xFFFFB7B2);
+      case AppThemeType.pastelBlue:
+        return const Color(0xFFAEC6CF);
+      case AppThemeType.pastelMint:
+        return const Color(0xFF77DD77);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFF009688);
+    }
+  }
+
+  static Color get primaryColorLight {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFFF6659);
+      case AppThemeType.blueYellow:
+        return const Color(0xFF6EC6FF);
+      case AppThemeType.purplePink:
+        return const Color(0xFFD05CE3);
+      case AppThemeType.pastelPink:
+        return const Color(0xFFFFD1CE);
+      case AppThemeType.pastelBlue:
+        return const Color(0xFFD1E0E4);
+      case AppThemeType.pastelMint:
+        return const Color(0xFFB2EEB2);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFF4DB6AC);
+    }
+  }
+
+  static Color get primaryColorDark {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFAB000D);
+      case AppThemeType.blueYellow:
+        return const Color(0xFF0069C0);
+      case AppThemeType.purplePink:
+        return const Color(0xFF6A0080);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFF00796B);
+    }
+  }
+
   // Secondary colors
-  static const Color accentColor = Color(0xFFFF5722);
-  static const Color accentColorLight = Color(0xFFFF8A50);
-  static const Color accentColorDark = Color(0xFFBF360C);
-  
+  static Color get accentColor {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFFF5722);
+      case AppThemeType.blueYellow:
+        return const Color(0xFFFFEB3B);
+      case AppThemeType.purplePink:
+        return const Color(0xFFFF4081);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFFFF9800);
+    }
+  }
+
+  static Color get accentColorLight {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFFF8A50);
+      case AppThemeType.blueYellow:
+        return const Color(0xFFFFFF72);
+      case AppThemeType.purplePink:
+        return const Color(0xFFFF79B0);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFFFFB74D);
+    }
+  }
+
+  static Color get accentColorDark {
+    switch (currentTheme) {
+      case AppThemeType.redOrange:
+        return const Color(0xFFBF360C);
+      case AppThemeType.blueYellow:
+        return const Color(0xFFC8B900);
+      case AppThemeType.purplePink:
+        return const Color(0xFFC60055);
+      case AppThemeType.tealOrange:
+      default:
+        return const Color(0xFFF57C00);
+    }
+  }
+
   // Background colors - Changed to pure black and darker surfaces
   static const Color darkBackground = Color(0xFF000000);
   static const Color darkSurface = Color(0xFF0A0A0A);
   static const Color darkSurfaceLight = Color(0xFF1A1A1A);
   static const Color darkCardColor = Color(0xFF151515);
-  
+
   // Text colors - Keeping white as requested
   static const Color primaryTextColor = Color(0xFFFFFFFF);
   static const Color secondaryTextColor = Color(0xFFB3B3B3);
   static const Color textColor = Color(0xFFEEEEEE);
-  
+
   // Status colors
   static const Color successColor = Color(0xFF4CAF50);
   static const Color errorColor = Color(0xFFE53935);
   static const Color warningColor = Color(0xFFFFB300);
   static const Color infoColor = Color(0xFF2196F3);
-  
+
   // Sleep stage colors
   static const Color deepSleepColor = Color(0xFF3949AB);
   static const Color lightSleepColor = Color(0xFF5C6BC0);
   static const Color remSleepColor = Color(0xFF7986CB);
   static const Color awakeSleepColor = Color(0xFF9FA8DA);
-  
-  // Gradients - Updated to use red colors
-  static const LinearGradient primaryGradient = LinearGradient(
-    colors: [primaryColor, primaryColorLight],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-  
-  static const LinearGradient accentGradient = LinearGradient(
-    colors: [accentColor, accentColorLight],
-    begin: Alignment.topLeft,
-    end: Alignment.bottomRight,
-  );
-  
+
+  // Gradients
+  static LinearGradient get primaryGradient => LinearGradient(
+        colors: [primaryColor, primaryColorLight],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
+  static LinearGradient get accentGradient => LinearGradient(
+        colors: [accentColor, accentColorLight],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      );
+
   static const LinearGradient morningGradient = LinearGradient(
     colors: [Color(0xFF64B3F4), Color(0xFF3A8ED8)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static const LinearGradient wakeUpGradient = LinearGradient(
     colors: [Color(0xFFFFD54F), Color(0xFFFFB300)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   static const LinearGradient nightGradient = LinearGradient(
     colors: [Color(0xFF2B32B2), Color(0xFF1488CC)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-  
+
   // Text styles
   static const TextStyle headlineStyle = TextStyle(
     fontSize: 28,
     fontWeight: FontWeight.bold,
     color: textColor,
   );
-  
+
   static const TextStyle titleStyle = TextStyle(
     fontSize: 22,
     fontWeight: FontWeight.bold,
     color: textColor,
   );
-  
+
   static const TextStyle subtitleStyle = TextStyle(
     fontSize: 18,
     fontWeight: FontWeight.w500,
     color: textColor,
   );
-  
+
   static const TextStyle bodyStyle = TextStyle(
     fontSize: 16,
     color: textColor,
   );
-  
+
   static const TextStyle captionStyle = TextStyle(
     fontSize: 14,
     color: secondaryTextColor,
   );
-  
+
   static const TextStyle alarmTimeStyle = TextStyle(
     fontSize: 48,
     fontWeight: FontWeight.bold,
     color: textColor,
   );
-  
+
   // Get dark theme
   static ThemeData getDarkTheme() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
       primaryColor: primaryColor,
-      colorScheme: const ColorScheme.dark(
+      colorScheme: ColorScheme.dark(
         primary: primaryColor,
         secondary: accentColor,
         surface: darkSurface,
@@ -202,7 +302,7 @@ class AppTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: primaryColor,
-          side: const BorderSide(color: primaryColor, width: 2),
+          side: BorderSide(color: primaryColor, width: 2),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -250,7 +350,7 @@ class AppTheme {
           fontFamily: 'Poppins',
         ),
       ),
-      bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+      bottomNavigationBarTheme: BottomNavigationBarThemeData(
         backgroundColor: darkSurface,
         selectedItemColor: primaryColor,
         unselectedItemColor: secondaryTextColor,
@@ -262,7 +362,8 @@ class AppTheme {
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
         fillColor: darkSurfaceLight,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
@@ -273,7 +374,7 @@ class AppTheme {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primaryColor, width: 2),
+          borderSide: BorderSide(color: primaryColor, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -293,4 +394,4 @@ class AppTheme {
       fontFamily: 'Poppins',
     );
   }
-} 
+}

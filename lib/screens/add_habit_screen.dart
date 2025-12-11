@@ -36,27 +36,46 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             body: SafeArea(
               child: Form(
                 key: habitFormProvider.formKey,
-                child: SingleChildScrollView(
-                  padding: EdgeInsets.all(16.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildBasicInfoSection(habitFormProvider),
-                      SizedBox(height: 24.h),
-                      _buildFrequencySection(habitFormProvider),
-                      SizedBox(height: 24.h),
-                      _buildCustomizationSection(habitFormProvider),
-                      SizedBox(height: 24.h),
-                      _buildAlarmSection(habitFormProvider),
-                      SizedBox(height: 32.h),
-                      GradientButton(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: EdgeInsets.all(16.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildBasicInfoSection(habitFormProvider),
+                            SizedBox(height: 24.h),
+                            _buildFrequencySection(habitFormProvider),
+                            SizedBox(height: 24.h),
+                            _buildCustomizationSection(habitFormProvider),
+                            SizedBox(height: 24.h),
+                            _buildAlarmSection(habitFormProvider),
+                            SizedBox(height: 16.h),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+                      decoration: BoxDecoration(
+                        color: AppTheme.darkBackground,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 10,
+                            offset: const Offset(0, -2),
+                          ),
+                        ],
+                      ),
+                      child: GradientButton(
                         text: widget.habit == null
                             ? 'Create Habit'
                             : 'Update Habit',
                         onPressed: () => _saveHabit(context, habitFormProvider),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),

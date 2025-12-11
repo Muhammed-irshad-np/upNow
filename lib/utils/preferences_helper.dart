@@ -65,4 +65,16 @@ class PreferencesHelper {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(key, value);
   }
+
+  static const String _themeKey = 'theme_key';
+
+  static Future<void> setTheme(String themeName) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_themeKey, themeName);
+  }
+
+  static Future<String?> getTheme() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_themeKey);
+  }
 }

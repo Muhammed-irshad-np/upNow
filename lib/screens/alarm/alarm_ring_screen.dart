@@ -8,7 +8,7 @@ import 'package:intl/intl.dart';
 
 class AlarmRingScreen extends StatefulWidget {
   final AlarmModel alarm;
-  
+
   const AlarmRingScreen({Key? key, required this.alarm}) : super(key: key);
 
   @override
@@ -31,7 +31,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
               const SizedBox(height: 16),
               Text(
                 widget.alarm.label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -48,25 +48,25 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       ),
     );
   }
-  
+
   Widget _buildTimeDisplay() {
     final settings = Provider.of<SettingsProvider>(context);
     final now = DateTime.now();
-    
-    final formattedTime = settings.is24HourFormat 
+
+    final formattedTime = settings.is24HourFormat
         ? DateFormat.Hm().format(now) // HH:mm
         : DateFormat.jm().format(now); // h:mm a
-    
+
     return Text(
       formattedTime,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 80,
         fontWeight: FontWeight.bold,
         color: AppTheme.primaryColor,
       ),
     );
   }
-  
+
   Widget _buildDismissOptions() {
     // Different dismiss methods based on alarm settings
     switch (widget.alarm.dismissType) {
@@ -97,7 +97,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         );
     }
   }
-  
+
   // Handle alarm dismissal
   void _dismissAlarm() {
     // If this is a one-time alarm, we'll delete it automatically
@@ -108,7 +108,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     }
     Navigator.of(context).pop();
   }
-  
+
   Widget _buildMathProblem() {
     // Simple math problem implementation
     return Column(
@@ -150,7 +150,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       ],
     );
   }
-  
+
   Widget _buildSnoozeButton() {
     return TextButton(
       onPressed: () {
@@ -166,4 +166,4 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       ),
     );
   }
-} 
+}

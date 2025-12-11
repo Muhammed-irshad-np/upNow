@@ -55,6 +55,11 @@ class SettingsScreen extends StatelessWidget {
                   height: 1.h,
                   color: AppTheme.darkBackground.withOpacity(0.5),
                 ),
+                _buildThemeSetting(context),
+                Container(
+                  height: 1.h,
+                  color: AppTheme.darkBackground.withOpacity(0.5),
+                ),
                 _buildHapticFeedbackSetting(context),
                 _buildSettingTile(
                   icon: Icons.language_outlined,
@@ -413,6 +418,124 @@ class SettingsScreen extends StatelessWidget {
         children: children,
       ),
     );
+  }
+
+  Widget _buildThemeSetting(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return _buildSettingTile(
+          icon: Icons.color_lens_outlined,
+          title: 'Theme',
+          trailing: Text(
+            _getThemeName(settings.currentTheme),
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: AppTheme.secondaryTextColor,
+            ),
+          ),
+          onTap: () {
+            _showThemeSelectionDialog(context, settings);
+          },
+          isLast: false,
+        );
+      },
+    );
+  }
+
+  String _getThemeName(AppThemeType theme) {
+    switch (theme) {
+      case AppThemeType.tealOrange:
+        return 'Teal';
+      case AppThemeType.redOrange:
+        return 'Orange';
+      case AppThemeType.blueYellow:
+        return 'Blue';
+      case AppThemeType.purplePink:
+        return 'Purple';
+      case AppThemeType.pastelPink:
+        return 'Pastel Pink';
+      case AppThemeType.pastelBlue:
+        return 'Pastel Blue';
+      case AppThemeType.pastelMint:
+        return 'Pastel Mint';
+    }
+  }
+
+  void _showThemeSelectionDialog(
+      BuildContext context, SettingsProvider settings) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppTheme.darkSurface,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: EdgeInsets.symmetric(vertical: 16.h),
+                child: Text(
+                  'Select Theme',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textColor,
+                  ),
+                ),
+              ),
+              ...AppThemeType.values.map((theme) {
+                final isSelected = settings.currentTheme == theme;
+                return ListTile(
+                  leading: CircleAvatar(
+                    backgroundColor: _getThemePrimaryColor(theme),
+                    radius: 12.r,
+                  ),
+                  title: Text(
+                    _getThemeName(theme),
+                    style: TextStyle(
+                      color: isSelected
+                          ? AppTheme.primaryColor
+                          : AppTheme.textColor,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  trailing: isSelected
+                      ? Icon(Icons.check, color: AppTheme.primaryColor)
+                      : null,
+                  onTap: () {
+                    settings.updateTheme(theme);
+                    Navigator.pop(context);
+                  },
+                );
+              }).toList(),
+              SizedBox(height: 16.h),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Color _getThemePrimaryColor(AppThemeType theme) {
+    switch (theme) {
+      case AppThemeType.tealOrange:
+        return const Color(0xFF009688);
+      case AppThemeType.redOrange:
+        return const Color(0xFFFF9800);
+      case AppThemeType.blueYellow:
+        return const Color(0xFF2196F3);
+      case AppThemeType.purplePink:
+        return const Color(0xFF9C27B0);
+      case AppThemeType.pastelPink:
+        return const Color(0xFFFFB7B2);
+      case AppThemeType.pastelBlue:
+        return const Color(0xFFAEC6CF);
+      case AppThemeType.pastelMint:
+        return const Color(0xFF77DD77);
+    }
   }
 
   Widget _buildSettingTile({

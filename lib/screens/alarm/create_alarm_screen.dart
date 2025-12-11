@@ -14,7 +14,7 @@ import 'package:upnow/services/permissions_manager.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
-  
+
   const CreateAlarmScreen({Key? key, this.alarm}) : super(key: key);
 
   @override
@@ -34,65 +34,84 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           selection: TextSelection.collapsed(offset: form.label.length),
         );
         return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
-      appBar: AppBar(
-        title: Text(widget.alarm == null ? 'Add Alarm' : 'Edit Alarm'),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding:  EdgeInsets.all(16.w),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildTimeSelector(form),
-              SizedBox(height: 24.h),
-              _buildLabelInput(form),
-              SizedBox(height: 24.h),
-              _buildDismissTypeSelector(form),
-              SizedBox(height: 24.h),
-              _buildRepeatSelector(form),
-              if (form.repeat == AlarmRepeat.custom) 
-                Padding(
-                  padding: EdgeInsets.only(top: 16.h),
-                  child: _buildWeekdaySelector(form),
-                ),
-              SizedBox(height: 24.h),
-              _buildSoundSelector(form),
-              SizedBox(height: 24.h),
-              _buildVibrationOption(form),
-              SizedBox(height: 24.h),
-          
-              GradientButton(
-                text: 'Save Alarm',
-                onPressed: () => _saveAlarm(context, form),
-              ),
-            ],
+          backgroundColor: AppTheme.darkBackground,
+          appBar: AppBar(
+            title: Text(widget.alarm == null ? 'Add Alarm' : 'Edit Alarm'),
+            backgroundColor: Colors.transparent,
+            elevation: 0,
           ),
-        ),
-      ),
-    );
+          body: SafeArea(
+            child: Column(
+              children: [
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: EdgeInsets.all(16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildTimeSelector(form),
+                        SizedBox(height: 24.h),
+                        _buildLabelInput(form),
+                        SizedBox(height: 24.h),
+                        _buildDismissTypeSelector(form),
+                        SizedBox(height: 24.h),
+                        _buildRepeatSelector(form),
+                        if (form.repeat == AlarmRepeat.custom)
+                          Padding(
+                            padding: EdgeInsets.only(top: 16.h),
+                            child: _buildWeekdaySelector(form),
+                          ),
+                        SizedBox(height: 24.h),
+                        _buildSoundSelector(form),
+                        SizedBox(height: 24.h),
+                        _buildVibrationOption(form),
+                        SizedBox(height: 16.h),
+                      ],
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 16.h),
+                  decoration: BoxDecoration(
+                    color: AppTheme.darkBackground,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
+                      ),
+                    ],
+                  ),
+                  child: GradientButton(
+                    text: 'Save Alarm',
+                    onPressed: () => _saveAlarm(context, form),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
       }),
     );
   }
 
   Widget _buildTimeSelector(AlarmFormProvider form) {
     final settings = Provider.of<SettingsProvider>(context);
-    
+
     // Create a DateTime object for formatting
-    final time = DateTime(2023, 1, 1, form.selectedTime.hour, form.selectedTime.minute);
-    final formattedTime = settings.is24HourFormat 
+    final time =
+        DateTime(2023, 1, 1, form.selectedTime.hour, form.selectedTime.minute);
+    final formattedTime = settings.is24HourFormat
         ? DateFormat.Hm().format(time) // HH:mm
         : DateFormat.jm().format(time); // h:mm a
-    
+
     return Center(
       child: InkWell(
         onTap: () => _showTimePicker(context, form),
         borderRadius: BorderRadius.circular(16.r),
         child: Container(
           width: double.infinity,
-          padding:  EdgeInsets.symmetric(vertical: 24.h),
+          padding: EdgeInsets.symmetric(vertical: 24.h),
           decoration: BoxDecoration(
             color: AppTheme.darkCardColor,
             borderRadius: BorderRadius.circular(16),
@@ -101,13 +120,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             children: [
               Text(
                 formattedTime,
-                style:  TextStyle(
+                style: TextStyle(
                   fontSize: 60.sp,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textColor,
                 ),
               ),
-               SizedBox(height: 8.h),
+              SizedBox(height: 8.h),
               const Text(
                 'Tap to change',
                 style: TextStyle(
@@ -129,20 +148,22 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Label',
           style: AppTheme.subtitleStyle,
         ),
-         SizedBox(height: 8.h),
+        SizedBox(height: 8.h),
         TextField(
           controller: _labelController,
           style: const TextStyle(color: AppTheme.textColor),
           decoration: InputDecoration(
             hintText: 'Alarm label',
-            hintStyle: TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
+            hintStyle:
+                TextStyle(color: AppTheme.secondaryTextColor.withOpacity(0.5)),
             filled: true,
             fillColor: AppTheme.darkCardColor,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
             ),
-            prefixIcon: const Icon(Icons.label_outline, color: AppTheme.secondaryTextColor),
+            prefixIcon: const Icon(Icons.label_outline,
+                color: AppTheme.secondaryTextColor),
           ),
           onChanged: (value) => form.setLabel(value),
         ),
@@ -158,12 +179,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Dismiss Method',
           style: AppTheme.subtitleStyle,
         ),
-         SizedBox(height: 8.h),
+        SizedBox(height: 8.h),
         const Text(
           'How would you like to dismiss the alarm?',
           style: TextStyle(color: AppTheme.secondaryTextColor),
         ),
-         SizedBox(height: 16.h),
+        SizedBox(height: 16.h),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(
@@ -218,12 +239,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     required Color color,
   }) {
     final isSelected = form.dismissType == type;
-    final bool isComingSoon = type != DismissType.math && type != DismissType.normal;
-    
+    final bool isComingSoon =
+        type != DismissType.math && type != DismissType.normal;
+
     Widget optionWidget = Container(
       width: 110.w,
-      margin:  EdgeInsets.only(right: 12.w),
-      padding:  EdgeInsets.all(12.w),
+      margin: EdgeInsets.only(right: 12.w),
+      padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
         color: isSelected ? color.withOpacity(0.2) : AppTheme.darkCardColor,
         borderRadius: BorderRadius.circular(12.r),
@@ -237,19 +259,20 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             color: isSelected ? color : AppTheme.secondaryTextColor,
             size: 32.h,
           ),
-           SizedBox(height: 8.r),
+          SizedBox(height: 8.r),
           Text(
             title,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? AppTheme.textColor : AppTheme.secondaryTextColor,
+              color:
+                  isSelected ? AppTheme.textColor : AppTheme.secondaryTextColor,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
             ),
           ),
         ],
       ),
     );
-    
+
     // Wrap with stack to show the "SOON" label if needed
     if (isComingSoon) {
       optionWidget = Stack(
@@ -259,12 +282,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             top: 0,
             right: 12.w,
             child: Container(
-              padding:  EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
               decoration: BoxDecoration(
                 color: Colors.red,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child:  Text(
+              child: Text(
                 'SOON',
                 style: TextStyle(
                   color: Colors.white,
@@ -276,9 +299,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           ),
         ],
       );
-      
     }
-    
+
     return GestureDetector(
       onTap: () {
         if (isComingSoon) {
@@ -301,7 +323,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           'Repeat',
           style: AppTheme.subtitleStyle,
         ),
-         SizedBox(height: 16.h),
+        SizedBox(height: 16.h),
         Wrap(
           spacing: 8,
           children: [
@@ -316,13 +338,15 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildRepeatOption(AlarmFormProvider form, AlarmRepeat repeat, String label) {
+  Widget _buildRepeatOption(
+      AlarmFormProvider form, AlarmRepeat repeat, String label) {
     final isSelected = form.repeat == repeat;
-    
+
     return GestureDetector(
       onTap: () => form.setRepeat(repeat),
       child: Chip(
-        backgroundColor: isSelected ? AppTheme.primaryColor : AppTheme.darkCardColor,
+        backgroundColor:
+            isSelected ? AppTheme.primaryColor : AppTheme.darkCardColor,
         label: Text(
           label,
           style: TextStyle(
@@ -336,7 +360,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   Widget _buildWeekdaySelector(AlarmFormProvider form) {
     const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -347,7 +371,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             fontWeight: FontWeight.w500,
           ),
         ),
-         SizedBox(height: 8.h),
+        SizedBox(height: 8.h),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: List.generate(7, (index) {
@@ -360,7 +384,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   Widget _buildDayToggle(AlarmFormProvider form, int dayIndex, String label) {
     final isSelected = form.weekdays[dayIndex];
-    
+
     return GestureDetector(
       onTap: () => form.toggleWeekday(dayIndex),
       child: Container(
@@ -384,23 +408,25 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   }
 
   Widget _buildSoundSelector(AlarmFormProvider form) {
-    String displaySound = form.selectedSoundPath != null && form.selectedSoundPath!.isNotEmpty
-        ? p.basename(form.selectedSoundPath!)
-        : 'Default'; 
+    String displaySound =
+        form.selectedSoundPath != null && form.selectedSoundPath!.isNotEmpty
+            ? p.basename(form.selectedSoundPath!)
+            : 'Default';
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.music_note_outlined, color: AppTheme.secondaryTextColor),
+      leading: const Icon(Icons.music_note_outlined,
+          color: AppTheme.secondaryTextColor),
       title: const Text('Sound', style: AppTheme.subtitleStyle),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-             displaySound,
-             style:  TextStyle(color: AppTheme.secondaryTextColor, fontSize: 16.h)
-          ),
-           SizedBox(width: 8.w),
-           Icon(Icons.arrow_forward_ios, size: 16.sp, color: AppTheme.secondaryTextColor),
+          Text(displaySound,
+              style: TextStyle(
+                  color: AppTheme.secondaryTextColor, fontSize: 16.h)),
+          SizedBox(width: 8.w),
+          Icon(Icons.arrow_forward_ios,
+              size: 16.sp, color: AppTheme.secondaryTextColor),
         ],
       ),
       onTap: () => _showSoundSelectionDialog(context, form),
@@ -409,12 +435,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   void _showSoundSelectionDialog(BuildContext context, AlarmFormProvider form) {
     // Store the initially selected path to manage temporary selection in the dialog
-    String? tempSelectedPath = form.selectedSoundPath; 
+    String? tempSelectedPath = form.selectedSoundPath;
 
     showDialog(
       context: context,
       // Prevent dialog dismissal by tapping outside
-      barrierDismissible: false, 
+      barrierDismissible: false,
       builder: (BuildContext context) {
         // Use StatefulBuilder to manage state within the dialog
         return StatefulBuilder(
@@ -422,30 +448,35 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             return SimpleDialog(
               title: const Text('Select Alarm Sound'),
               backgroundColor: AppTheme.darkCardColor,
-              titleTextStyle: const TextStyle(color: AppTheme.textColor, fontSize: 20, fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              titleTextStyle: const TextStyle(
+                  color: AppTheme.textColor,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16)),
               children: [
                 // Map sounds to dialog options
                 ...form.availableSounds.map((soundPath) {
                   final fileName = p.basename(soundPath);
                   // Check if this sound is the one temporarily selected in the dialog
-                  final isTemporarilySelected = tempSelectedPath == soundPath; 
+                  final isTemporarilySelected = tempSelectedPath == soundPath;
 
                   return SimpleDialogOption(
                     onPressed: () async {
                       String relativePath = ''; // Declare outside try
                       try {
                         await form.stopPreview(); // Stop previous sound
-                        relativePath = soundPath.replaceFirst('assets/', ''); // Assign inside try
-                        debugPrint('Previewing sound: $relativePath'); 
+                        relativePath = soundPath.replaceFirst(
+                            'assets/', ''); // Assign inside try
+                        debugPrint('Previewing sound: $relativePath');
                         await form.previewSound(soundPath); // Play preview
-                        
+
                         // Update the temporary selection within the dialog ONLY
-                        dialogSetState(() { 
+                        dialogSetState(() {
                           tempSelectedPath = soundPath;
                         });
-
-                      } catch (e, stackTrace) { // Add stackTrace here
+                      } catch (e, stackTrace) {
+                        // Add stackTrace here
                         GlobalErrorHandler.onException(e, stackTrace);
                       }
                       // DO NOT pop navigator here
@@ -454,45 +485,55 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          fileName,
-                          style: TextStyle(
-                            // Highlight the temporarily selected item
-                            color: isTemporarilySelected ? Theme.of(context).primaryColor : AppTheme.textColor, 
-                            fontSize: 16.sp,
-                            fontWeight: isTemporarilySelected ? FontWeight.bold : FontWeight.normal,
-                          )
-                        ),
+                        Text(fileName,
+                            style: TextStyle(
+                              // Highlight the temporarily selected item
+                              color: isTemporarilySelected
+                                  ? Theme.of(context).primaryColor
+                                  : AppTheme.textColor,
+                              fontSize: 16.sp,
+                              fontWeight: isTemporarilySelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            )),
                         if (isTemporarilySelected) // Show check only for temporary selection
-                          Icon(Icons.music_note, color: Theme.of(context).primaryColor, size: 20.h),
+                          Icon(Icons.music_note,
+                              color: Theme.of(context).primaryColor,
+                              size: 20.h),
                         // Optional: Show a different indicator for the *originally* selected sound
-                        // else if (_selectedSoundPath == soundPath) 
+                        // else if (_selectedSoundPath == soundPath)
                         //   Icon(Icons.check_circle_outline, color: AppTheme.secondaryTextColor, size: 20),
                       ],
                     ),
                   );
                 }).toList(),
-                
+
                 // Add Cancel and OK buttons
                 Padding(
-                  padding:  EdgeInsets.only(top: 16.0.h, right: 16.0.w, bottom: 8.0.h),
+                  padding: EdgeInsets.only(
+                      top: 16.0.h, right: 16.0.w, bottom: 8.0.h),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        child: const Text('Cancel', style: TextStyle(color: AppTheme.secondaryTextColor)),
+                        child: const Text('Cancel',
+                            style:
+                                TextStyle(color: AppTheme.secondaryTextColor)),
                         onPressed: () async {
                           await form.stopPreview(); // Stop preview on cancel
                           Navigator.pop(context); // Close dialog
                         },
                       ),
-                       SizedBox(width: 8.w),
+                      SizedBox(width: 8.w),
                       TextButton(
-                        child: Text('OK', style: TextStyle(color: Theme.of(context).primaryColor, fontWeight: FontWeight.bold)),
+                        child: Text('OK',
+                            style: TextStyle(
+                                color: Theme.of(context).primaryColor,
+                                fontWeight: FontWeight.bold)),
                         onPressed: () async {
-                            await form.stopPreview(); // Stop preview on OK
-                            form.setSelectedSoundPath(tempSelectedPath);
-                           Navigator.pop(context); // Close dialog
+                          await form.stopPreview(); // Stop preview on OK
+                          form.setSelectedSoundPath(tempSelectedPath);
+                          Navigator.pop(context); // Close dialog
                         },
                       ),
                     ],
@@ -534,7 +575,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           fontWeight: FontWeight.w500,
         ),
       ),
-      subtitle:  Text(
+      subtitle: Text(
         'Set as your daily wake-up alarm',
         style: TextStyle(
           color: AppTheme.secondaryTextColor,
@@ -551,7 +592,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Future<void> _showTimePicker(BuildContext context, AlarmFormProvider form) async {
+  Future<void> _showTimePicker(
+      BuildContext context, AlarmFormProvider form) async {
     final pickedTime = await showTimePicker(
       context: context,
       initialTime: form.selectedTime,
@@ -562,7 +604,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
           child: Theme(
             data: ThemeData.dark().copyWith(
-              colorScheme: const ColorScheme.dark(
+              colorScheme: ColorScheme.dark(
                 primary: AppTheme.primaryColor,
                 onSurface: AppTheme.textColor,
               ),
@@ -577,7 +619,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         );
       },
     );
-    
+
     if (pickedTime != null) {
       form.setSelectedTime(pickedTime);
     }
@@ -620,17 +662,18 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
   void _showTooltip(BuildContext context, String message) {
     final overlay = Overlay.of(context);
     late OverlayEntry overlayEntry;
-    
+
     overlayEntry = OverlayEntry(
       builder: (context) => Positioned(
-        top: MediaQuery.of(context).size.height * 0.3, // Show in middle of screen
+        top: MediaQuery.of(context).size.height *
+            0.3, // Show in middle of screen
         left: MediaQuery.of(context).size.width * 0.1,
         right: MediaQuery.of(context).size.width * 0.1,
         child: Material(
           color: Colors.transparent,
           child: Center(
             child: Container(
-              padding:  EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
                 color: AppTheme.darkCardColor,
                 borderRadius: BorderRadius.circular(8.r),
@@ -640,15 +683,15 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
-                    blurRadius: 8.r,
+                    color: AppTheme.primaryColor.withOpacity(0.3),
+                    blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
               child: Text(
                 message,
-                style:  TextStyle(
+                style: TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w500,
@@ -660,12 +703,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         ),
       ),
     );
-    
+
     overlay.insert(overlayEntry);
-    
+
     // Auto-remove after 2 seconds
     Future.delayed(const Duration(seconds: 2), () {
       overlayEntry.remove();
     });
   }
-} 
+}
