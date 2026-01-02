@@ -54,7 +54,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           'My Habits',
           style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppTheme.darkBackground,
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
         centerTitle: true,
         bottom: PreferredSize(

@@ -5,10 +5,12 @@ import 'package:upnow/utils/app_theme.dart';
 class SettingsProvider with ChangeNotifier {
   bool _is24HourFormat = false;
   bool _isHapticFeedbackEnabled = true;
+  bool _isDarkMode = true;
   AppThemeType _currentTheme = AppThemeType.tealOrange;
 
   bool get is24HourFormat => _is24HourFormat;
   bool get isHapticFeedbackEnabled => _isHapticFeedbackEnabled;
+  bool get isDarkMode => _isDarkMode;
   AppThemeType get currentTheme => _currentTheme;
 
   SettingsProvider() {
@@ -19,6 +21,8 @@ class SettingsProvider with ChangeNotifier {
     _is24HourFormat = await PreferencesHelper.is24HourFormat();
     _isHapticFeedbackEnabled =
         await PreferencesHelper.isHapticFeedbackEnabled();
+    _isDarkMode = await PreferencesHelper.isDarkMode();
+    AppTheme.isDarkMode = _isDarkMode;
 
     final themeName = await PreferencesHelper.getTheme();
     if (themeName != null) {
@@ -47,6 +51,13 @@ class SettingsProvider with ChangeNotifier {
     _currentTheme = theme;
     AppTheme.currentTheme = theme;
     await PreferencesHelper.setTheme(theme.toString());
+    notifyListeners();
+  }
+
+  Future<void> updateDarkMode(bool isDark) async {
+    _isDarkMode = isDark;
+    AppTheme.isDarkMode = isDark;
+    await PreferencesHelper.setDarkMode(isDark);
     notifyListeners();
   }
 }

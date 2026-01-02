@@ -96,7 +96,11 @@ class MyApp extends StatelessWidget {
                 title: 'UpNow',
                 debugShowCheckedModeBanner: false,
                 navigatorKey: navigationKey,
-                theme: AppTheme.getDarkTheme(),
+                theme: AppTheme.getLightTheme(),
+                darkTheme: AppTheme.getDarkTheme(),
+                themeMode: settingsProvider.isDarkMode
+                    ? ThemeMode.dark
+                    : ThemeMode.light,
                 home: const SplashScreen(),
                 routes: {
                   '/create_alarm': (context) => const CreateAlarmScreen(),

@@ -80,7 +80,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
       case DismissType.math:
         return _buildMathProblem();
       case DismissType.shake:
-        return const Text(
+        return Text(
           'Shake your phone to dismiss',
           style: TextStyle(
             color: AppTheme.textColor,
@@ -113,7 +113,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
     // Simple math problem implementation
     return Column(
       children: [
-        const Text(
+         Text(
           '8 + 7 = ?',
           style: TextStyle(
             color: AppTheme.textColor,
@@ -124,7 +124,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         const SizedBox(height: 16),
         TextField(
           keyboardType: TextInputType.number,
-          style: const TextStyle(color: AppTheme.textColor),
+          style: TextStyle(color: AppTheme.textColor),
           decoration: InputDecoration(
             hintText: 'Enter your answer',
             filled: true,
@@ -157,7 +157,7 @@ class _AlarmRingScreenState extends State<AlarmRingScreen> {
         // Handle snooze logic here
         Navigator.of(context).pop(true); // true indicates snooze
       },
-      child: const Text(
+      child: Text(
         'Snooze for 10 minutes',
         style: TextStyle(
           color: AppTheme.secondaryTextColor,

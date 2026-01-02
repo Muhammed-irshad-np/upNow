@@ -117,10 +117,32 @@ class AppTheme {
   static const Color darkSurfaceLight = Color(0xFF1A1A1A);
   static const Color darkCardColor = Color(0xFF151515);
 
-  // Text colors - Keeping white as requested
-  static const Color primaryTextColor = Color(0xFFFFFFFF);
-  static const Color secondaryTextColor = Color(0xFFB3B3B3);
-  static const Color textColor = Color(0xFFEEEEEE);
+  // Light theme colors
+  static const Color lightBackground = Color(0xFFFFFFFF);
+  static const Color lightSurface = Color(0xFFF8F9FA);
+  static const Color lightSurfaceLight = Color(0xFFE9ECEF);
+  static const Color lightCardColor = Color(0xFFFFFFFF);
+
+  // Text colors
+  static const Color primaryTextColorDark = Color(0xFFFFFFFF);
+  static const Color secondaryTextColorDark = Color(0xFFB3B3B3);
+  static const Color textColorDark = Color(0xFFEEEEEE);
+
+  static const Color primaryTextColorLight = Color(0xFF1A1A1A);
+  static const Color secondaryTextColorLight = Color(0xFF6C757D);
+  static const Color textColorLight = Color(0xFF212529);
+
+  static bool isDarkMode = true;
+
+  // Getters for theme-specific colors
+  static Color get backgroundColor =>
+      isDarkMode ? darkBackground : lightBackground;
+  static Color get surfaceColor => isDarkMode ? darkSurface : lightSurface;
+  static Color get primaryTextColor =>
+      isDarkMode ? primaryTextColorDark : primaryTextColorLight;
+  static Color get secondaryTextColor =>
+      isDarkMode ? secondaryTextColorDark : secondaryTextColorLight;
+  static Color get textColor => isDarkMode ? textColorDark : textColorLight;
 
   // Status colors
   static const Color successColor = Color(0xFF4CAF50);
@@ -166,119 +188,146 @@ class AppTheme {
   );
 
   // Text styles
-  static const TextStyle headlineStyle = TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
+  static TextStyle get headlineStyle => TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      );
 
-  static const TextStyle titleStyle = TextStyle(
-    fontSize: 22,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
+  static TextStyle get titleStyle => TextStyle(
+        fontSize: 22,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      );
 
-  static const TextStyle subtitleStyle = TextStyle(
-    fontSize: 18,
-    fontWeight: FontWeight.w500,
-    color: textColor,
-  );
+  static TextStyle get subtitleStyle => TextStyle(
+        fontSize: 18,
+        fontWeight: FontWeight.w500,
+        color: textColor,
+      );
 
-  static const TextStyle bodyStyle = TextStyle(
-    fontSize: 16,
-    color: textColor,
-  );
+  static TextStyle get bodyStyle => TextStyle(
+        fontSize: 16,
+        color: textColor,
+      );
 
-  static const TextStyle captionStyle = TextStyle(
-    fontSize: 14,
-    color: secondaryTextColor,
-  );
+  static TextStyle get captionStyle => TextStyle(
+        fontSize: 14,
+        color: secondaryTextColor,
+      );
 
-  static const TextStyle alarmTimeStyle = TextStyle(
-    fontSize: 48,
-    fontWeight: FontWeight.bold,
-    color: textColor,
-  );
+  static TextStyle get alarmTimeStyle => TextStyle(
+        fontSize: 48,
+        fontWeight: FontWeight.bold,
+        color: textColor,
+      );
 
   // Get dark theme
   static ThemeData getDarkTheme() {
+    return _buildTheme(Brightness.dark);
+  }
+
+  // Get light theme
+  static ThemeData getLightTheme() {
+    return _buildTheme(Brightness.light);
+  }
+
+  static ThemeData _buildTheme(Brightness brightness) {
+    final bool isDark = brightness == Brightness.dark;
+    final Color background = isDark ? darkBackground : lightBackground;
+    final Color surface = isDark ? darkSurface : lightSurface;
+    final Color surfaceLight = isDark ? darkSurfaceLight : lightSurfaceLight;
+    final Color textPrimary =
+        isDark ? primaryTextColorDark : primaryTextColorLight;
+    final Color textSecondary =
+        isDark ? secondaryTextColorDark : secondaryTextColorLight;
+
     return ThemeData(
       useMaterial3: true,
-      brightness: Brightness.dark,
+      brightness: brightness,
       primaryColor: primaryColor,
-      colorScheme: ColorScheme.dark(
-        primary: primaryColor,
-        secondary: accentColor,
-        surface: darkSurface,
-        background: darkBackground,
-        error: errorColor,
-      ),
-      scaffoldBackgroundColor: darkBackground,
-      appBarTheme: const AppBarTheme(
-        backgroundColor: darkBackground,
+      colorScheme: isDark
+          ? ColorScheme.dark(
+              primary: primaryColor,
+              secondary: accentColor,
+              surface: surface,
+              background: background,
+              error: errorColor,
+            )
+          : ColorScheme.light(
+              primary: primaryColor,
+              secondary: accentColor,
+              surface: surface,
+              background: background,
+              error: errorColor,
+            ),
+      scaffoldBackgroundColor: background,
+      appBarTheme: AppBarTheme(
+        backgroundColor: background,
         elevation: 0,
         centerTitle: true,
         titleTextStyle: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
-        iconTheme: IconThemeData(color: primaryTextColor),
+        iconTheme: IconThemeData(color: textPrimary),
       ),
-      textTheme: const TextTheme(
+      textTheme: TextTheme(
         displayLarge: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 32,
           fontWeight: FontWeight.bold,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         displayMedium: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         displaySmall: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 24,
           fontWeight: FontWeight.bold,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         headlineMedium: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 20,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         titleLarge: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 18,
           fontWeight: FontWeight.w600,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         bodyLarge: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 16,
           fontWeight: FontWeight.normal,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         bodyMedium: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.normal,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
         labelLarge: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.w500,
-          color: primaryTextColor,
+          color: textPrimary,
         ),
       ),
       cardTheme: CardThemeData(
-        color: darkSurface,
-        elevation: 4,
+        color: surface,
+        elevation: isDark ? 4 : 2,
+        shadowColor: isDark ? Colors.black : Colors.black.withOpacity(0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
         ),
@@ -286,8 +335,8 @@ class AppTheme {
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primaryColor,
-          foregroundColor: primaryTextColor,
-          elevation: 4,
+          foregroundColor: Colors.white,
+          elevation: isDark ? 4 : 2,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -326,14 +375,14 @@ class AppTheme {
         ),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryColor;
           }
           return null;
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
             return primaryColorLight.withOpacity(0.5);
           }
           return null;
@@ -345,15 +394,15 @@ class AppTheme {
         thumbColor: primaryColor,
         overlayColor: primaryColor.withOpacity(0.2),
         valueIndicatorColor: primaryColor,
-        valueIndicatorTextStyle: const TextStyle(
-          color: primaryTextColor,
+        valueIndicatorTextStyle: TextStyle(
+          color: isDark ? Colors.white : Colors.black,
           fontFamily: 'Poppins',
         ),
       ),
       bottomNavigationBarTheme: BottomNavigationBarThemeData(
-        backgroundColor: darkSurface,
+        backgroundColor: surface,
         selectedItemColor: primaryColor,
-        unselectedItemColor: secondaryTextColor,
+        unselectedItemColor: textSecondary,
         type: BottomNavigationBarType.fixed,
         showSelectedLabels: true,
         showUnselectedLabels: true,
@@ -361,7 +410,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: darkSurfaceLight,
+        fillColor: surfaceLight,
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         border: OutlineInputBorder(
@@ -380,15 +429,15 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: errorColor, width: 2),
         ),
-        labelStyle: const TextStyle(
+        labelStyle: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 16,
-          color: secondaryTextColor,
+          color: textSecondary,
         ),
-        hintStyle: const TextStyle(
+        hintStyle: TextStyle(
           fontFamily: 'Poppins',
           fontSize: 16,
-          color: secondaryTextColor,
+          color: textSecondary,
         ),
       ),
       fontFamily: 'Poppins',

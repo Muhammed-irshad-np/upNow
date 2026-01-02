@@ -34,7 +34,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
           selection: TextSelection.collapsed(offset: form.label.length),
         );
         return Scaffold(
-          backgroundColor: AppTheme.darkBackground,
+          backgroundColor: AppTheme.backgroundColor,
           appBar: AppBar(
             title: Text(widget.alarm == null ? 'Add Alarm' : 'Edit Alarm'),
             backgroundColor: Colors.transparent,
@@ -127,7 +127,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 ),
               ),
               SizedBox(height: 8.h),
-              const Text(
+              Text(
                 'Tap to change',
                 style: TextStyle(
                   color: AppTheme.secondaryTextColor,
@@ -144,14 +144,14 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Label',
           style: AppTheme.subtitleStyle,
         ),
         SizedBox(height: 8.h),
         TextField(
           controller: _labelController,
-          style: const TextStyle(color: AppTheme.textColor),
+          style: TextStyle(color: AppTheme.textColor),
           decoration: InputDecoration(
             hintText: 'Alarm label',
             hintStyle:
@@ -162,8 +162,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               borderRadius: BorderRadius.circular(12.r),
               borderSide: BorderSide.none,
             ),
-            prefixIcon: const Icon(Icons.label_outline,
-                color: AppTheme.secondaryTextColor),
+            prefixIcon:
+                Icon(Icons.label_outline, color: AppTheme.secondaryTextColor),
           ),
           onChanged: (value) => form.setLabel(value),
         ),
@@ -175,12 +175,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Dismiss Method',
           style: AppTheme.subtitleStyle,
         ),
         SizedBox(height: 8.h),
-        const Text(
+        Text(
           'How would you like to dismiss the alarm?',
           style: TextStyle(color: AppTheme.secondaryTextColor),
         ),
@@ -319,7 +319,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Repeat',
           style: AppTheme.subtitleStyle,
         ),
@@ -364,7 +364,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Select Days',
           style: TextStyle(
             color: AppTheme.textColor,
@@ -415,9 +415,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
     return ListTile(
       contentPadding: EdgeInsets.zero,
-      leading: const Icon(Icons.music_note_outlined,
-          color: AppTheme.secondaryTextColor),
-      title: const Text('Sound', style: AppTheme.subtitleStyle),
+      leading:
+          Icon(Icons.music_note_outlined, color: AppTheme.secondaryTextColor),
+      title: Text('Sound', style: AppTheme.subtitleStyle),
       trailing: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -446,9 +446,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         return StatefulBuilder(
           builder: (context, dialogSetState) {
             return SimpleDialog(
-              title: const Text('Select Alarm Sound'),
+              title: Text('Select Alarm Sound'),
               backgroundColor: AppTheme.darkCardColor,
-              titleTextStyle: const TextStyle(
+              titleTextStyle: TextStyle(
                   color: AppTheme.textColor,
                   fontSize: 20,
                   fontWeight: FontWeight.bold),
@@ -516,7 +516,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                     mainAxisAlignment: MainAxisAlignment.end,
                     children: [
                       TextButton(
-                        child: const Text('Cancel',
+                        child: Text('Cancel',
                             style:
                                 TextStyle(color: AppTheme.secondaryTextColor)),
                         onPressed: () async {
@@ -549,7 +549,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   Widget _buildVibrationOption(AlarmFormProvider form) {
     return SwitchListTile(
-      title: const Text(
+      title: Text(
         'Vibrate',
         style: TextStyle(
           color: AppTheme.textColor,
@@ -568,7 +568,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
   Widget _buildMorningAlarmOption(AlarmFormProvider form) {
     return SwitchListTile(
-      title: const Text(
+      title: Text(
         'Morning Wake-Up Alarm',
         style: TextStyle(
           color: AppTheme.textColor,

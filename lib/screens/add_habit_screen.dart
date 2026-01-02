@@ -89,7 +89,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Basic Information',
           style: AppTheme.subtitleStyle,
         ),
@@ -139,7 +139,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         SizedBox(height: 8.h),
         TextFormField(
           controller: controller,
-          style: const TextStyle(color: AppTheme.textColor),
+          style: TextStyle(color: AppTheme.textColor),
           maxLines: maxLines,
           decoration: InputDecoration(
             hintText: hint,
@@ -170,7 +170,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Frequency',
           style: AppTheme.subtitleStyle,
         ),
@@ -205,7 +205,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         ),
         if (habitFormProvider.selectedFrequency == HabitFrequency.custom) ...[
           SizedBox(height: 16.h),
-          const Text(
+          Text(
             'Select Days',
             style: TextStyle(
               color: AppTheme.textColor,
@@ -265,7 +265,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Customization',
           style: AppTheme.subtitleStyle,
         ),
@@ -370,7 +370,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Reminder',
           style: AppTheme.subtitleStyle,
         ),
@@ -381,7 +381,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
             borderRadius: BorderRadius.circular(12.r),
           ),
           child: SwitchListTile(
-            title: const Text(
+            title: Text(
               'Set Reminder',
               style: TextStyle(
                 color: AppTheme.textColor,

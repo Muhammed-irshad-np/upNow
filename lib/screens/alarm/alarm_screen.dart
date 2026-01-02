@@ -36,7 +36,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
     final alarms = alarmProvider.alarms;
 
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Row(
           mainAxisSize: MainAxisSize.min,

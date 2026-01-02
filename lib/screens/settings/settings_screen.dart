@@ -19,13 +19,13 @@ class SettingsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.darkBackground,
+      backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
         title: Text(
           'Settings',
           style: TextStyle(fontSize: 22.sp, fontWeight: FontWeight.bold),
         ),
-        backgroundColor: AppTheme.darkBackground,
+        backgroundColor: AppTheme.backgroundColor,
         elevation: 0,
         centerTitle: true,
       ),
@@ -45,7 +45,7 @@ class SettingsScreen extends StatelessWidget {
                 ),
                 Container(
                   height: 1.h,
-                  color: AppTheme.darkBackground.withOpacity(0.5),
+                  color: AppTheme.backgroundColor.withOpacity(0.5),
                 ),
                 _buildWakeUpAlarmSetting(context),
               ],
@@ -57,12 +57,17 @@ class SettingsScreen extends StatelessWidget {
                 _buildTimeFormatSetting(context),
                 Container(
                   height: 1.h,
-                  color: AppTheme.darkBackground.withOpacity(0.5),
+                  color: AppTheme.backgroundColor.withOpacity(0.5),
+                ),
+                _buildDarkModeSetting(context),
+                Container(
+                  height: 1.h,
+                  color: AppTheme.backgroundColor.withOpacity(0.5),
                 ),
                 _buildThemeSetting(context),
                 Container(
                   height: 1.h,
-                  color: AppTheme.darkBackground.withOpacity(0.5),
+                  color: AppTheme.backgroundColor.withOpacity(0.5),
                 ),
                 _buildHapticFeedbackSetting(context),
                 _buildSettingTile(
@@ -330,7 +335,7 @@ class SettingsScreen extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            color: AppTheme.darkSurface,
+            color: AppTheme.surfaceColor,
             borderRadius: BorderRadius.circular(16.r),
           ),
           child: Column(
@@ -358,7 +363,8 @@ class SettingsScreen extends StatelessWidget {
                       border: isMorningAlarmEnabled
                           ? Border(
                               bottom: BorderSide(
-                                color: AppTheme.darkBackground.withOpacity(0.5),
+                                color:
+                                    AppTheme.backgroundColor.withOpacity(0.5),
                                 width: 1,
                               ),
                             )
@@ -486,6 +492,28 @@ class SettingsScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildDarkModeSetting(BuildContext context) {
+    return Consumer<SettingsProvider>(
+      builder: (context, settings, child) {
+        return _buildSettingTile(
+          icon: settings.isDarkMode
+              ? Icons.dark_mode_outlined
+              : Icons.light_mode_outlined,
+          title: 'Dark Mode',
+          trailing: Switch(
+            value: settings.isDarkMode,
+            onChanged: (bool value) {
+              settings.updateDarkMode(value);
+            },
+            activeColor: AppTheme.primaryColor,
+            activeTrackColor: AppTheme.primaryColor.withOpacity(0.3),
+          ),
+          isLast: false,
+        );
+      },
+    );
+  }
+
   Future<void> _showMorningAlarmTimePicker(
       BuildContext context, AlarmProvider alarmProvider) async {
     final currentTime = alarmProvider.morningAlarmTime;
@@ -497,8 +525,8 @@ class SettingsScreen extends StatelessWidget {
         return Theme(
           data: Theme.of(context).copyWith(
             timePickerTheme: TimePickerThemeData(
-              backgroundColor: AppTheme.darkSurface,
-              dialBackgroundColor: AppTheme.darkBackground,
+              backgroundColor: AppTheme.surfaceColor,
+              dialBackgroundColor: AppTheme.backgroundColor,
               hourMinuteTextColor: AppTheme.primaryTextColor,
               hourMinuteColor: AppTheme.primaryColor.withOpacity(0.1),
               dialHandColor: AppTheme.primaryColor,
@@ -564,7 +592,7 @@ class SettingsScreen extends StatelessWidget {
   Widget _buildSettingGroup({required List<Widget> children}) {
     return Container(
       decoration: BoxDecoration(
-        color: AppTheme.darkSurface,
+        color: AppTheme.surfaceColor,
         borderRadius: BorderRadius.circular(16.r),
       ),
       child: Column(
@@ -618,7 +646,7 @@ class SettingsScreen extends StatelessWidget {
       BuildContext context, SettingsProvider settings) {
     showModalBottomSheet(
       context: context,
-      backgroundColor: AppTheme.darkSurface,
+      backgroundColor: AppTheme.surfaceColor,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
       ),
@@ -717,7 +745,7 @@ class SettingsScreen extends StatelessWidget {
                 ? null
                 : Border(
                     bottom: BorderSide(
-                      color: AppTheme.darkBackground.withOpacity(0.5),
+                      color: AppTheme.backgroundColor.withOpacity(0.5),
                       width: 1,
                     ),
                   ),

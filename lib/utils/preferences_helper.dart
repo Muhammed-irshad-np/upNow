@@ -7,6 +7,7 @@ class PreferencesHelper {
       'wake_up_alarm_reminder_dismissed';
   static const String _isHapticFeedbackEnabledKey =
       'is_haptic_feedback_enabled';
+  static const String _isDarkModeKey = 'is_dark_mode';
 
   // Time Format
   static Future<bool> is24HourFormat() async {
@@ -52,6 +53,17 @@ class PreferencesHelper {
   static Future<void> setHapticFeedbackEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_isHapticFeedbackEnabledKey, enabled);
+  }
+
+  // Dark mode state
+  static Future<bool> isDarkMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_isDarkModeKey) ?? true; // Default to dark mode
+  }
+
+  static Future<void> setDarkMode(bool isDark) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_isDarkModeKey, isDark);
   }
 
   // Generic method to get a boolean value
