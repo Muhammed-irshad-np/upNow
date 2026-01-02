@@ -5,8 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 // TODO: Verify exact Product IDs from Google Play Console
 // TODO: Verify exact Product IDs from Google Play Console
-const String _kMonthlyId = 'upnow-monthly-49';
-const String _kYearlyId = 'upnow-yearly-499';
+const String _kMonthlyId = 'premium_features:upnow-monthly-49';
+const String _kYearlyId = 'premium_features:upnow-yearly-499';
 
 const Set<String> _kProductIds = {_kMonthlyId, _kYearlyId};
 

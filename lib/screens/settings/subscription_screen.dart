@@ -164,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           price: isIndia ? '₹49' : '\$2',
           period: '/month',
           provider: provider,
-          productId: 'upnow-monthly-49',
+          productId: 'premium_features:upnow-monthly-49',
         ),
         SizedBox(height: 12.h),
         _buildPlanOption(
@@ -175,7 +175,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           subtitle: 'Best Value (2 months free)',
           isBestValue: true,
           provider: provider,
-          productId: 'upnow-yearly-499',
+          productId: 'premium_features:upnow-yearly-499',
         ),
       ],
     );
@@ -372,19 +372,27 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    final ids = ['upnow-monthly-49', 'upnow-yearly-499'];
+    final ids = [
+      'premium_features:upnow-monthly-49',
+      'premium_features:upnow-yearly-499'
+    ];
 
     if (_selectedPlanIndex >= 0 && _selectedPlanIndex < ids.length) {
       final selectedId = ids[_selectedPlanIndex];
-      // Try to find the product in the provider's list
       try {
         final product = provider.products.firstWhere((p) => p.id == selectedId);
         provider.buyProduct(product);
-      } catch (_) {
-        // If product not found (e.g. testing without store), show logic
+      } catch (e) {
+        debugPrint('Purchase Error: $e');
+        final availableIds = provider.products.map((p) => p.id).toList();
+
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-              content: Text('Store not connected. Mocking purchase...')),
+          SnackBar(
+            content: Text('Error: Product not found or IAP failed.\n'
+                'Looking for: $selectedId\n'
+                'Found: ${availableIds.join(', ')}'),
+            duration: const Duration(seconds: 5),
+          ),
         );
       }
     }
