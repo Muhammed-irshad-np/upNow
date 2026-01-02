@@ -4,11 +4,11 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // TODO: Verify exact Product IDs from Google Play Console
-const String _kMonthlyId = 'upnow_monthly_49';
-const String _kYearlyId = 'upnow_yearly_499';
-const String _kLifetimeId = 'upnow_lifetime_1999';
+// TODO: Verify exact Product IDs from Google Play Console
+const String _kMonthlyId = 'upnow-monthly-49';
+const String _kYearlyId = 'upnow-yearly-499';
 
-const Set<String> _kProductIds = {_kMonthlyId, _kYearlyId, _kLifetimeId};
+const Set<String> _kProductIds = {_kMonthlyId, _kYearlyId};
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;

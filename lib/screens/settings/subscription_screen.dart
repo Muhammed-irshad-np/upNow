@@ -152,41 +152,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildPlanSelection(SubscriptionProvider provider) {
-    // If we have real products, map them. Otherwise show static placeholders.
-    // Ideally we match by ID.
-    // Monthly: upnow_monthly_49
-    // Yearly: upnow_yearly_499
-    // Lifetime: upnow_lifetime_1999
+    // Determine locale for placeholder pricing
+    final isIndia =
+        View.of(context).platformDispatcher.locale.countryCode == 'IN';
 
     return Column(
       children: [
         _buildPlanOption(
           index: 0,
           title: 'Monthly',
-          price: '\$4.99', // Placeholder
+          price: isIndia ? '₹49' : '\$2',
           period: '/month',
           provider: provider,
-          productId: 'upnow_monthly_49',
+          productId: 'upnow-monthly-49',
         ),
         SizedBox(height: 12.h),
         _buildPlanOption(
           index: 1,
           title: 'Yearly',
-          price: '\$49.99', // Placeholder
+          price: isIndia ? '₹499' : '\$9.99',
           period: '/year',
           subtitle: 'Best Value (2 months free)',
           isBestValue: true,
           provider: provider,
-          productId: 'upnow_yearly_499',
-        ),
-        SizedBox(height: 12.h),
-        _buildPlanOption(
-          index: 2,
-          title: 'Lifetime',
-          price: '\$199.99', // Placeholder
-          period: 'once',
-          provider: provider,
-          productId: 'upnow_lifetime_1999',
+          productId: 'upnow-yearly-499',
         ),
       ],
     );
@@ -204,7 +193,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }) {
     final isSelected = _selectedPlanIndex == index;
 
-    // Try to find real product price
+    // Try to find real product price from Store
     String displayPrice = price;
     if (provider.products.isNotEmpty) {
       try {
@@ -383,7 +372,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    final ids = ['upnow_monthly_49', 'upnow_yearly_499', 'upnow_lifetime_1999'];
+    final ids = ['upnow-monthly-49', 'upnow-yearly-499'];
 
     if (_selectedPlanIndex >= 0 && _selectedPlanIndex < ids.length) {
       final selectedId = ids[_selectedPlanIndex];
