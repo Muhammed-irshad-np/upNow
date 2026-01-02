@@ -42,7 +42,8 @@ class AlarmForegroundService : Service() {
             repeatType: String,
             weekdays: BooleanArray?,
             primaryColor: Long? = null,
-            primaryColorLight: Long? = null
+            primaryColorLight: Long? = null,
+            dismissType: String = "math"
         ) {
             val intent = Intent(context, AlarmForegroundService::class.java).apply {
                 action = ACTION_START
@@ -57,6 +58,7 @@ class AlarmForegroundService : Service() {
                 // Pass theme colors
                 primaryColor?.let { putExtra("primaryColor", it) }
                 primaryColorLight?.let { putExtra("primaryColorLight", it) }
+                putExtra("dismissType", dismissType)
             }
             ContextCompat.startForegroundService(context, intent)
         }
@@ -106,6 +108,9 @@ class AlarmForegroundService : Service() {
         val weekdays = intent?.getBooleanArrayExtra("weekdays")
         val primaryColor = intent?.getLongExtra("primaryColor", -1L) ?: -1L
         val primaryColorLight = intent?.getLongExtra("primaryColorLight", -1L) ?: -1L
+        val dismissType = intent?.getStringExtra("dismissType") ?: "math"
+
+        Log.d(TAG, "handleStart - AlarmId: $alarmId, DismissType: $dismissType")
 
         currentAlarmId = alarmId
 
@@ -116,7 +121,8 @@ class AlarmForegroundService : Service() {
         startForeground(alarmId.hashCode(), buildNotification(
             alarmId, alarmLabel, soundName, repeatType, weekdays,
             if (primaryColor != -1L) primaryColor else null,
-            if (primaryColorLight != -1L) primaryColorLight else null
+            if (primaryColorLight != -1L) primaryColorLight else null,
+            dismissType
         ))
         startAlarmPlayback(alarmId, alarmLabel, soundName, repeatType, weekdays, hour, minute,
             if (primaryColor != -1L) primaryColor else null,
@@ -124,7 +130,8 @@ class AlarmForegroundService : Service() {
         )
         maybeLaunchAlarmActivity(alarmId, alarmLabel, soundName, hour, minute, repeatType, weekdays,
             if (primaryColor != -1L) primaryColor else null,
-            if (primaryColorLight != -1L) primaryColorLight else null
+            if (primaryColorLight != -1L) primaryColorLight else null,
+            dismissType
         )
     }
 
@@ -135,7 +142,8 @@ class AlarmForegroundService : Service() {
         repeatType: String,
         weekdays: BooleanArray?,
         primaryColor: Long?,
-        primaryColorLight: Long?
+        primaryColorLight: Long?,
+        dismissType: String
     ): Notification {
         val alarmIntent = Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -191,7 +199,8 @@ class AlarmForegroundService : Service() {
         repeatType: String,
         weekdays: BooleanArray?,
         primaryColor: Long?,
-        primaryColorLight: Long?
+        primaryColorLight: Long?,
+        dismissType: String
     ) {
         val powerManager = getSystemService(PowerManager::class.java)
         val keyguardManager = getSystemService(KeyguardManager::class.java)
@@ -206,7 +215,8 @@ class AlarmForegroundService : Service() {
             repeatType,
             weekdays,
             primaryColor,
-            primaryColorLight
+            primaryColorLight,
+            dismissType
         )
         Log.i(
             TAG,
@@ -225,7 +235,8 @@ class AlarmForegroundService : Service() {
         repeatType: String,
         weekdays: BooleanArray?,
         primaryColor: Long?,
-        primaryColorLight: Long?
+        primaryColorLight: Long?,
+        dismissType: String
     ): Intent {
         return Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -247,6 +258,7 @@ class AlarmForegroundService : Service() {
             // Pass theme colors
             primaryColor?.let { putExtra("primaryColor", it) }
             primaryColorLight?.let { putExtra("primaryColorLight", it) }
+            putExtra("dismissType", dismissType)
         }
     }
 

@@ -44,6 +44,11 @@ class AlarmActivity : AppCompatActivity() {
     // Theme colors
     private var primaryColor: Int = android.graphics.Color.RED
     private var primaryColorLight: Int = android.graphics.Color.parseColor("#FF6659")
+    private var currentDismissType: String = "math"
+    private var currentRepeatType: String = "once"
+    private var currentWeekdays: BooleanArray? = null
+    private var currentHour: Int = -1
+    private var currentMinute: Int = -1
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -62,76 +67,43 @@ class AlarmActivity : AppCompatActivity() {
         
         setContentView(R.layout.activity_alarm)
         
-        // Load theme colors
+        // Extract critical data early for propagation
+        extractIntentData(intent)
+        
+        // Load and apply theme colors
         loadThemeColors()
-        
-        // Apply theme colors to UI
         applyThemeColors()
-        alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown"
-        val alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!"
-        val soundName = intent.getStringExtra(EXTRA_ALARM_SOUND) ?: "alarm_sound"
-        selectedSoundName = soundName
         
-        Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: $alarmLabel, Sound: $soundName")
+        Log.d(TAG, "Alarm triggered - ID: $alarmId, Label: ${intent.getStringExtra(EXTRA_ALARM_LABEL)}, Sound: $selectedSoundName, Type: $currentDismissType")
         
         // Set alarm title
-        val titleTextView = findViewById<TextView>(R.id.alarm_title)
-        titleTextView.text = alarmLabel
+        findViewById<TextView>(R.id.alarm_title).text = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!"
         
         // Set up current time display
         setupTimeDisplay()
         
-        val repeatType = intent.getStringExtra("repeatType") ?: "once"
-        val weekdays = intent.getBooleanArrayExtra("weekdays")
-
+        // Start service if not already started (Crucial: Pass all data!)
         val serviceStarted = intent.getBooleanExtra("service_started", false)
-        if (!serviceStarted && alarmId != null && alarmId != "unknown") {
+        if (!serviceStarted && alarmId != "unknown") {
+            Log.d(TAG, "Starting foreground service with Dismiss Type: $currentDismissType")
             AlarmForegroundService.start(
-                this,
-                alarmId!!,
-                alarmLabel,
-                soundName,
-                intent.getIntExtra("hour", -1),
-                intent.getIntExtra("minute", -1),
-                repeatType,
-                weekdays
+                context = this,
+                alarmId = alarmId!!,
+                alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!",
+                soundName = selectedSoundName ?: "alarm_sound",
+                hour = currentHour,
+                minute = currentMinute,
+                repeatType = currentRepeatType,
+                weekdays = currentWeekdays,
+                primaryColor = intent.getLongExtra("primaryColor", -1L).let { if (it != -1L) it else null },
+                primaryColorLight = intent.getLongExtra("primaryColorLight", -1L).let { if (it != -1L) it else null },
+                dismissType = currentDismissType
             )
         }
         
-        // Generate math problem
-        generateMathProblem()
+        // Setup UI based on dismiss type
+        refreshUI()
         
-        // Set up verification button and answer input
-        val verifyButton = findViewById<Button>(R.id.verify_button)
-        val answerInput = findViewById<EditText>(R.id.answer_input)
-        
-        // Set up numpad
-        setupNumpad(answerInput)
-        
-        verifyButton.setOnClickListener {
-            val userAnswerStr = answerInput.text.toString()
-            if (userAnswerStr.isNotEmpty()) {
-                try {
-                    val userAnswer = userAnswerStr.toInt()
-                    if (userAnswer == correctAnswer) {
-                        // Correct answer
-                        Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
-                        stopAlarmAndOpenCongratulations()
-                    } else {
-                        // Wrong answer
-                        Toast.makeText(this, "Wrong answer, try again!", Toast.LENGTH_SHORT).show()
-                        // Generate a new problem to make it more challenging
-                        generateMathProblem()
-                        answerInput.text.clear()
-                    }
-                } catch (e: NumberFormatException) {
-                    Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
-                }
-            } else {
-                Toast.makeText(this, "Please enter an answer", Toast.LENGTH_SHORT).show()
-            }
-        }
-
         // Use the modern way to handle back presses
         onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
             override fun handleOnBackPressed() {
@@ -140,6 +112,30 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this@AlarmActivity, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+
+    private fun extractIntentData(intent: Intent) {
+        alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown"
+        selectedSoundName = intent.getStringExtra(EXTRA_ALARM_SOUND) ?: "alarm_sound"
+        currentDismissType = intent.getStringExtra("dismissType") ?: "math"
+        currentRepeatType = intent.getStringExtra("repeatType") ?: "once"
+        currentWeekdays = intent.getBooleanArrayExtra("weekdays")
+        currentHour = intent.getIntExtra("hour", -1)
+        currentMinute = intent.getIntExtra("minute", -1)
+        
+        val intentPrimary = intent.getLongExtra("primaryColor", -1L)
+        val intentPrimaryLight = intent.getLongExtra("primaryColorLight", -1L)
+        if (intentPrimary != -1L) primaryColor = intentPrimary.toInt()
+        if (intentPrimaryLight != -1L) primaryColorLight = intentPrimaryLight.toInt()
+    }
+
+    private fun refreshUI() {
+        Log.d(TAG, "Refreshing UI for Dismiss Type: $currentDismissType")
+        if (currentDismissType == "typing" || currentDismissType == "text") {
+            setupTypeTextDismiss()
+        } else {
+            setupMathDismiss()
+        }
     }
     
     private fun loadThemeColors() {
@@ -198,11 +194,11 @@ class AlarmActivity : AppCompatActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
-        // Keep track of the sound name if a new intent provides it
-        intent.getStringExtra(EXTRA_ALARM_SOUND)?.let {
-            selectedSoundName = it
-            Log.d(TAG, "Updated selectedSoundName from new intent: $it")
-        }
+        
+        extractIntentData(intent)
+        Log.d(TAG, "onNewIntent - Updated data, Type: $currentDismissType")
+        
+        refreshUI()
     }
     
     private fun setupTimeDisplay() {
@@ -389,14 +385,19 @@ class AlarmActivity : AppCompatActivity() {
         
         if (isAlarmActive) {
             // If the alarm hasn't been dismissed, try to bring it back
-            Log.d(TAG, "Alarm still active, attempting to bring activity back to front.")
+            Log.d(TAG, "Alarm still active, attempting to bring activity back to front with Type: $currentDismissType")
             val relaunchIntent = Intent(this, AlarmActivity::class.java).apply {
-                // Add flags to reorder it to the front if it exists
                 addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
-                // Preserve original extras so custom sound is kept
-                alarmId?.let { putExtra(EXTRA_ALARM_ID, it) }
-                intent.getStringExtra(EXTRA_ALARM_LABEL)?.let { putExtra(EXTRA_ALARM_LABEL, it) }
-                selectedSoundName?.let { putExtra(EXTRA_ALARM_SOUND, it) }
+                putExtra(EXTRA_ALARM_ID, alarmId)
+                putExtra(EXTRA_ALARM_LABEL, intent.getStringExtra(EXTRA_ALARM_LABEL))
+                putExtra(EXTRA_ALARM_SOUND, selectedSoundName)
+                putExtra("dismissType", currentDismissType)
+                putExtra("primaryColor", primaryColor.toLong())
+                putExtra("primaryColorLight", primaryColorLight.toLong())
+                putExtra("repeatType", currentRepeatType)
+                putExtra("weekdays", currentWeekdays)
+                putExtra("hour", currentHour)
+                putExtra("minute", currentMinute)
                 putExtra("service_started", true)
             }
             startActivity(relaunchIntent)
@@ -409,5 +410,77 @@ class AlarmActivity : AppCompatActivity() {
             timeUpdateHandler?.removeCallbacks(runnable)
         }
         super.onDestroy()
+    }
+
+    private fun setupMathDismiss() {
+        // Show math card, hide type text card
+        findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.VISIBLE
+        findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.GONE
+        
+        generateMathProblem()
+        
+        val verifyButton = findViewById<Button>(R.id.verify_button)
+        val answerInput = findViewById<EditText>(R.id.answer_input)
+        
+        setupNumpad(answerInput)
+        
+        verifyButton.setOnClickListener {
+            val userAnswerStr = answerInput.text.toString()
+            if (userAnswerStr.isNotEmpty()) {
+                try {
+                    val userAnswer = userAnswerStr.toInt()
+                    if (userAnswer == correctAnswer) {
+                        Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
+                        stopAlarmAndOpenCongratulations()
+                    } else {
+                        Toast.makeText(this, "Wrong answer, try again!", Toast.LENGTH_SHORT).show()
+                        generateMathProblem()
+                        answerInput.text.clear()
+                    }
+                } catch (e: NumberFormatException) {
+                    Toast.makeText(this, "Please enter a valid number", Toast.LENGTH_SHORT).show()
+                }
+            } else {
+                Toast.makeText(this, "Please enter an answer", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    private fun setupTypeTextDismiss() {
+        // Hide math card, show type text card
+        findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
+        findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.VISIBLE
+        
+        val targetPhraseView = findViewById<TextView>(R.id.target_phrase)
+        val phraseInput = findViewById<EditText>(R.id.phrase_input)
+        val verifyButton = findViewById<Button>(R.id.verify_text_button)
+        
+        // Random phrases
+        val phrases = listOf(
+            "I am awake",
+            "I will achieve my goals",
+            "Today is a new day",
+            "Rise and shine",
+            "Focus on the positive",
+            "Action cures fear",
+            "Discipline equals freedom"
+        )
+        val targetPhrase = phrases.random()
+        targetPhraseView.text = targetPhrase
+        
+        // Request focus to show keyboard
+        phraseInput.requestFocus()
+        // Note: Soft keyboard might not show automatically on lock screen without extra flags or user interaction
+        
+        verifyButton.setOnClickListener {
+            val userPhrase = phraseInput.text.toString().trim()
+            if (userPhrase.equals(targetPhrase, ignoreCase = true)) {
+                Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
+                stopAlarmAndOpenCongratulations()
+            } else {
+                Toast.makeText(this, "Incorrect phrase. Try again!", Toast.LENGTH_SHORT).show()
+                phraseInput.text.clear()
+            }
+        }
     }
 } 

@@ -247,8 +247,18 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   p.billingPeriod == 'P1Y' || p.billingPeriod == 'P365D'))
           .toList();
 
+      // identifying any offers that didn't fit into the above categories
+      final usedOfferTokens = {
+        ...monthlyOffers.map((o) => o.offerIdToken),
+        ...yearlyOffers.map((o) => o.offerIdToken)
+      };
+      final otherOffers = offers
+          .where((o) => !usedOfferTokens.contains(o.offerIdToken))
+          .toList();
+
       debugPrint('Filtered Monthly Offers: ${monthlyOffers.length}');
       debugPrint('Filtered Yearly Offers: ${yearlyOffers.length}');
+      debugPrint('Other/Uncategorized Offers: ${otherOffers.length}');
 
       return Column(
         children: [
@@ -269,9 +279,34 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               period: '/year',
               subtitle: 'Best Value',
             ),
-          if (yearlyOffers.isEmpty)
-            Text('WARN: No yearly plan found via filters.',
-                style: TextStyle(color: Colors.amber)),
+
+          // Render any uncategorized plans so they are at least visible
+          if (otherOffers.isNotEmpty) ...[
+            SizedBox(height: 12.h),
+            ...otherOffers.asMap().entries.map((entry) {
+              final index = entry.key + 2; // Offset indices
+              final offer = entry.value;
+              return Padding(
+                padding: EdgeInsets.only(bottom: 12.h),
+                child: _buildPlanOption(
+                  index: index,
+                  title: offer.basePlanId, // Fallback title
+                  price: _getDisplayPrice(offer),
+                  period: '',
+                  subtitle: 'Special Plan',
+                ),
+              );
+            }),
+          ],
+
+          if (yearlyOffers.isEmpty && otherOffers.isEmpty)
+            Padding(
+              padding: EdgeInsets.all(8.0),
+              child: Text(
+                  'WARN: Yearly plan not detected. Check Debug Logs below.',
+                  style: TextStyle(color: Colors.amber, fontSize: 12),
+                  textAlign: TextAlign.center),
+            ),
         ],
       );
     } else {

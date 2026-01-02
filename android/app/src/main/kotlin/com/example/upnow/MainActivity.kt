@@ -135,6 +135,8 @@ class MainActivity : FlutterActivity() {
                                 putExtra(AlarmActivity.EXTRA_ALARM_SOUND, "alarm_sound")
                                 putExtra("primaryColor", primaryColor)
                                 putExtra("primaryColorLight", primaryColorLight)
+                                val testDismissType = call.argument<String>("dismissType") ?: "math"
+                                putExtra("dismissType", testDismissType)
                                 putExtra("repeatType", "once")
                                 putExtra("weekdays", booleanArrayOf(true, true, true, true, true, true, true))
                             }
@@ -185,8 +187,9 @@ class MainActivity : FlutterActivity() {
                     val weekdays = call.argument<List<Boolean>>("weekdays") ?: listOf(false, false, false, false, false, false, false)
                     val primaryColor = call.argument<Long>("primaryColor")
                     val primaryColorLight = call.argument<Long>("primaryColorLight")
+                    val dismissType = call.argument<String>("dismissType") ?: "math"
                     
-                    val success = scheduleNativeAlarm(alarmId, hour, minute, year, month, day, label, soundName, repeatType, weekdays, primaryColor, primaryColorLight)
+                    val success = scheduleNativeAlarm(alarmId, hour, minute, year, month, day, label, soundName, repeatType, weekdays, primaryColor, primaryColorLight, dismissType)
                     result.success(success)
                 }
                 "cancelNativeAlarm" -> {
@@ -558,7 +561,8 @@ class MainActivity : FlutterActivity() {
         repeatType: String,
         weekdays: List<Boolean>,
         primaryColor: Long?,
-        primaryColorLight: Long?
+        primaryColorLight: Long?,
+        dismissType: String
     ): Boolean {
         try {
             Log.d("MainActivity", "🔔 NATIVE ALARM: Scheduling alarm $alarmId for $hour:$minute on $year-$month-$day")
@@ -610,6 +614,7 @@ class MainActivity : FlutterActivity() {
                 // Pass theme colors
                 primaryColor?.let { putExtra("primaryColor", it) }
                 primaryColorLight?.let { putExtra("primaryColorLight", it) }
+                putExtra("dismissType", dismissType)
             }
             
             // Create PendingIntent with unique request code based on alarm ID
@@ -638,6 +643,7 @@ class MainActivity : FlutterActivity() {
                     putExtra("minute", minute)
                     putExtra("repeatType", repeatType)
                     putExtra("weekdays", weekdays.toBooleanArray())
+                    putExtra("dismissType", dismissType)
                     putExtra("service_started", false)
                     
                     // Pass theme colors

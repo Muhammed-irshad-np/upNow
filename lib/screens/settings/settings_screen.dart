@@ -128,9 +128,35 @@ class SettingsScreen extends StatelessWidget {
                   ),
                   _buildSettingTile(
                     icon: Icons.calculate_outlined,
-                    title: 'Test Native Math Screen',
+                    title: 'Test Native Screen',
                     onTap: () {
-                      AlarmService.launchTestMathScreen();
+                      showDialog(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: const Text('Select Dismiss Type'),
+                          content: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              ListTile(
+                                title: const Text('Math Problem'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  AlarmService.launchTestMathScreen(
+                                      dismissType: 'math');
+                                },
+                              ),
+                              ListTile(
+                                title: const Text('Type Text'),
+                                onTap: () {
+                                  Navigator.pop(context);
+                                  AlarmService.launchTestMathScreen(
+                                      dismissType: 'typing');
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
                     },
                     isLast: true,
                   ),

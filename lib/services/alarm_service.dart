@@ -428,6 +428,7 @@ class AlarmService {
         'weekdays': alarm.weekdays,
         'primaryColor': AppTheme.primaryColor.value,
         'primaryColorLight': AppTheme.primaryColorLight.value,
+        'dismissType': alarm.dismissType.name,
       });
 
       if (result == true) {
@@ -623,12 +624,14 @@ class AlarmService {
   }
 
   // Launch the native math screen directly for testing
-  static Future<void> launchTestMathScreen() async {
+  static Future<void> launchTestMathScreen(
+      {String dismissType = 'math'}) async {
     try {
-      debugPrint('🚀 Launching native math screen for testing');
+      debugPrint('🚀 Launching native screen for testing (Type: $dismissType)');
       await _platformChannel.invokeMethod('launchTestMathScreen', {
         'primaryColor': AppTheme.primaryColor.value,
         'primaryColorLight': AppTheme.primaryColorLight.value,
+        'dismissType': dismissType,
       });
     } catch (e) {
       debugPrint('❌ Error launching test math screen: $e');

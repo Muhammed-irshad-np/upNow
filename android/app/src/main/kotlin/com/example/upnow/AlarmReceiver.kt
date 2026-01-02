@@ -63,9 +63,10 @@ class AlarmReceiver : BroadcastReceiver() {
         val weekdays = intent.getBooleanArrayExtra("weekdays")
         val primaryColor = intent.getLongExtra("primaryColor", -1L)
         val primaryColorLight = intent.getLongExtra("primaryColorLight", -1L)
+        val dismissType = intent.getStringExtra("dismissType") ?: "math"
         
         val triggerType = if (isNativeAlarmTrigger) "NATIVE ALARM" else "NOTIFICATION"
-        Log.d(TAG, "🔔 $triggerType TRIGGER - ID: $alarmId, Label: $alarmLabel, Sound: $soundName, Time: $hour:$minute")
+        Log.d(TAG, "🔔 $triggerType TRIGGER - ID: $alarmId, Label: $alarmLabel, Sound: $soundName, Type: $dismissType")
         
         // Only proceed if we have a valid alarm ID (not null and not "unknown")
         if (alarmId == null || alarmId == "unknown") {
@@ -104,7 +105,8 @@ class AlarmReceiver : BroadcastReceiver() {
             repeatType = repeatType,
             weekdays = weekdays,
             primaryColor = if (primaryColor != -1L) primaryColor else null,
-            primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null
+            primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null,
+            dismissType = dismissType
         )
         
         try {
@@ -127,7 +129,8 @@ class AlarmReceiver : BroadcastReceiver() {
                 repeatType = repeatType,
                 weekdays = weekdays,
                 primaryColor = if (primaryColor != -1L) primaryColor else null,
-                primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null
+                primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null,
+                dismissType = dismissType
             )
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to start AlarmForegroundService: ${e.message}")
@@ -143,7 +146,8 @@ class AlarmReceiver : BroadcastReceiver() {
         repeatType: String,
         weekdays: BooleanArray?,
         primaryColor: Long?,
-        primaryColorLight: Long?
+        primaryColorLight: Long?,
+        dismissType: String
     ): Notification {
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or

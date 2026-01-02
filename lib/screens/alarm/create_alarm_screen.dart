@@ -239,8 +239,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     required Color color,
   }) {
     final isSelected = form.dismissType == type;
-    final bool isComingSoon =
-        type != DismissType.math && type != DismissType.normal;
+    final bool isComingSoon = type != DismissType.math &&
+        type != DismissType.normal &&
+        type != DismissType.typing;
 
     Widget optionWidget = Container(
       width: 110.w,
