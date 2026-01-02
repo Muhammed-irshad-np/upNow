@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -112,27 +113,30 @@ class SettingsScreen extends StatelessWidget {
               ],
             ),
             SizedBox(height: 32.h),
-            _buildSectionTitle('Debug / Testing'),
-            _buildSettingGroup(
-              children: [
-                _buildSettingTile(
-                  icon: Icons.celebration_outlined,
-                  title: 'Test Congratulations Screen',
-                  onTap: () {
-                    Navigator.pushNamed(context, '/congratulations');
-                  },
-                  isLast: false,
-                ),
-                _buildSettingTile(
-                  icon: Icons.calculate_outlined,
-                  title: 'Test Native Math Screen',
-                  onTap: () {
-                    AlarmService.launchTestMathScreen();
-                  },
-                  isLast: true,
-                ),
-              ],
-            ),
+            // Debug section - only visible in debug mode
+            if (kDebugMode) ...[
+              _buildSectionTitle('Debug / Testing'),
+              _buildSettingGroup(
+                children: [
+                  _buildSettingTile(
+                    icon: Icons.celebration_outlined,
+                    title: 'Test Congratulations Screen',
+                    onTap: () {
+                      Navigator.pushNamed(context, '/congratulations');
+                    },
+                    isLast: false,
+                  ),
+                  _buildSettingTile(
+                    icon: Icons.calculate_outlined,
+                    title: 'Test Native Math Screen',
+                    onTap: () {
+                      AlarmService.launchTestMathScreen();
+                    },
+                    isLast: true,
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
