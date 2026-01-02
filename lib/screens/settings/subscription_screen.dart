@@ -164,7 +164,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           price: isIndia ? '₹49' : '\$2',
           period: '/month',
           provider: provider,
-          productId: 'premium_features:upnow-monthly-49',
+          productId: 'upnow-monthly-49',
         ),
         SizedBox(height: 12.h),
         _buildPlanOption(
@@ -175,7 +175,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           subtitle: 'Best Value (2 months free)',
           isBestValue: true,
           provider: provider,
-          productId: 'premium_features:upnow-yearly-499',
+          productId: 'upnow-yearly-499',
         ),
       ],
     );
@@ -372,10 +372,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    final ids = [
-      'premium_features:upnow-monthly-49',
-      'premium_features:upnow-yearly-499'
-    ];
+    final ids = ['upnow-monthly-49', 'upnow-yearly-499'];
 
     if (_selectedPlanIndex >= 0 && _selectedPlanIndex < ids.length) {
       final selectedId = ids[_selectedPlanIndex];
@@ -390,8 +387,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           SnackBar(
             content: Text('Error: Product not found or IAP failed.\n'
                 'Looking for: $selectedId\n'
-                'Found: ${availableIds.join(', ')}'),
-            duration: const Duration(seconds: 5),
+                'Found in Store: ${availableIds.join(', ')}\n'
+                'Not Found by Store: ${provider.notFoundIDs.join(', ')}'),
+            duration: const Duration(seconds: 10),
           ),
         );
       }

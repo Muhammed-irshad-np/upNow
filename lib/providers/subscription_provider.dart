@@ -4,9 +4,8 @@ import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // TODO: Verify exact Product IDs from Google Play Console
-// TODO: Verify exact Product IDs from Google Play Console
-const String _kMonthlyId = 'premium_features:upnow-monthly-49';
-const String _kYearlyId = 'premium_features:upnow-yearly-499';
+const String _kMonthlyId = 'upnow-monthly-49';
+const String _kYearlyId = 'upnow-yearly-499';
 
 const Set<String> _kProductIds = {_kMonthlyId, _kYearlyId};
 
@@ -14,6 +13,7 @@ class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;
   late StreamSubscription<List<PurchaseDetails>> _subscription;
   List<ProductDetails> _products = [];
+  List<String> _notFoundIDs = [];
   bool _isAvailable = false;
   bool _isLoading = false;
   bool _isPro = false;
@@ -22,6 +22,7 @@ class SubscriptionProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
   bool get isPro => _isPro;
   List<ProductDetails> get products => _products;
+  List<String> get notFoundIDs => _notFoundIDs;
 
   SubscriptionProvider() {
     _initialize();
@@ -68,10 +69,11 @@ class SubscriptionProvider extends ChangeNotifier {
 
     final ProductDetailsResponse response =
         await _iap.queryProductDetails(_kProductIds);
+    _notFoundIDs = response.notFoundIDs;
+
     if (response.error != null) {
       _isAvailable = isAvailable;
       _products = response.productDetails;
-      // Handle payload error
       debugPrint('IAP Query Error: ${response.error}');
       return;
     }
@@ -79,7 +81,7 @@ class SubscriptionProvider extends ChangeNotifier {
     if (response.productDetails.isEmpty) {
       _isAvailable = isAvailable;
       _products = response.productDetails;
-      debugPrint('IAP: No products found');
+      debugPrint('IAP: No products found. Not found: $_notFoundIDs');
       return;
     }
 
