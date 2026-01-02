@@ -3,11 +3,9 @@ import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// TODO: Verify exact Product IDs from Google Play Console
-const String _kMonthlyId = 'upnow-monthly-49';
-const String _kYearlyId = 'upnow-yearly-499';
-
-const Set<String> _kProductIds = {_kMonthlyId, _kYearlyId};
+// Product ID for the subscription
+const String _kSubscriptionId = 'premium_features';
+const Set<String> _kProductIds = {_kSubscriptionId};
 
 class SubscriptionProvider extends ChangeNotifier {
   final InAppPurchase _iap = InAppPurchase.instance;

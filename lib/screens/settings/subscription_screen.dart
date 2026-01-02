@@ -160,22 +160,12 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
       children: [
         _buildPlanOption(
           index: 0,
-          title: 'Monthly',
+          title: 'Premium Subscription',
           price: isIndia ? '₹49' : '\$2',
-          period: '/month',
+          period: 'Starting at',
           provider: provider,
-          productId: 'upnow-monthly-49',
-        ),
-        SizedBox(height: 12.h),
-        _buildPlanOption(
-          index: 1,
-          title: 'Yearly',
-          price: isIndia ? '₹499' : '\$9.99',
-          period: '/year',
-          subtitle: 'Best Value (2 months free)',
-          isBestValue: true,
-          provider: provider,
-          productId: 'upnow-yearly-499',
+          productId: 'premium_features',
+          subtitle: 'Choose Monthly or Yearly in the Play Store',
         ),
       ],
     );
@@ -372,7 +362,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    final ids = ['upnow-monthly-49', 'upnow-yearly-499'];
+    final ids = ['premium_features'];
 
     if (_selectedPlanIndex >= 0 && _selectedPlanIndex < ids.length) {
       final selectedId = ids[_selectedPlanIndex];
