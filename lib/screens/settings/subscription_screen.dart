@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
+import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:upnow/providers/subscription_provider.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
@@ -13,8 +17,6 @@ class SubscriptionScreen extends StatefulWidget {
 }
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
-  // Hardcoded for UI display until real products are fetched and mapped
-  // Ideally, we match these by ID from the provider's product list.
   int _selectedPlanIndex = 1; // Default to Yearly (Best Value)
 
   @override
@@ -33,7 +35,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
-        leading: IOExceptionButton(),
+        leading: IconButton(
+          icon: Icon(Icons.close, color: AppTheme.secondaryTextColor),
+          onPressed: () => Navigator.pop(context),
+        ),
       ),
       body: Consumer<SubscriptionProvider>(
         builder: (context, subscriptionProvider, child) {
@@ -76,7 +81,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           height: 80.h,
           width: 80.h,
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withOpacity(0.1),
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -143,7 +148,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           Icon(
             icon,
-            color: AppTheme.secondaryTextColor.withOpacity(0.5),
+            color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
             size: 20.sp,
           ),
         ],
@@ -152,23 +157,82 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   Widget _buildPlanSelection(SubscriptionProvider provider) {
-    // Determine locale for placeholder pricing
-    final isIndia =
-        View.of(context).platformDispatcher.locale.countryCode == 'IN';
+    if (provider.products.isEmpty) {
+      final isIndia =
+          View.of(context).platformDispatcher.locale.countryCode == 'IN';
+      return Column(
+        children: [
+          _buildPlanOption(
+            index: 0,
+            title: 'Monthly',
+            price: isIndia ? '₹49' : '\$2',
+            period: '/month',
+          ),
+          SizedBox(height: 12.h),
+          _buildPlanOption(
+            index: 1,
+            title: 'Yearly',
+            price: isIndia ? '₹499' : '\$9.99',
+            period: '/year',
+            subtitle: 'Best Value (2 months free)',
+          ),
+        ],
+      );
+    }
 
-    return Column(
-      children: [
-        _buildPlanOption(
-          index: 0,
-          title: 'Premium Subscription',
-          price: isIndia ? '₹49' : '\$2',
-          period: 'Starting at',
-          provider: provider,
-          productId: 'premium_features',
-          subtitle: 'Choose Monthly or Yearly in the Play Store',
-        ),
-      ],
+    final product = provider.products.first;
+    if (product is GooglePlayProductDetails) {
+      final offers = product.productDetails.subscriptionOfferDetails ?? [];
+
+      final monthlyOffers = offers
+          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1M'))
+          .toList();
+      final yearlyOffers = offers
+          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1Y'))
+          .toList();
+
+      return Column(
+        children: [
+          if (monthlyOffers.isNotEmpty)
+            _buildPlanOption(
+              index: 0,
+              title: 'Monthly',
+              price: _getDisplayPrice(monthlyOffers.first),
+              period: '/month',
+            ),
+          if (monthlyOffers.isNotEmpty && yearlyOffers.isNotEmpty)
+            SizedBox(height: 12.h),
+          if (yearlyOffers.isNotEmpty)
+            _buildPlanOption(
+              index: 1,
+              title: 'Yearly',
+              price: _getDisplayPrice(yearlyOffers.first),
+              period: '/year',
+              subtitle: 'Best Value',
+            ),
+        ],
+      );
+    } else {
+      return Column(
+        children: [
+          _buildPlanOption(
+            index: 0,
+            title: product.title,
+            price: product.price,
+            period: '',
+          ),
+        ],
+      );
+    }
+  }
+
+  String _getDisplayPrice(SubscriptionOfferDetailsWrapper offer) {
+    if (offer.pricingPhases.isEmpty) return 'N/A';
+    final paidPhase = offer.pricingPhases.firstWhere(
+      (p) => p.priceAmountMicros > 0,
+      orElse: () => offer.pricingPhases.first,
     );
+    return paidPhase.formattedPrice;
   }
 
   Widget _buildPlanOption({
@@ -176,21 +240,10 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String title,
     required String price,
     required String period,
-    required SubscriptionProvider provider,
-    required String productId,
     String? subtitle,
     bool isBestValue = false,
   }) {
     final isSelected = _selectedPlanIndex == index;
-
-    // Try to find real product price from Store
-    String displayPrice = price;
-    if (provider.products.isNotEmpty) {
-      try {
-        final product = provider.products.firstWhere((p) => p.id == productId);
-        displayPrice = product.price;
-      } catch (_) {}
-    }
 
     return GestureDetector(
       onTap: () {
@@ -203,13 +256,13 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         padding: EdgeInsets.all(16.w),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppTheme.primaryColor.withOpacity(0.1)
+              ? AppTheme.primaryColor.withValues(alpha: 0.1)
               : AppTheme.darkSurface,
           borderRadius: BorderRadius.circular(16.r),
           border: Border.all(
             color: isSelected
                 ? AppTheme.primaryColor
-                : Colors.white.withOpacity(0.05),
+                : Colors.white.withValues(alpha: 0.05),
             width: 2,
           ),
         ),
@@ -227,7 +280,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 }
               },
               activeColor: AppTheme.primaryColor,
-              fillColor: MaterialStateProperty.resolveWith(
+              fillColor: WidgetStateProperty.resolveWith(
                 (states) => isSelected
                     ? AppTheme.primaryColor
                     : AppTheme.secondaryTextColor,
@@ -264,7 +317,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 Text(
-                  displayPrice,
+                  price,
                   style: TextStyle(
                     color: AppTheme.primaryTextColor,
                     fontSize: 18.sp,
@@ -338,7 +391,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
         Container(
           height: 12.h,
           width: 1,
-          color: AppTheme.secondaryTextColor.withOpacity(0.5),
+          color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
           margin: EdgeInsets.symmetric(horizontal: 16.w),
         ),
         _buildLinkText('Terms of Use'),
@@ -362,37 +415,28 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    final ids = ['premium_features'];
+    if (provider.products.isEmpty) return;
 
-    if (_selectedPlanIndex >= 0 && _selectedPlanIndex < ids.length) {
-      final selectedId = ids[_selectedPlanIndex];
-      try {
-        final product = provider.products.firstWhere((p) => p.id == selectedId);
-        provider.buyProduct(product);
-      } catch (e) {
-        debugPrint('Purchase Error: $e');
-        final availableIds = provider.products.map((p) => p.id).toList();
+    final product = provider.products.first;
+    String? selectedOfferToken;
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: Product not found or IAP failed.\n'
-                'Looking for: $selectedId\n'
-                'Found in Store: ${availableIds.join(', ')}\n'
-                'Not Found by Store: ${provider.notFoundIDs.join(', ')}'),
-            duration: const Duration(seconds: 10),
-          ),
-        );
+    if (product is GooglePlayProductDetails) {
+      final offers = product.productDetails.subscriptionOfferDetails ?? [];
+
+      final monthlyOffers = offers
+          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1M'))
+          .toList();
+      final yearlyOffers = offers
+          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1Y'))
+          .toList();
+
+      if (_selectedPlanIndex == 0 && monthlyOffers.isNotEmpty) {
+        selectedOfferToken = monthlyOffers.first.offerIdToken;
+      } else if (_selectedPlanIndex == 1 && yearlyOffers.isNotEmpty) {
+        selectedOfferToken = yearlyOffers.first.offerIdToken;
       }
     }
-  }
-}
 
-class IOExceptionButton extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      icon: Icon(Icons.close, color: AppTheme.secondaryTextColor),
-      onPressed: () => Navigator.pop(context),
-    );
+    provider.buySubscription(product, selectedOfferToken);
   }
 }

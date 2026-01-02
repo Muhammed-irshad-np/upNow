@@ -67,6 +67,8 @@ dependencies:
   lottie: ^3.3.2
   dotlottie_loader: ^0.0.5
   in_app_purchase: ^3.2.3
+  in_app_purchase_android: ^0.4.0
+  in_app_purchase_platform_interface: ^1.4.0
 
 dev_dependencies:
   flutter_test:

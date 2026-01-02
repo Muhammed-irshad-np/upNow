@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 // Product ID for the subscription
@@ -88,24 +89,28 @@ class SubscriptionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<void> buyProduct(ProductDetails product) async {
-    final PurchaseParam purchaseParam = PurchaseParam(productDetails: product);
-    // For subscriptions, we might need to change this if it's not a consumable
-    // Consumables are one-time use (like coins).
-    // Non-consumables are permanent (like lifetime).
-    // Subscriptions are recurring.
-    // The library handles the distinction via the store configuration,
-    // but on iOS specific params might be needed.
-    // For now assuming standard flow.
-
-    // Using autoConsume: false for subscriptions/lifetime
+  Future<void> buySubscription(
+      ProductDetails product, String? offerToken) async {
     try {
-      if (_kProductIds.contains(product.id)) {
-        await _iap.buyNonConsumable(purchaseParam: purchaseParam);
+      if (product.id == _kSubscriptionId) {
+        // For Android base plans (Billing Library 5+), we MUST use GooglePlayPurchaseParam
+        // to pass the offerToken if it's available.
+        final googleParam = GooglePlayPurchaseParam(
+          productDetails: product,
+          applicationUserName: null,
+          changeSubscriptionParam: null,
+          offerToken: offerToken,
+        );
+        await _iap.buyNonConsumable(purchaseParam: googleParam);
       }
     } catch (e) {
       debugPrint('IAP Buy Error: $e');
     }
+  }
+
+  @Deprecated('Use buySubscription instead')
+  Future<void> buyProduct(ProductDetails product) async {
+    await buySubscription(product, null);
   }
 
   void _listenToPurchaseUpdated(List<PurchaseDetails> purchaseDetailsList) {
