@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
@@ -277,90 +278,74 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     Color color,
     int delayMs,
   ) {
-    return TweenAnimationBuilder<double>(
-      tween: Tween(begin: 0.0, end: 1.0),
-      duration: Duration(milliseconds: 600 + delayMs),
-      curve: Curves.easeOutBack,
-      builder: (context, animValue, child) {
-        return Transform.scale(
-          scale: animValue,
-          child: Container(
-            padding: EdgeInsets.all(12.w),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  color.withOpacity(0.2),
-                  color.withOpacity(0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(20.r),
-              border: Border.all(
-                color: color.withOpacity(0.3),
-                width: 1.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.2),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(6.w),
-                      decoration: BoxDecoration(
-                        color: color.withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Icon(icon, color: color, size: 18.sp),
-                    ),
-                    Text(
-                      unit,
-                      style: TextStyle(
-                        color: AppTheme.secondaryTextColor,
-                        fontSize: 10.sp,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 6.h),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      value,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 22.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 1.h),
-                    Text(
-                      title,
-                      style: TextStyle(
-                        color: AppTheme.secondaryTextColor,
-                        fontSize: 10.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return Container(
+      padding: EdgeInsets.all(12.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withOpacity(0.2),
+            color.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: color.withOpacity(0.3),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.1),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        );
-      },
-    );
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(icon, color: color, size: 28.sp)
+              .animate(onPlay: (controller) => controller.repeat())
+              .shimmer(duration: 2000.ms, color: Colors.white.withOpacity(0.5))
+              .animate() // Reset for next effect
+              .scale(duration: 400.ms, curve: Curves.easeOutBack),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ).animate().fadeIn(duration: 1000.ms),
+              SizedBox(width: 4.w),
+              Text(
+                unit,
+                style: TextStyle(
+                  fontSize: 12.sp,
+                  color: Colors.white70,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 4.h),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 12.sp,
+              color: Colors.white60,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    ).animate().fadeIn(delay: delayMs.ms).slideY(begin: 0.2, end: 0);
   }
 
   Widget _buildTimeFilterTabs() {
@@ -432,7 +417,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
             _buildContributionHeatmap(habitService),
           ],
         ],
-      ),
+      ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0),
     );
   }
 

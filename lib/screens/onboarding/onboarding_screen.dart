@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:upnow/screens/onboarding/onboarding_pages.dart';
+import 'package:upnow/screens/onboarding/wakeup_time_page.dart';
 import 'package:upnow/screens/onboarding/permissions_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/preferences_helper.dart';
@@ -16,7 +17,8 @@ class OnboardingScreen extends StatefulWidget {
 
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
-  final int _totalPages = onboardingPages.length;
+  // Add 1 to total pages for the WakeupTimePage which is inserted before the last page
+  final int _totalPages = onboardingPages.length + 1;
 
   @override
   void dispose() {
@@ -59,17 +61,22 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: TextButton(
-                    onPressed: () {
-                      HapticFeedbackHelper.trigger();
-                      _completeOnboarding();
-                    },
-                    child: Text(
-                      'Skip',
-                      style: TextStyle(
-                        color: AppTheme.primaryColor,
-                        fontSize: 16,
-                      ),
-                    ),
+                    onPressed: provider.currentPage == _totalPages - 2
+                        ? null // Disable/Hide skip on wakeup time page (which is second to last now)
+                        : () {
+                            HapticFeedbackHelper.trigger();
+                            _completeOnboarding();
+                          },
+                    child: provider.currentPage == _totalPages - 2
+                        ? const SizedBox
+                            .shrink() // Hide skip text on wakeup time page
+                        : Text(
+                            'Skip',
+                            style: TextStyle(
+                              color: AppTheme.primaryColor,
+                              fontSize: 16,
+                            ),
+                          ),
                   ),
                 ),
               ),
@@ -81,6 +88,13 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                   itemCount: _totalPages,
                   onPageChanged: (int page) => provider.setCurrentPage(page),
                   itemBuilder: (context, index) {
+                    // Logic to insert WakeupTimePage before the last page
+                    if (index == onboardingPages.length - 1) {
+                      return const WakeupTimePage();
+                    } else if (index >= onboardingPages.length) {
+                      return onboardingPages[
+                          index - 1]; // The last page (You're All Set)
+                    }
                     return onboardingPages[index];
                   },
                 ),

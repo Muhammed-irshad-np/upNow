@@ -2,6 +2,9 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:confetti/confetti.dart';
 import 'package:upnow/utils/app_theme.dart';
+import 'package:lottie/lottie.dart';
+import 'package:dotlottie_loader/dotlottie_loader.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CongratulationsScreen extends StatefulWidget {
   const CongratulationsScreen({super.key});
@@ -17,7 +20,7 @@ class _CongratulationsScreenState extends State<CongratulationsScreen> {
   void initState() {
     super.initState();
     _confettiController =
-        ConfettiController(duration: const Duration(seconds: 5));
+        ConfettiController(duration: const Duration(seconds: 2));
 
     // Auto-play confetti when screen appears
     Future.delayed(const Duration(milliseconds: 300), () {
@@ -44,26 +47,21 @@ class _CongratulationsScreenState extends State<CongratulationsScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Success Icon
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        gradient: AppTheme.primaryGradient,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
-                            blurRadius: 20,
-                            offset: const Offset(0, 10),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.check,
-                        color: AppTheme.primaryTextColor,
-                        size: 60,
-                      ),
+                    // Success Animation
+                    DotLottieLoader.fromAsset(
+                      'assets/images/Success.lottie',
+                      frameBuilder: (context, dotlottie) {
+                        if (dotlottie != null) {
+                          return Lottie.memory(
+                            dotlottie.animations.values.first,
+                            width: 150.w,
+                            height: 150.h,
+                            repeat: false,
+                          );
+                        } else {
+                          return SizedBox(width: 150.w, height: 150.h);
+                        }
+                      },
                     ),
 
                     const SizedBox(height: 32),

@@ -1,6 +1,8 @@
 import 'dart:ui';
 import 'dart:math';
 import 'package:flutter/material.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
@@ -11,6 +13,7 @@ import 'package:upnow/screens/add_habit_screen.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
 import 'package:upnow/screens/habit_detail_screen.dart';
+import 'package:upnow/widgets/habit_check_button.dart';
 
 class HabitHomeScreen extends StatefulWidget {
   const HabitHomeScreen({Key? key}) : super(key: key);
@@ -29,7 +32,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   void initState() {
     super.initState();
     _confettiController =
-        ConfettiController(duration: const Duration(seconds: 3));
+        ConfettiController(duration: const Duration(seconds: 1));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final habitService = context.read<HabitService>();
       habitService.loadHabits();
@@ -185,27 +188,27 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Icon(
-            Icons.track_changes,
-            size: 80,
-            color: AppTheme.secondaryTextColor,
-          ),
-          const SizedBox(height: 24),
+            Icons.eco,
+            size: 100.sp,
+            color: AppTheme.primaryColor.withOpacity(0.5),
+          ).animate().fadeIn(duration: 400.ms).scale(),
+          SizedBox(height: 24.h),
           Text(
             'No Habits Yet',
             style: AppTheme.titleStyle.copyWith(
-              fontSize: 24,
+              fontSize: 24.sp,
               fontWeight: FontWeight.bold,
             ),
-          ),
-          const SizedBox(height: 8),
+          ).animate().fadeIn(delay: 200.ms).slideY(begin: 0.2, end: 0),
+          SizedBox(height: 8.h),
           Text(
             'Start tracking your habits!\nCreate your first habit to begin.',
             textAlign: TextAlign.center,
             style: AppTheme.bodyStyle.copyWith(
               color: AppTheme.secondaryTextColor,
             ),
-          ),
-          const SizedBox(height: 32),
+          ).animate().fadeIn(delay: 300.ms),
+          SizedBox(height: 32.h),
           ElevatedButton.icon(
             onPressed: () {
               HapticFeedbackHelper.trigger();
@@ -223,9 +226,9 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryColor,
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
+              padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
             ),
-          ),
+          ).animate().fadeIn(delay: 400.ms).scale(),
         ],
       ),
     );
@@ -238,7 +241,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     final isCompletedToday = todayEntry?.completed == true;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
+      margin: EdgeInsets.only(bottom: 20.h),
       decoration: BoxDecoration(
         // Use a gradient that blends the habit color with a dark background
         gradient: LinearGradient(
@@ -251,7 +254,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                 habit.color.withOpacity(0.1), const Color(0xFF000000)),
           ],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(24.r),
         border: Border.all(
           color: habit.color.withOpacity(0.3),
           width: 1.5,
@@ -285,7 +288,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           });
         },
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(24.r),
           child: Stack(
             children: [
               // Decorative background glow - enhanced for more "pop"
@@ -293,8 +296,8 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                 right: -60,
                 top: -60,
                 child: Container(
-                  width: 180,
-                  height: 180,
+                  width: 180.w,
+                  height: 180.h,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: habit.color.withOpacity(0.2),
@@ -309,7 +312,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               ),
 
               Padding(
-                padding: const EdgeInsets.all(12),
+                padding: EdgeInsets.all(12.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -319,10 +322,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                       children: [
                         // Habit Icon
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(12.w),
                           decoration: BoxDecoration(
                             color: habit.color.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(16),
+                            borderRadius: BorderRadius.circular(16.r),
                             border: Border.all(
                               color: habit.color.withOpacity(0.3),
                               width: 1,
@@ -345,10 +348,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                               return iconMap[habit.icon] ?? Icons.star;
                             }(),
                             color: habit.color,
-                            size: 20,
+                            size: 20.sp,
                           ),
                         ),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12.w),
 
                         // Habit Name & Description
                         Expanded(
@@ -360,7 +363,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                                 habit.name,
                                 textAlign: TextAlign.left,
                                 style: AppTheme.titleStyle.copyWith(
-                                  fontSize: 18,
+                                  fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 0.5,
                                   shadows: [
@@ -374,12 +377,12 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                               ),
                               if (habit.description != null &&
                                   habit.description!.isNotEmpty) ...[
-                                const SizedBox(height: 8),
+                                SizedBox(height: 8.h),
                                 Text(
                                   habit.description!,
                                   style: TextStyle(
                                     color: Colors.white.withOpacity(0.7),
-                                    fontSize: 14,
+                                    fontSize: 14.sp,
                                     fontWeight: FontWeight.w400,
                                     height: 1.4,
                                   ),
@@ -391,55 +394,20 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                           ),
                         ),
 
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8.w),
 
                         // Check Button
-                        GestureDetector(
-                          onTap: () {
-                            HapticFeedbackHelper.trigger();
-                            _toggleHabitCompletion(
-                                habit.id, today, habitService);
-                          },
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            curve: Curves.easeInOut,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: isCompletedToday
-                                  ? habit.color
-                                  : Colors.black.withOpacity(0.3),
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                color: isCompletedToday
-                                    ? habit.color
-                                    : habit.color.withOpacity(0.3),
-                                width: 2,
-                              ),
-                              boxShadow: isCompletedToday
-                                  ? [
-                                      BoxShadow(
-                                        color: habit.color.withOpacity(0.6),
-                                        blurRadius: 16,
-                                        offset: const Offset(0, 4),
-                                      )
-                                    ]
-                                  : [],
-                            ),
-                            child: Icon(
-                              Icons.check,
-                              color: isCompletedToday
-                                  ? Colors.white
-                                  : habit.color.withOpacity(0.5),
-                              size: 20,
-                            ),
-                          ),
+                        HabitCheckButton(
+                          isCompleted: isCompletedToday,
+                          color: habit.color,
+                          onToggle: () => _toggleHabitCompletion(
+                              habit.id, today, habitService),
+                          size: 44.w,
                         ),
                       ],
                     ),
 
-                    const SizedBox(height: 12),
-
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12.h),
 
                     // Layout based on selection
                     if (_selectedLayout == HabitGridLayout.monthly)
@@ -447,10 +415,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                     else ...[
                       // Stats Row
                       Container(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
                         decoration: BoxDecoration(
                           color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(16),
+                          borderRadius: BorderRadius.circular(16.r),
                           border: Border.all(
                             color: Colors.white.withOpacity(0.05),
                             width: 1,
@@ -459,7 +427,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                         child: _buildStatsRow(stats, habit.color),
                       ),
 
-                      const SizedBox(height: 12),
+                      SizedBox(height: 12.h),
 
                       // Contribution Grid based on selected layout
                       _buildGridForLayout(habit, habitService),
@@ -471,7 +439,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           ),
         ),
       ),
-    );
+    ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
   }
 
   Widget _buildMonthlyLayout(
@@ -546,7 +514,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
       case HabitGridLayout.weekly:
         final weekData = habitService.getWeeklyGridData(
             habit.id, DateTime.now().subtract(const Duration(days: 6)));
-        return _buildWeeklyGrid(weekData, habit.color);
+        return _buildWeeklyGrid(weekData, habit, habitService);
       case HabitGridLayout.monthly:
         // Should not be called in new layout, but keeping as fallback
         final monthData =
@@ -559,7 +527,9 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     }
   }
 
-  Widget _buildWeeklyGrid(List<HabitGridDay> weekData, Color habitColor) {
+  Widget _buildWeeklyGrid(List<HabitGridDay> weekData, HabitModel habit,
+      HabitService habitService) {
+    final habitColor = habit.color;
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -586,21 +556,12 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: day.completed
-                      ? habitColor
-                      : Colors.white.withOpacity(0.05),
-                  shape: BoxShape.circle,
-                  border: isToday
-                      ? Border.all(color: habitColor.withOpacity(0.5), width: 1)
-                      : null,
-                ),
-                child: day.completed
-                    ? const Icon(Icons.check, size: 16, color: Colors.white)
-                    : null,
+              HabitCheckButton(
+                isCompleted: day.completed,
+                color: habitColor,
+                onToggle: () =>
+                    _toggleHabitCompletion(habit.id, day.date, habitService),
+                size: 32.w,
               ),
             ],
           );
@@ -767,76 +728,144 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
       );
     }
 
-    // Create ScrollController and calculate current month position
-    final ScrollController scrollController = ScrollController();
+    return HabitContributionGrid(
+      yearGrid: yearGrid,
+      habitColor: habitColor,
+    );
+  }
+
+  void _toggleHabitCompletion(
+      String habitId, DateTime date, HabitService habitService) {
+    final entry = habitService.getHabitEntryForDate(habitId, date);
+
+    if (entry?.completed == true) {
+      // Mark as uncompleted
+      habitService.markHabitUncompleted(habitId, date);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Habit marked as incomplete'),
+          backgroundColor: AppTheme.secondaryTextColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Mark as completed
+      habitService.markHabitCompleted(habitId, date);
+
+      // Trigger confetti animation! 🎉
+      _confettiController.play();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Great job! Habit completed! 🎉'),
+          backgroundColor: AppTheme.primaryColor,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+}
+
+class HabitContributionGrid extends StatefulWidget {
+  final List<List<HabitGridDay>> yearGrid;
+  final Color habitColor;
+
+  const HabitContributionGrid({
+    Key? key,
+    required this.yearGrid,
+    required this.habitColor,
+  }) : super(key: key);
+
+  @override
+  State<HabitContributionGrid> createState() => _HabitContributionGridState();
+}
+
+class _HabitContributionGridState extends State<HabitContributionGrid> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
     final currentMonth = DateTime.now().month;
+    final initialOffset =
+        _calculateScrollPositionForMonth(widget.yearGrid, currentMonth);
+    _scrollController = ScrollController(initialScrollOffset: initialOffset);
+  }
 
-    // Calculate scroll position for current month
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (scrollController.hasClients) {
-        final scrollPosition =
-            _calculateScrollPositionForMonth(yearGrid, currentMonth);
-        scrollController.animateTo(
-          scrollPosition,
-          duration: const Duration(milliseconds: 800),
-          curve: Curves.easeInOut,
-        );
+  double _calculateScrollPositionForMonth(
+      List<List<HabitGridDay>> yearGrid, int targetMonth) {
+    // Each grid square is 11px + 3px margin = 14px
+    // Each week has 7 days = 7 * 14px = 98px
+    double currentPosition = 0.0; // Offset for day labels (S M T W T F S)
+
+    for (int weekIndex = 0; weekIndex < yearGrid.length; weekIndex++) {
+      final week = yearGrid[weekIndex];
+      if (week.isNotEmpty) {
+        final firstDay = week.first;
+        final month = firstDay.date.month;
+
+        // If we found the target month, return the position
+        if (month == targetMonth) {
+          // Center the current month in the view
+          // We can't easily get the screen width here without context in initState before build,
+          // but we can approximate or just scroll to the start of the month.
+          // Let's scroll to the start of the month minus a bit of padding.
+          return currentPosition > 50 ? currentPosition - 50 : 0.0;
+        }
+
+        // Move to next week position
+        currentPosition += 14.0; // 1 week width
       }
-    });
+    }
 
+    // If target month not found, scroll to end
+    return currentPosition;
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
+  void didUpdateWidget(HabitContributionGrid oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // If the grid data changes significantly (e.g. year change), we might want to reset scroll,
+    // but for now, keeping the user's scroll position is usually better UX unless context changes.
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      // padding: const EdgeInsets.all(8),
-      // decoration: BoxDecoration(
-      //   color: Colors.black.withOpacity(0.2),
-      //   borderRadius: BorderRadius.circular(12),
-      // ),
       child: SingleChildScrollView(
-        controller: scrollController,
+        controller: _scrollController,
         scrollDirection: Axis.horizontal,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Month labels row
             Container(
-              padding: EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 8),
               decoration: BoxDecoration(
                 color: Colors.black.withOpacity(0.2),
                 borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(12),
                     topRight: Radius.circular(12)),
               ),
-              child: _buildMonthLabelsRow(yearGrid),
+              child: _buildMonthLabelsRow(widget.yearGrid),
             ),
-            // const SizedBox(height: 4),
             // Weekday labels and grid row
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Weekday labels
-                // Column(
-                //   children: ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-                //       .map((day) => SizedBox(
-                //             height: 11,
-                //             child: Center(
-                //               child: Text(
-                //                 day,
-                //                 style: TextStyle(
-                //                   color: AppTheme.secondaryTextColor,
-                //                   fontSize: 10,
-                //                   fontFamily: 'Poppins',
-                //                 ),
-                //               ),
-                //             ),
-                //           ))
-                //       .toList(),
-                // ),
-                // const SizedBox(width: 4),
                 // Grid without separate scrolling
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: yearGrid.asMap().entries.map((entry) {
+                  children: widget.yearGrid.asMap().entries.map((entry) {
                     final index = entry.key;
                     final week = entry.value;
+
                     return Column(
                       children: week.map((day) {
                         return Container(
@@ -845,7 +874,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                           margin: EdgeInsets.only(
                               left: index == 0 ? 0 : 3, bottom: 3),
                           decoration: BoxDecoration(
-                            color: _getDayColor(day, habitColor),
+                            color: _getDayColor(day, widget.habitColor),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: Tooltip(
@@ -887,7 +916,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     final currentYear = DateTime.now().year;
     final monthLabels = <Widget>[];
 
-    // Add offset for day labels (S M T W T F S)
+    // Add offset for day labels
     monthLabels.add(const SizedBox(width: 3));
 
     // Sort months by their order
@@ -941,63 +970,5 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
     // Simple completed/not completed - completed days show in habit color
     return habitColor;
-  }
-
-  double _calculateScrollPositionForMonth(
-      List<List<HabitGridDay>> yearGrid, int targetMonth) {
-    // Each grid square is 11px + 3px margin = 14px
-    // Each week has 7 days = 7 * 14px = 98px
-    double currentPosition = 0.0; // Offset for day labels (S M T W T F S)
-
-    for (int weekIndex = 0; weekIndex < yearGrid.length; weekIndex++) {
-      final week = yearGrid[weekIndex];
-      if (week.isNotEmpty) {
-        final firstDay = week.first;
-        final month = firstDay.date.month;
-
-        // If we found the target month, return the position
-        if (month == targetMonth) {
-          // Center the current month in the view
-          return currentPosition - 100; // Offset to center the month
-        }
-
-        // Move to next week position
-        currentPosition += 14.0; // 1 week width
-      }
-    }
-
-    // If target month not found, scroll to end
-    return currentPosition;
-  }
-
-  void _toggleHabitCompletion(
-      String habitId, DateTime date, HabitService habitService) {
-    final entry = habitService.getHabitEntryForDate(habitId, date);
-
-    if (entry?.completed == true) {
-      // Mark as uncompleted
-      habitService.markHabitUncompleted(habitId, date);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Habit marked as incomplete'),
-          backgroundColor: AppTheme.secondaryTextColor,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    } else {
-      // Mark as completed
-      habitService.markHabitCompleted(habitId, date);
-
-      // Trigger confetti animation! 🎉
-      _confettiController.play();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Great job! Habit completed! 🎉'),
-          backgroundColor: AppTheme.primaryColor,
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
   }
 }

@@ -6,6 +6,8 @@ import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:intl/intl.dart';
+import 'package:lottie/lottie.dart';
+import 'package:dotlottie_loader/dotlottie_loader.dart';
 
 class HabitActivityScreen extends StatefulWidget {
   final HabitModel habit;
@@ -259,7 +261,21 @@ class _HabitActivityScreenState extends State<HabitActivityScreen>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle, color: Colors.green),
+          DotLottieLoader.fromAsset(
+            'assets/images/Success.lottie',
+            frameBuilder: (context, dotlottie) {
+              if (dotlottie != null) {
+                return Lottie.memory(
+                  dotlottie.animations.values.first,
+                  width: 24.sp,
+                  height: 24.sp,
+                  repeat: false,
+                );
+              } else {
+                return SizedBox(width: 24.sp, height: 24.sp);
+              }
+            },
+          ),
           SizedBox(width: 12.w),
           Text(
             'Completed!',

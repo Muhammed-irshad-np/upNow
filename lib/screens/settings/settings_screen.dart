@@ -6,6 +6,8 @@ import 'package:upnow/screens/settings/feedback_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
+import 'package:upnow/providers/subscription_provider.dart';
+import 'package:upnow/screens/settings/subscription_screen.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
 import 'package:share_plus/share_plus.dart';
@@ -31,6 +33,8 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
           children: [
+            _buildProBanner(context),
+            SizedBox(height: 24.h),
             _buildSectionTitle('Alarm'),
             _buildSettingGroup(
               children: [
@@ -106,9 +110,158 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ],
             ),
+            SizedBox(height: 32.h),
+            _buildSectionTitle('Debug / Testing'),
+            _buildSettingGroup(
+              children: [
+                _buildSettingTile(
+                  icon: Icons.celebration_outlined,
+                  title: 'Test Congratulations Screen',
+                  onTap: () {
+                    Navigator.pushNamed(context, '/congratulations');
+                  },
+                  isLast: true,
+                ),
+              ],
+            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildProBanner(BuildContext context) {
+    return Consumer<SubscriptionProvider>(
+      builder: (context, subscriptionProvider, child) {
+        if (subscriptionProvider.isPro) {
+          return Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryColor.withOpacity(0.2),
+                  AppTheme.primaryColor.withOpacity(0.05),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: AppTheme.primaryColor.withOpacity(0.3),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.verified,
+                  color: AppTheme.primaryColor,
+                  size: 24.sp,
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pro Member',
+                        style: TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Thank you for your support!',
+                        style: TextStyle(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          );
+        }
+
+        return GestureDetector(
+          onTap: () {
+            HapticFeedbackHelper.trigger();
+            Navigator.push(
+              context,
+              CupertinoPageRoute(
+                builder: (_) => const SubscriptionScreen(),
+              ),
+            );
+          },
+          child: Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFFFFD700).withOpacity(0.2), // Gold color
+                  const Color(0xFFFFA500).withOpacity(0.2), // Orange color
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              border: Border.all(
+                color: const Color(0xFFFFD700).withOpacity(0.5),
+                width: 1,
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700).withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.star_rounded,
+                    color: const Color(0xFFFFD700), // Gold
+                    size: 24.sp,
+                  ),
+                ),
+                SizedBox(width: 16.w),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Upgrade to Pro',
+                        style: TextStyle(
+                          color: AppTheme.primaryTextColor,
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        'Unlock all features & remove ads',
+                        style: TextStyle(
+                          color: AppTheme.secondaryTextColor,
+                          fontSize: 12.sp,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: AppTheme.secondaryTextColor,
+                  size: 14.sp,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

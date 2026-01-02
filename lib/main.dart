@@ -11,6 +11,7 @@ import 'package:upnow/providers/onboarding_provider.dart';
 import 'package:upnow/screens/alarm/alarm_screen.dart';
 import 'package:upnow/screens/alarm/congratulations_screen.dart';
 import 'package:upnow/screens/alarm/create_alarm_screen.dart';
+import 'package:upnow/providers/subscription_provider.dart';
 import 'package:upnow/screens/onboarding/onboarding_screen.dart';
 import 'package:upnow/screens/settings/settings_screen.dart';
 import 'package:upnow/screens/habit_home_screen.dart';
@@ -86,6 +87,7 @@ class MyApp extends StatelessWidget {
             ChangeNotifierProvider(create: (_) => HabitService()),
             ChangeNotifierProvider(create: (_) => NavigationProvider()),
             ChangeNotifierProvider(create: (_) => OnboardingProvider()),
+            ChangeNotifierProvider(create: (_) => SubscriptionProvider()),
             // ChangeNotifierProvider(create: (_) => SleepProvider()), // Commented out for first phase
           ],
           child: Consumer<SettingsProvider>(
@@ -269,8 +271,8 @@ class _MainScreenState extends State<MainScreen> with WidgetsBindingObserver {
                           _NavItem(
                             width: segmentWidth,
                             icon: navigationProvider.currentIndex == 1
-                                ? Icons.track_changes
-                                : Icons.track_changes_outlined,
+                                ? Icons.eco
+                                : Icons.eco_outlined,
                             label: 'Habits',
                             selected: navigationProvider.currentIndex == 1,
                             onTap: () {

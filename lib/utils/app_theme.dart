@@ -30,7 +30,7 @@ class AppTheme {
         return const Color(0xFF77DD77);
       case AppThemeType.tealOrange:
       default:
-        return const Color(0xFF009688);
+        return const Color.fromARGB(255, 28, 231, 167);
     }
   }
 
@@ -50,7 +50,7 @@ class AppTheme {
         return const Color(0xFFB2EEB2);
       case AppThemeType.tealOrange:
       default:
-        return const Color(0xFF4DB6AC);
+        return const Color.fromARGB(255, 32, 214, 120);
     }
   }
 
@@ -64,7 +64,7 @@ class AppTheme {
         return const Color(0xFF6A0080);
       case AppThemeType.tealOrange:
       default:
-        return const Color(0xFF00796B);
+        return const Color.fromARGB(255, 0, 121, 57);
     }
   }
 

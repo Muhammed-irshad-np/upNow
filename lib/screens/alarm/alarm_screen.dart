@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/providers/alarm_provider.dart';
 import 'package:upnow/services/permissions_manager.dart';
@@ -12,7 +14,6 @@ import 'package:upnow/models/alarm_model.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:upnow/providers/settings_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
-import 'package:upnow/utils/preferences_helper.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
 
@@ -24,26 +25,9 @@ class AlarmScreen extends StatefulWidget {
 }
 
 class _AlarmScreenState extends State<AlarmScreen> {
-  bool _isWakeUpReminderDismissed = false;
-
   @override
   void initState() {
     super.initState();
-    _loadWakeUpReminderState();
-  }
-
-  Future<void> _loadWakeUpReminderState() async {
-    final dismissed = await PreferencesHelper.isWakeUpAlarmReminderDismissed();
-    setState(() {
-      _isWakeUpReminderDismissed = dismissed;
-    });
-  }
-
-  Future<void> _dismissWakeUpReminder() async {
-    await PreferencesHelper.setWakeUpAlarmReminderDismissed(true);
-    setState(() {
-      _isWakeUpReminderDismissed = true;
-    });
   }
 
   @override
@@ -102,14 +86,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
             SliverToBoxAdapter(
               child: SizedBox(height: 8.h),
             ),
-            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
-              SliverToBoxAdapter(
-                child: _buildWakeUpAlarmReminder(context),
-              ),
-            if (!_isWakeUpReminderDismissed && !alarmProvider.hasMorningAlarm)
-              SliverToBoxAdapter(
-                child: SizedBox(height: 8.h),
-              ),
+
             SliverToBoxAdapter(
               child: _buildQuickAlarmButtons(context),
             ),
@@ -373,8 +350,8 @@ class _AlarmScreenState extends State<AlarmScreen> {
           Icon(
             Icons.alarm_off,
             size: 100.sp,
-            color: AppTheme.secondaryTextColor.withOpacity(0.5),
-          ),
+            color: AppTheme.primaryColor.withOpacity(0.5),
+          ).animate().fadeIn(duration: 600.ms).scale(delay: 200.ms),
           SizedBox(height: 20.h),
           Text(
             'No alarms set',
@@ -383,7 +360,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
               fontWeight: FontWeight.bold,
               color: AppTheme.textColor,
             ),
-          ),
+          ).animate().fadeIn(delay: 400.ms).slideY(begin: 0.2, end: 0),
           SizedBox(height: 12.h),
           Text(
             'Create an alarm to get started',
@@ -391,23 +368,18 @@ class _AlarmScreenState extends State<AlarmScreen> {
               fontSize: 16.sp,
               color: AppTheme.secondaryTextColor,
             ),
-          ),
+          ).animate().fadeIn(delay: 600.ms),
           SizedBox(height: 30.h),
           GradientButton(
             text: 'Create Alarm',
             gradient: AppTheme.primaryGradient,
             icon: const Icon(Icons.add, color: Colors.white),
             onPressed: () async {
-              // Check for critical permissions before creating an alarm
-              // if (!await _checkCriticalPermissions(context)) {
-              //   return;
-              // }
-
               // Navigate to create alarm screen
               await Navigator.pushNamed(context, '/create_alarm');
               // AlarmProvider will automatically reload alarms
             },
-          ),
+          ).animate().fadeIn(delay: 800.ms).scale(),
         ],
       ),
     );
@@ -516,7 +488,7 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   HapticFeedbackHelper.trigger();
                   _skipAlarmOnce(context, sortedAlarms[i]);
                 },
-              ),
+              ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
             ),
         ],
       ),
@@ -649,14 +621,24 @@ class _AlarmScreenState extends State<AlarmScreen> {
             ),
             SizedBox(height: 12.h),
             // Quick Alarm Buttons
-            Row(
-              children: [
-                _buildQuickAlarmButton(context, 5),
-                SizedBox(width: 8.w),
-                _buildQuickAlarmButton(context, 10),
-                SizedBox(width: 8.w),
-                _buildQuickAlarmButton(context, 15),
-              ],
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              clipBehavior: Clip.none,
+              child: Row(
+                children: [
+                  _buildQuickAlarmButton(context, 5),
+                  SizedBox(width: 8.w),
+                  _buildQuickAlarmButton(context, 10),
+                  SizedBox(width: 8.w),
+                  _buildQuickAlarmButton(context, 15),
+                  SizedBox(width: 8.w),
+                  _buildQuickAlarmButton(context, 30),
+                  SizedBox(width: 8.w),
+                  _buildQuickAlarmButton(context, 45),
+                  SizedBox(width: 8.w),
+                  _buildQuickAlarmButton(context, 60),
+                ],
+              ),
             ),
           ],
         ),
@@ -665,193 +647,49 @@ class _AlarmScreenState extends State<AlarmScreen> {
   }
 
   Widget _buildQuickAlarmButton(BuildContext context, int minutes) {
-    return Expanded(
-      child: Container(
-        height: 72.h,
-        decoration: BoxDecoration(
-          gradient: AppTheme.primaryGradient,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: AppTheme.primaryColor.withOpacity(0.2),
-              blurRadius: 8.r,
-              offset: Offset(0, 2.h),
-            ),
-          ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: () {
-              HapticFeedbackHelper.trigger();
-              _createQuickAlarm(context, minutes);
-            },
-            borderRadius: BorderRadius.circular(16.r),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  '$minutes',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 24.sp,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Text(
-                  'min',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 12.sp,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildWakeUpAlarmReminder(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      padding: EdgeInsets.all(16.w),
+      width: 60.w, // Fixed width for compact look
+      height: 50.h, // Smaller height
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryColor.withOpacity(0.1),
-            AppTheme.primaryColor.withOpacity(0.05),
-          ],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(16.r),
+        color: AppTheme.primaryColor.withOpacity(
+            0.15), // Solid/Transparent color instead of gradient for cleaner look
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(
           color: AppTheme.primaryColor.withOpacity(0.3),
-          width: 1.w,
+          width: 1,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedbackHelper.trigger();
+            _createQuickAlarm(context, minutes);
+          },
+          borderRadius: BorderRadius.circular(12.r),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Container(
-                padding: EdgeInsets.all(12.w),
-                decoration: BoxDecoration(
-                  color: AppTheme.primaryColor.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                child: Icon(
-                  Icons.wb_sunny,
-                  color: AppTheme.primaryColor,
-                  size: 24.sp,
+              Text(
+                '$minutes',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(width: 16.w),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Set Your Wake-Up Time',
-                      style: TextStyle(
-                        color: AppTheme.textColor,
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 4.h),
-                    Text(
-                      'Start your day right with a consistent wake-up routine',
-                      style: TextStyle(
-                        color: AppTheme.secondaryTextColor,
-                        fontSize: 13.sp,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              // IconButton(
-              //   onPressed: _dismissWakeUpReminder,
-              //   icon: Icon(
-              //     Icons.close,
-              //     color: AppTheme.secondaryTextColor,
-              //     size: 20.sp,
-              //   ),
-              // ),
-            ],
-          ),
-          SizedBox(height: 16.h),
-          Row(
-            children: [
-              Expanded(
-                child: GradientButton(
-                  text: 'Set Time',
-                  gradient: AppTheme.primaryGradient,
-                  icon: Icon(Icons.alarm_add, color: Colors.white, size: 18.sp),
-                  onPressed: () async {
-                    await _showWakeUpTimePicker(context);
-                  },
-                ),
-              ),
-              SizedBox(width: 12.w),
-              TextButton(
-                onPressed: () {
-                  HapticFeedbackHelper.trigger();
-                  _dismissWakeUpReminder();
-                },
-                child: Text(
-                  'Maybe Later',
-                  style: TextStyle(
-                    color: AppTheme.secondaryTextColor,
-                    fontSize: 14.sp,
-                  ),
+              Text(
+                'min',
+                style: TextStyle(
+                  color: AppTheme.secondaryTextColor,
+                  fontSize: 10.sp,
                 ),
               ),
             ],
           ),
-        ],
+        ),
       ),
     );
-  }
-
-  Future<void> _showWakeUpTimePicker(BuildContext context) async {
-    final alarmProvider = Provider.of<AlarmProvider>(context, listen: false);
-    final currentTime = alarmProvider.morningAlarmTime;
-
-    final pickedTime = await showTimePicker(
-      context: context,
-      initialTime: currentTime,
-      initialEntryMode: TimePickerEntryMode.input,
-      builder: (BuildContext context, Widget? child) {
-        // Wrap with MediaQuery to use 12-hour format
-        return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: false),
-          child: Theme(
-            data: ThemeData.dark().copyWith(
-              colorScheme: ColorScheme.dark(
-                primary: AppTheme.primaryColor,
-                onSurface: AppTheme.textColor,
-              ),
-              timePickerTheme: TimePickerThemeData(
-                hourMinuteShape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            child: child!,
-          ),
-        );
-      },
-    );
-
-    if (pickedTime != null) {
-      await alarmProvider.setMorningAlarm(pickedTime.hour, pickedTime.minute);
-      await _dismissWakeUpReminder();
-    }
   }
 
   // Overlay-specific dialogs removed; notification permissions are now handled via PermissionsManager.

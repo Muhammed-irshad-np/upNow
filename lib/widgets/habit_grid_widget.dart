@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/services/habit_service.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:upnow/widgets/habit_check_button.dart';
 
 class HabitGridWidget extends StatefulWidget {
   final String habitId;
@@ -31,9 +33,11 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
   Widget build(BuildContext context) {
     return Consumer<HabitService>(
       builder: (context, habitService, child) {
-        final yearData = habitService.getYearlyGridData(widget.habitId, widget.year);
-        final habit = habitService.habits.firstWhere((h) => h.id == widget.habitId);
-        
+        final yearData =
+            habitService.getYearlyGridData(widget.habitId, widget.year);
+        final habit =
+            habitService.habits.firstWhere((h) => h.id == widget.habitId);
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -48,9 +52,10 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
     );
   }
 
-  Widget _buildHeader(BuildContext context, HabitModel habit, HabitService habitService) {
+  Widget _buildHeader(
+      BuildContext context, HabitModel habit, HabitService habitService) {
     final stats = habitService.getHabitStats(widget.habitId);
-    
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -63,13 +68,13 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
                 color: habit.color,
                 borderRadius: BorderRadius.circular(4),
               ),
-              child: habit.icon != null 
-                ? const Icon(
-                    Icons.check_circle,
-                    size: 12,
-                    color: Colors.white,
-                  )
-                : null,
+              child: habit.icon != null
+                  ? const Icon(
+                      Icons.check_circle,
+                      size: 12,
+                      color: Colors.white,
+                    )
+                  : null,
             ),
             const SizedBox(width: 12),
             Expanded(
@@ -101,9 +106,12 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
           spacing: 16,
           runSpacing: 8,
           children: [
-            _buildStatChip('${stats.currentStreak} day streak', Icons.local_fire_department, Colors.orange),
-            _buildStatChip('${stats.completionRate.toInt()}% complete', Icons.check_circle, Colors.green),
-            _buildStatChip('${stats.totalCompletions} total', Icons.star, Colors.blue),
+            _buildStatChip('${stats.currentStreak} day streak',
+                Icons.local_fire_department, Colors.orange),
+            _buildStatChip('${stats.completionRate.toInt()}% complete',
+                Icons.check_circle, Colors.green),
+            _buildStatChip(
+                '${stats.totalCompletions} total', Icons.star, Colors.blue),
           ],
         ),
       ],
@@ -136,7 +144,8 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
     );
   }
 
-  Widget _buildGrid(BuildContext context, List<List<HabitGridDay>> yearData, HabitModel habit) {
+  Widget _buildGrid(BuildContext context, List<List<HabitGridDay>> yearData,
+      HabitModel habit) {
     if (yearData.isEmpty) {
       return Container(
         height: 120,
@@ -187,22 +196,36 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
   }
 
   Widget _buildMonthLabels() {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-                   'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-    
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
+    ];
+
     return Row(
       children: [
         SizedBox(width: 20), // Offset for day labels
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: months.map((month) => Text(
-              month,
-              style: TextStyle(
-                fontSize: 10,
-                color: Colors.grey[600],
-              ),
-            )).toList(),
+            children: months
+                .map((month) => Text(
+                      month,
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.grey[600],
+                      ),
+                    ))
+                .toList(),
           ),
         ),
       ],
@@ -211,22 +234,24 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
 
   Widget _buildDayLabels() {
     final days = ['Mon', 'Wed', 'Fri'];
-    
+
     return Column(
       children: [
         SizedBox(height: widget.cellSize + widget.cellSpacing), // Monday
-        ...days.map((day) => Container(
-          height: widget.cellSize + widget.cellSpacing,
-          width: 20,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            day,
-            style: TextStyle(
-              fontSize: 9,
-              color: Colors.grey[600],
-            ),
-          ),
-        )).toList(),
+        ...days
+            .map((day) => Container(
+                  height: widget.cellSize + widget.cellSpacing,
+                  width: 20,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    day,
+                    style: TextStyle(
+                      fontSize: 9,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ))
+            .toList(),
       ],
     );
   }
@@ -235,9 +260,12 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
-        children: yearData.map((week) => Column(
-          children: week.map((day) => _buildGridCell(day, habit)).toList(),
-        )).toList(),
+        children: yearData
+            .map((week) => Column(
+                  children:
+                      week.map((day) => _buildGridCell(day, habit)).toList(),
+                ))
+            .toList(),
       ),
     );
   }
@@ -245,7 +273,7 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
   Widget _buildGridCell(HabitGridDay day, HabitModel habit) {
     final color = _getCellColor(day, habit);
     final isToday = DateUtils.isSameDay(day.date, DateTime.now());
-    
+
     return GestureDetector(
       onTap: () => widget.onDayTapped?.call(day.date),
       child: Container(
@@ -257,36 +285,36 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
           borderRadius: BorderRadius.circular(2),
           border: isToday ? Border.all(color: Colors.blue, width: 1.5) : null,
         ),
-        child: day.completionCount > 1 
-          ? Center(
-              child: Text(
-                '${day.completionCount}',
-                style: const TextStyle(
-                  fontSize: 8,
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+        child: day.completionCount > 1
+            ? Center(
+                child: Text(
+                  '${day.completionCount}',
+                  style: const TextStyle(
+                    fontSize: 8,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-              ),
-            )
-          : null,
+              )
+            : null,
       ),
     );
   }
 
   Color _getCellColor(HabitGridDay day, HabitModel habit) {
     if (!day.completed) {
-      return Theme.of(context).brightness == Brightness.dark 
-        ? Colors.grey[800]! 
-        : Colors.grey[200]!;
+      return Theme.of(context).brightness == Brightness.dark
+          ? Colors.grey[800]!
+          : Colors.grey[200]!;
     }
 
     final baseColor = habit.color;
-    
+
     switch (day.intensityLevel) {
       case 0:
-        return Theme.of(context).brightness == Brightness.dark 
-          ? Colors.grey[800]! 
-          : Colors.grey[200]!;
+        return Theme.of(context).brightness == Brightness.dark
+            ? Colors.grey[800]!
+            : Colors.grey[200]!;
       case 1:
         return baseColor.withOpacity(0.3);
       case 2:
@@ -309,19 +337,21 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
           ),
         ),
         const SizedBox(width: 8),
-        ...List.generate(5, (index) => Container(
-          width: 10,
-          height: 10,
-          margin: const EdgeInsets.symmetric(horizontal: 1),
-          decoration: BoxDecoration(
-            color: index == 0 
-              ? (Theme.of(context).brightness == Brightness.dark 
-                  ? Colors.grey[800]! 
-                  : Colors.grey[200]!)
-              : habit.color.withOpacity(0.2 + (index * 0.2)),
-            borderRadius: BorderRadius.circular(2),
-          ),
-        )),
+        ...List.generate(
+            5,
+            (index) => Container(
+                  width: 10,
+                  height: 10,
+                  margin: const EdgeInsets.symmetric(horizontal: 1),
+                  decoration: BoxDecoration(
+                    color: index == 0
+                        ? (Theme.of(context).brightness == Brightness.dark
+                            ? Colors.grey[800]!
+                            : Colors.grey[200]!)
+                        : habit.color.withOpacity(0.2 + (index * 0.2)),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                )),
         const SizedBox(width: 8),
         Text(
           'More',
@@ -351,7 +381,7 @@ class HabitStreakWidget extends StatelessWidget {
       builder: (context, habitService, child) {
         final stats = habitService.getHabitStats(habitId);
         final habit = habitService.habits.firstWhere((h) => h.id == habitId);
-        
+
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -373,7 +403,8 @@ class HabitStreakWidget extends StatelessWidget {
                 children: [
                   Icon(
                     Icons.local_fire_department,
-                    color: stats.currentStreak > 0 ? Colors.orange : Colors.grey,
+                    color:
+                        stats.currentStreak > 0 ? Colors.orange : Colors.grey,
                     size: 24,
                   ),
                   const SizedBox(width: 8),
@@ -419,7 +450,8 @@ class HabitStreakWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildStatItem(String label, String value, IconData icon, Color color) {
+  Widget _buildStatItem(
+      String label, String value, IconData icon, Color color) {
     return Column(
       children: [
         Icon(icon, color: color, size: 20),
@@ -461,7 +493,7 @@ class HabitWeeklyGridWidget extends StatelessWidget {
       builder: (context, habitService, child) {
         final weekData = habitService.getWeeklyGridData(habitId, startDate);
         final habit = habitService.habits.firstWhere((h) => h.id == habitId);
-        
+
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -482,7 +514,9 @@ class HabitWeeklyGridWidget extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: weekData.map((day) => _buildWeekDay(context, day, habit)).toList(),
+                children: weekData
+                    .map((day) => _buildWeekDay(context, day, habit))
+                    .toList(),
               ),
             ],
           ),
@@ -491,11 +525,10 @@ class HabitWeeklyGridWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildWeekDay(BuildContext context, HabitGridDay day, HabitModel habit) {
-    final isToday = DateUtils.isSameDay(day.date, DateTime.now());
+  Widget _buildWeekDay(
+      BuildContext context, HabitGridDay day, HabitModel habit) {
     final dayName = DateFormat('E').format(day.date);
-    final dayNumber = day.date.day;
-    
+
     return GestureDetector(
       onTap: () => onDayTapped?.call(day.date),
       child: Column(
@@ -509,34 +542,11 @@ class HabitWeeklyGridWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: day.completed 
-                ? habit.color 
-                : (Theme.of(context).brightness == Brightness.dark 
-                    ? Colors.grey[800] 
-                    : Colors.grey[200]),
-              borderRadius: BorderRadius.circular(8),
-              border: isToday ? Border.all(color: Colors.blue, width: 2) : null,
-            ),
-            child: Center(
-              child: day.completed 
-                ? Icon(
-                    Icons.check,
-                    color: Colors.white,
-                    size: 18,
-                  )
-                : Text(
-                    '$dayNumber',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-            ),
+          HabitCheckButton(
+            isCompleted: day.completed,
+            color: habit.color,
+            onToggle: () => onDayTapped?.call(day.date),
+            size: 36.w,
           ),
           if (day.completionCount > 1) ...[
             const SizedBox(height: 4),
