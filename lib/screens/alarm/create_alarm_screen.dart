@@ -224,6 +224,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 title: 'Scan Barcode',
                 color: Colors.red,
               ),
+              _buildDismissOption(
+                form: form,
+                type: DismissType.swipe,
+                icon: Icons.swipe,
+                title: 'Swipe',
+                color: Colors.cyan,
+              ),
             ],
           ),
         ),
@@ -241,7 +248,8 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     final isSelected = form.dismissType == type;
     final bool isComingSoon = type != DismissType.math &&
         type != DismissType.normal &&
-        type != DismissType.typing;
+        type != DismissType.typing &&
+        type != DismissType.swipe;
 
     Widget optionWidget = Container(
       width: 110.w,

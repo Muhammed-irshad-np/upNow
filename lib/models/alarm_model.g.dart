@@ -148,6 +148,8 @@ class DismissTypeAdapter extends TypeAdapter<DismissType> {
         return DismissType.memory;
       case 6:
         return DismissType.barcode;
+      case 7:
+        return DismissType.swipe;
       default:
         return DismissType.normal;
     }
@@ -176,6 +178,9 @@ class DismissTypeAdapter extends TypeAdapter<DismissType> {
         break;
       case DismissType.barcode:
         writer.writeByte(6);
+        break;
+      case DismissType.swipe:
+        writer.writeByte(7);
         break;
     }
   }

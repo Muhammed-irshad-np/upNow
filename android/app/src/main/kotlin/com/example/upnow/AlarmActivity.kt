@@ -129,14 +129,57 @@ class AlarmActivity : AppCompatActivity() {
         if (intentPrimaryLight != -1L) primaryColorLight = intentPrimaryLight.toInt()
     }
 
+
+
     private fun refreshUI() {
         Log.d(TAG, "Refreshing UI for Dismiss Type: $currentDismissType")
-        if (currentDismissType == "typing" || currentDismissType == "text") {
-            setupTypeTextDismiss()
-        } else {
-            setupMathDismiss()
+        
+        // Hide all dismissal cards first for clean state
+        findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
+        findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.GONE
+        findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.GONE
+
+        when (currentDismissType) {
+            "typing", "text" -> setupTypeTextDismiss()
+            "swipe" -> setupSwipeDismiss()
+            else -> setupMathDismiss()
         }
     }
+    
+    private fun setupSwipeDismiss() {
+        Log.d(TAG, "Setting up Swipe dismiss")
+        findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.VISIBLE
+        
+        val seekBar = findViewById<android.widget.SeekBar>(R.id.swipe_seekbar)
+        
+        // Reset progress
+        seekBar.progress = 0
+        
+        seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                // Optional: Change transparency or color based on progress
+            }
+
+            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
+                // Do nothing
+            }
+
+            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                if (seekBar != null) {
+                    if (seekBar.progress > 85) {
+                        // Successful swipe
+                        seekBar.progress = 100
+                        Toast.makeText(this@AlarmActivity, "Alarm Dismissed!", Toast.LENGTH_SHORT).show()
+                        stopAlarmAndOpenCongratulations()
+                    } else {
+                        // Snap back if not swiped enough
+                        seekBar.progress = 0
+                    }
+                }
+            }
+        })
+    }
+
     
     private fun loadThemeColors() {
         // Try to get from intent first

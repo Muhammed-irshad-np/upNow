@@ -33,7 +33,9 @@ enum DismissType {
   @HiveField(5)
   memory,
   @HiveField(6)
-  barcode
+  barcode,
+  @HiveField(7)
+  swipe
 }
 
 @HiveType(typeId: 2)
@@ -137,6 +139,8 @@ class AlarmModel {
         return 'Memory Game';
       case DismissType.barcode:
         return 'Scan Barcode';
+      case DismissType.swipe:
+        return 'Swipe';
     }
   }
 

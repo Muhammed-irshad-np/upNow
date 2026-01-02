@@ -79,6 +79,9 @@ class MainActivity : FlutterActivity() {
                             // Pass theme colors if present
                             call.argument<Long>("primaryColor")?.let { putExtra("primaryColor", it) }
                             call.argument<Long>("primaryColorLight")?.let { putExtra("primaryColorLight", it) }
+                            
+                            val dismissType = call.argument<String>("dismissType") ?: "math"
+                            putExtra("dismissType", dismissType)
                         }
                         sendBroadcast(intent)
                         Log.d("MainActivity", "Broadcast sent immediately for alarm $alarmId")
@@ -166,7 +169,8 @@ class MainActivity : FlutterActivity() {
                         val minute = call.argument<Int>("minute") ?: return@setMethodCallHandler result.error("INVALID_ARGS", "Missing minute", null)
                         
                         // Register alarm with system AlarmManager for terminated state
-                        registerSystemAlarm(alarmId, alarmLabel, soundName, hour, minute)
+                        val dismissType = call.argument<String>("dismissType") ?: "math"
+                        registerSystemAlarm(alarmId, alarmLabel, soundName, hour, minute, dismissType)
                         result.success("Alarm registered with system")
                     } catch (e: Exception) {
                         Log.e("MainActivity", "Error registering terminated state alarm: ${e.message}")
@@ -399,9 +403,9 @@ class MainActivity : FlutterActivity() {
     /**
      * Register an alarm with the system AlarmManager to ensure it works in terminated state
      */
-    private fun registerSystemAlarm(alarmId: String, alarmLabel: String, soundName: String, hour: Int, minute: Int) {
+    private fun registerSystemAlarm(alarmId: String, alarmLabel: String, soundName: String, hour: Int, minute: Int, dismissType: String = "math") {
         try {
-            Log.d("MainActivity", "Registering system alarm for ID: $alarmId at $hour:$minute")
+            Log.d("MainActivity", "Registering system alarm for ID: $alarmId at $hour:$minute with type: $dismissType")
             
             // Create an intent for AlarmReceiver
             val intent = Intent(this, AlarmReceiver::class.java).apply {
@@ -412,6 +416,7 @@ class MainActivity : FlutterActivity() {
                 putExtra("hour", hour)
                 putExtra("minute", minute)
                 putExtra("isSystemAlarm", true) // Mark this as a system alarm
+                putExtra("dismissType", dismissType)
             }
             
             // Create a unique ID for this alarm based on the alarm ID

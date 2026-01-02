@@ -339,6 +339,8 @@ class AlarmCard extends StatelessWidget {
         return Icons.memory;
       case DismissType.barcode:
         return Icons.qr_code_scanner;
+      case DismissType.swipe:
+        return Icons.swipe;
     }
   }
 
@@ -358,6 +360,8 @@ class AlarmCard extends StatelessWidget {
         return 'MEMORY';
       case DismissType.barcode:
         return 'BARCODE';
+      case DismissType.swipe:
+        return 'SWIPE';
     }
   }
 
