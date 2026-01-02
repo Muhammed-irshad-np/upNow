@@ -40,7 +40,9 @@ class AlarmForegroundService : Service() {
             hour: Int,
             minute: Int,
             repeatType: String,
-            weekdays: BooleanArray?
+            weekdays: BooleanArray?,
+            primaryColor: Long? = null,
+            primaryColorLight: Long? = null
         ) {
             val intent = Intent(context, AlarmForegroundService::class.java).apply {
                 action = ACTION_START
@@ -51,6 +53,10 @@ class AlarmForegroundService : Service() {
                 putExtra("minute", minute)
                 putExtra("repeatType", repeatType)
                 putExtra("weekdays", weekdays)
+                
+                // Pass theme colors
+                primaryColor?.let { putExtra("primaryColor", it) }
+                primaryColorLight?.let { putExtra("primaryColorLight", it) }
             }
             ContextCompat.startForegroundService(context, intent)
         }
@@ -98,16 +104,28 @@ class AlarmForegroundService : Service() {
         val minute = intent?.getIntExtra("minute", -1) ?: -1
         val repeatType = intent?.getStringExtra("repeatType") ?: "once"
         val weekdays = intent?.getBooleanArrayExtra("weekdays")
+        val primaryColor = intent?.getLongExtra("primaryColor", -1L) ?: -1L
+        val primaryColorLight = intent?.getLongExtra("primaryColorLight", -1L) ?: -1L
 
         currentAlarmId = alarmId
 
         Log.d(TAG, "Starting foreground service for alarm $alarmId label=$alarmLabel sound=$soundName")
 
         acquireWakeLock()
-        ensureNotificationChannel()
-        startForeground(alarmId.hashCode(), buildNotification(alarmId, alarmLabel, soundName, repeatType, weekdays))
-        startAlarmPlayback(alarmId, alarmLabel, soundName, repeatType, weekdays, hour, minute)
-        maybeLaunchAlarmActivity(alarmId, alarmLabel, soundName, hour, minute, repeatType, weekdays)
+        ensureNotificationChannel(if (primaryColor != -1L) primaryColor.toInt() else android.graphics.Color.RED)
+        startForeground(alarmId.hashCode(), buildNotification(
+            alarmId, alarmLabel, soundName, repeatType, weekdays,
+            if (primaryColor != -1L) primaryColor else null,
+            if (primaryColorLight != -1L) primaryColorLight else null
+        ))
+        startAlarmPlayback(alarmId, alarmLabel, soundName, repeatType, weekdays, hour, minute,
+            if (primaryColor != -1L) primaryColor else null,
+            if (primaryColorLight != -1L) primaryColorLight else null
+        )
+        maybeLaunchAlarmActivity(alarmId, alarmLabel, soundName, hour, minute, repeatType, weekdays,
+            if (primaryColor != -1L) primaryColor else null,
+            if (primaryColorLight != -1L) primaryColorLight else null
+        )
     }
 
     private fun buildNotification(
@@ -115,7 +133,9 @@ class AlarmForegroundService : Service() {
         alarmLabel: String,
         soundName: String,
         repeatType: String,
-        weekdays: BooleanArray?
+        weekdays: BooleanArray?,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ): Notification {
         val alarmIntent = Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -130,6 +150,10 @@ class AlarmForegroundService : Service() {
             putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
             putExtra("repeatType", repeatType)
             putExtra("weekdays", weekdays)
+            
+            // Pass theme colors
+            primaryColor?.let { putExtra("primaryColor", it) }
+            primaryColorLight?.let { putExtra("primaryColorLight", it) }
         }
 
         val fullScreenIntent = PendingIntent.getActivity(
@@ -165,7 +189,9 @@ class AlarmForegroundService : Service() {
         hour: Int,
         minute: Int,
         repeatType: String,
-        weekdays: BooleanArray?
+        weekdays: BooleanArray?,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ) {
         val powerManager = getSystemService(PowerManager::class.java)
         val keyguardManager = getSystemService(KeyguardManager::class.java)
@@ -178,7 +204,9 @@ class AlarmForegroundService : Service() {
             hour,
             minute,
             repeatType,
-            weekdays
+            weekdays,
+            primaryColor,
+            primaryColorLight
         )
         Log.i(
             TAG,
@@ -195,7 +223,9 @@ class AlarmForegroundService : Service() {
         hour: Int,
         minute: Int,
         repeatType: String,
-        weekdays: BooleanArray?
+        weekdays: BooleanArray?,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ): Intent {
         return Intent(this, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -213,6 +243,10 @@ class AlarmForegroundService : Service() {
             putExtra("repeatType", repeatType)
             putExtra("weekdays", weekdays)
             putExtra("service_started", true)
+            
+            // Pass theme colors
+            primaryColor?.let { putExtra("primaryColor", it) }
+            primaryColorLight?.let { putExtra("primaryColorLight", it) }
         }
     }
 
@@ -229,7 +263,7 @@ class AlarmForegroundService : Service() {
         }
     }
 
-    private fun ensureNotificationChannel() {
+    private fun ensureNotificationChannel(lightColor: Int = android.graphics.Color.RED) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             val notificationManager = getSystemService(NotificationManager::class.java)
             val existingChannel = notificationManager?.getNotificationChannel(CHANNEL_ID)
@@ -237,10 +271,11 @@ class AlarmForegroundService : Service() {
             val needsWarning = existingChannel != null && (
                     existingChannel.importance < NotificationManager.IMPORTANCE_HIGH ||
                             existingChannel.lockscreenVisibility != Notification.VISIBILITY_PUBLIC ||
-                            existingChannel.canBypassDnd().not()
+                            existingChannel.canBypassDnd().not() ||
+                            existingChannel.lightColor != lightColor
                     )
 
-            if (needsCreate) {
+            if (needsCreate || needsWarning) {
                 val channel = NotificationChannel(
                     CHANNEL_ID,
                     "Alarm Alerts",
@@ -253,17 +288,10 @@ class AlarmForegroundService : Service() {
                     setBypassDnd(true)
                     setShowBadge(false)  // Critical for ColorOS
                     enableLights(true)   // Enable LED lights
-                    lightColor = android.graphics.Color.RED  // Alarm color
+                    this.lightColor = lightColor
                 }
                 notificationManager?.createNotificationChannel(channel)
-                Log.d(TAG, "Created alarm notification channel with IMPORTANCE_MAX for lockscreen")
-            } else if (needsWarning) {
-                Log.w(
-                    TAG,
-                    "Alarm channel exists but missing critical flags (importance=${existingChannel.importance}, " +
-                            "lockVisibility=${existingChannel.lockscreenVisibility}, bypassDnd=${existingChannel.canBypassDnd()}). " +
-                            "Consider resetting via AlarmService.init() call."
-                )
+                Log.d(TAG, "Created/Updated alarm notification channel with lightColor=${Integer.toHexString(lightColor)}")
             }
         }
     }
@@ -275,7 +303,9 @@ class AlarmForegroundService : Service() {
         repeatType: String,
         weekdays: BooleanArray?,
         hour: Int,
-        minute: Int
+        minute: Int,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ) {
         stopAlarmPlayback()
 
@@ -313,6 +343,10 @@ class AlarmForegroundService : Service() {
                     putExtra("service_started", true)
                     putExtra("hour", hour)
                     putExtra("minute", minute)
+                    
+                    // Pass theme colors
+                    primaryColor?.let { putExtra("primaryColor", it) }
+                    primaryColorLight?.let { putExtra("primaryColorLight", it) }
                 }
                 startActivity(alarmIntent)
             } else {

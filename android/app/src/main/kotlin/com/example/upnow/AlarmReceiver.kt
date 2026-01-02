@@ -61,6 +61,8 @@ class AlarmReceiver : BroadcastReceiver() {
         val minute = intent.getIntExtra("minute", -1)
         val repeatType = intent.getStringExtra("repeatType") ?: "once"
         val weekdays = intent.getBooleanArrayExtra("weekdays")
+        val primaryColor = intent.getLongExtra("primaryColor", -1L)
+        val primaryColorLight = intent.getLongExtra("primaryColorLight", -1L)
         
         val triggerType = if (isNativeAlarmTrigger) "NATIVE ALARM" else "NOTIFICATION"
         Log.d(TAG, "🔔 $triggerType TRIGGER - ID: $alarmId, Label: $alarmLabel, Sound: $soundName, Time: $hour:$minute")
@@ -100,7 +102,9 @@ class AlarmReceiver : BroadcastReceiver() {
             alarmLabel = alarmLabel,
             soundName = soundName,
             repeatType = repeatType,
-            weekdays = weekdays
+            weekdays = weekdays,
+            primaryColor = if (primaryColor != -1L) primaryColor else null,
+            primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null
         )
         
         try {
@@ -121,7 +125,9 @@ class AlarmReceiver : BroadcastReceiver() {
                 hour = hour,
                 minute = minute,
                 repeatType = repeatType,
-                weekdays = weekdays
+                weekdays = weekdays,
+                primaryColor = if (primaryColor != -1L) primaryColor else null,
+                primaryColorLight = if (primaryColorLight != -1L) primaryColorLight else null
             )
         } catch (e: Exception) {
             Log.e(TAG, "❌ Failed to start AlarmForegroundService: ${e.message}")
@@ -135,7 +141,9 @@ class AlarmReceiver : BroadcastReceiver() {
         alarmLabel: String,
         soundName: String,
         repeatType: String,
-        weekdays: BooleanArray?
+        weekdays: BooleanArray?,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ): Notification {
         val alarmIntent = Intent(context, AlarmActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or
@@ -151,6 +159,10 @@ class AlarmReceiver : BroadcastReceiver() {
             putExtra("repeatType", repeatType)
             putExtra("weekdays", weekdays)
             putExtra("service_started", true)
+            
+            // Pass theme colors
+            primaryColor?.let { putExtra("primaryColor", it) }
+            primaryColorLight?.let { putExtra("primaryColorLight", it) }
         }
 
         val fullScreenIntent = PendingIntent.getActivity(

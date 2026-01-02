@@ -1,5 +1,6 @@
 package com.example.upnow
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
@@ -39,6 +40,10 @@ class AlarmActivity : AppCompatActivity() {
     private var num2: Int = 0
     private var correctAnswer: Int = 0
     private var operatorIndex: Int = 0
+    
+    // Theme colors
+    private var primaryColor: Int = android.graphics.Color.RED
+    private var primaryColorLight: Int = android.graphics.Color.parseColor("#FF6659")
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -57,7 +62,11 @@ class AlarmActivity : AppCompatActivity() {
         
         setContentView(R.layout.activity_alarm)
         
-        // Get alarm details from intent
+        // Load theme colors
+        loadThemeColors()
+        
+        // Apply theme colors to UI
+        applyThemeColors()
         alarmId = intent.getStringExtra(EXTRA_ALARM_ID) ?: "unknown"
         val alarmLabel = intent.getStringExtra(EXTRA_ALARM_LABEL) ?: "Alarm!"
         val soundName = intent.getStringExtra(EXTRA_ALARM_SOUND) ?: "alarm_sound"
@@ -131,6 +140,59 @@ class AlarmActivity : AppCompatActivity() {
                 Toast.makeText(this@AlarmActivity, "Please complete the task to dismiss", Toast.LENGTH_SHORT).show()
             }
         })
+    }
+    
+    private fun loadThemeColors() {
+        // Try to get from intent first
+        val intentPrimary = intent.getLongExtra("primaryColor", -1L)
+        val intentPrimaryLight = intent.getLongExtra("primaryColorLight", -1L)
+        
+        if (intentPrimary != -1L && intentPrimaryLight != -1L) {
+            primaryColor = intentPrimary.toInt()
+            primaryColorLight = intentPrimaryLight.toInt()
+            Log.d(TAG, "Theme colors loaded from intent")
+        } else {
+            // Fallback to SharedPreferences
+            val prefs = getSharedPreferences("com.example.upnow.ThemePrefs", Context.MODE_PRIVATE)
+            val storedPrimary = prefs.getLong("primaryColor", -1L)
+            val storedPrimaryLight = prefs.getLong("primaryColorLight", -1L)
+            
+            if (storedPrimary != -1L && storedPrimaryLight != -1L) {
+                primaryColor = storedPrimary.toInt()
+                primaryColorLight = storedPrimaryLight.toInt()
+                Log.d(TAG, "Theme colors loaded from SharedPreferences")
+            } else {
+                Log.d(TAG, "Using default theme colors (Red)")
+            }
+        }
+    }
+    
+    private fun applyThemeColors() {
+        try {
+            // Apply to AM/PM indicator
+            val amPmIndicator = findViewById<TextView>(R.id.am_pm_indicator)
+            amPmIndicator.setTextColor(primaryColor)
+            
+            // Apply to numpad buttons (Backspace and Clear)
+            val backspaceButton = findViewById<Button>(R.id.num_backspace)
+            val clearButton = findViewById<Button>(R.id.num_clear)
+            
+            backspaceButton.setBackgroundColor(primaryColor)
+            clearButton.setBackgroundColor(primaryColor)
+            
+            // Apply to verify button (Gradient)
+            val verifyButton = findViewById<Button>(R.id.verify_button)
+            val gradientDrawable = android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                intArrayOf(primaryColor, primaryColorLight)
+            )
+            gradientDrawable.cornerRadius = 12f * resources.displayMetrics.density // 12dp
+            verifyButton.background = gradientDrawable
+            
+            Log.d(TAG, "Theme colors applied to UI")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error applying theme colors: ${e.message}")
+        }
     }
 
     override fun onNewIntent(intent: Intent) {

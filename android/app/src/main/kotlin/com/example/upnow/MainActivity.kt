@@ -75,6 +75,10 @@ class MainActivity : FlutterActivity() {
                                 putExtra("hour", hour)
                                 putExtra("minute", minute)
                             }
+                            
+                            // Pass theme colors if present
+                            call.argument<Long>("primaryColor")?.let { putExtra("primaryColor", it) }
+                            call.argument<Long>("primaryColorLight")?.let { putExtra("primaryColorLight", it) }
                         }
                         sendBroadcast(intent)
                         Log.d("MainActivity", "Broadcast sent immediately for alarm $alarmId")
@@ -94,8 +98,55 @@ class MainActivity : FlutterActivity() {
                 }
                 "checkAlarmPermissions" -> {
                     // Add a new method to check all alarm-related permissions
-                    val permissionsResult = checkAlarmPermissions()
-                    result.success(permissionsResult)
+                    result.success(checkAlarmPermissions())
+                }
+                "updateThemeColors" -> {
+                    val primaryColor = call.argument<Long>("primaryColor")
+                    val primaryColorLight = call.argument<Long>("primaryColorLight")
+                    
+                    if (primaryColor != null && primaryColorLight != null) {
+                        val prefs = getSharedPreferences("com.example.upnow.ThemePrefs", Context.MODE_PRIVATE)
+                        prefs.edit().apply {
+                            putLong("primaryColor", primaryColor)
+                            putLong("primaryColorLight", primaryColorLight)
+                            commit()
+                        }
+                    }
+                    result.success(true)
+                }
+                "launchTestMathScreen" -> {
+                    val primaryColor = call.argument<Long>("primaryColor")
+                    val primaryColorLight = call.argument<Long>("primaryColorLight")
+                    
+                    if (primaryColor != null && primaryColorLight != null) {
+                        try {
+                             // Save to prefs first
+                            val prefs = getSharedPreferences("com.example.upnow.ThemePrefs", Context.MODE_PRIVATE)
+                            prefs.edit().apply {
+                                putLong("primaryColor", primaryColor)
+                                putLong("primaryColorLight", primaryColorLight)
+                                commit()
+                            }
+                            
+                            val intent = Intent(this, AlarmActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                                putExtra(AlarmActivity.EXTRA_ALARM_ID, "test_alarm_id")
+                                putExtra(AlarmActivity.EXTRA_ALARM_LABEL, "Test Alarm")
+                                putExtra(AlarmActivity.EXTRA_ALARM_SOUND, "alarm_sound")
+                                putExtra("primaryColor", primaryColor)
+                                putExtra("primaryColorLight", primaryColorLight)
+                                putExtra("repeatType", "once")
+                                putExtra("weekdays", booleanArrayOf(true, true, true, true, true, true, true))
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e: Exception) {
+                            Log.e("MainActivity", "Failed to launch test screen: ${e.message}")
+                            result.error("LAUNCH_FAILED", e.message, null)
+                        }
+                    } else {
+                        result.error("INVALID_ARGS", "Missing colors", null)
+                    }
                 }
                 "openCongratulationsScreen" -> {
                     // Open congratulations screen in Flutter
@@ -132,8 +183,10 @@ class MainActivity : FlutterActivity() {
                     val soundName = call.argument<String>("soundName") ?: "alarm_sound"
                     val repeatType = call.argument<String>("repeatType") ?: "once"
                     val weekdays = call.argument<List<Boolean>>("weekdays") ?: listOf(false, false, false, false, false, false, false)
+                    val primaryColor = call.argument<Long>("primaryColor")
+                    val primaryColorLight = call.argument<Long>("primaryColorLight")
                     
-                    val success = scheduleNativeAlarm(alarmId, hour, minute, year, month, day, label, soundName, repeatType, weekdays)
+                    val success = scheduleNativeAlarm(alarmId, hour, minute, year, month, day, label, soundName, repeatType, weekdays, primaryColor, primaryColorLight)
                     result.success(success)
                 }
                 "cancelNativeAlarm" -> {
@@ -263,6 +316,11 @@ class MainActivity : FlutterActivity() {
             val notificationManager =
                 getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             
+            // Get primary color from prefs
+            val prefs = getSharedPreferences("com.example.upnow.ThemePrefs", Context.MODE_PRIVATE)
+            val primaryColor = prefs.getLong("primaryColor", -1L)
+            val lightColor = if (primaryColor != -1L) primaryColor.toInt() else android.graphics.Color.RED
+            
             // Delete old channel if it exists to clean up
             val oldChannel = notificationManager.getNotificationChannel("alarm_channel")
             if (oldChannel != null) {
@@ -289,7 +347,7 @@ class MainActivity : FlutterActivity() {
                 setBypassDnd(true)
                 setShowBadge(false)  // Critical for ColorOS
                 enableLights(true)   // Enable LED lights
-                lightColor = android.graphics.Color.RED  // Alarm color
+                this.lightColor = lightColor
             }
 
             notificationManager.createNotificationChannel(channel)
@@ -498,11 +556,23 @@ class MainActivity : FlutterActivity() {
         label: String,
         soundName: String,
         repeatType: String,
-        weekdays: List<Boolean>
+        weekdays: List<Boolean>,
+        primaryColor: Long?,
+        primaryColorLight: Long?
     ): Boolean {
         try {
             Log.d("MainActivity", "🔔 NATIVE ALARM: Scheduling alarm $alarmId for $hour:$minute on $year-$month-$day")
             
+            // Store theme colors for this alarm
+            if (primaryColor != null && primaryColorLight != null) {
+                val prefs = getSharedPreferences("com.example.upnow.ThemePrefs", Context.MODE_PRIVATE)
+                prefs.edit().apply {
+                    putLong("primaryColor", primaryColor)
+                    putLong("primaryColorLight", primaryColorLight)
+                    apply()
+                }
+            }
+
             val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val calendar = Calendar.getInstance().apply {
                 // If valid date passed from Dart, use it
@@ -533,10 +603,13 @@ class MainActivity : FlutterActivity() {
                 putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
                 putExtra(AlarmActivity.EXTRA_ALARM_LABEL, label)
                 putExtra(AlarmActivity.EXTRA_ALARM_SOUND, soundName)
-                putExtra("hour", hour)
                 putExtra("minute", minute)
                 putExtra("repeatType", repeatType)
                 putExtra("weekdays", weekdays.toBooleanArray())
+                
+                // Pass theme colors
+                primaryColor?.let { putExtra("primaryColor", it) }
+                primaryColorLight?.let { putExtra("primaryColorLight", it) }
             }
             
             // Create PendingIntent with unique request code based on alarm ID
@@ -566,6 +639,10 @@ class MainActivity : FlutterActivity() {
                     putExtra("repeatType", repeatType)
                     putExtra("weekdays", weekdays.toBooleanArray())
                     putExtra("service_started", false)
+                    
+                    // Pass theme colors
+                    primaryColor?.let { putExtra("primaryColor", it) }
+                    primaryColorLight?.let { putExtra("primaryColorLight", it) }
                 }
 
                 val showIntent = PendingIntent.getActivity(

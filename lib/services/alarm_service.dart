@@ -11,6 +11,7 @@ import 'dart:io';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:path/path.dart' as p;
 // import 'package:upnow/providers/alarm_provider.dart';
+import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/navigation_service.dart';
 
 // Define a global variable to hold the current app lifecycle state
@@ -127,7 +128,7 @@ class AlarmService {
 
       if (alarm != null) {
         // Launch the alarm screen
-        await _sendAlarmBroadcast(alarm);
+        await sendAlarmBroadcast(alarm);
       }
     }
   }
@@ -142,7 +143,7 @@ class AlarmService {
         if (alarmId != null && alarmLabel != null && soundName != null) {
           final alarm = HiveDatabase.getAlarm(alarmId);
           if (alarm != null) {
-            await _sendAlarmBroadcast(alarm);
+            await sendAlarmBroadcast(alarm);
           }
         }
         break;
@@ -425,6 +426,8 @@ class AlarmService {
             : 'alarm_sound',
         'repeatType': repeatType,
         'weekdays': alarm.weekdays,
+        'primaryColor': AppTheme.primaryColor.value,
+        'primaryColorLight': AppTheme.primaryColorLight.value,
       });
 
       if (result == true) {
@@ -619,8 +622,21 @@ class AlarmService {
     }
   }
 
+  // Launch the native math screen directly for testing
+  static Future<void> launchTestMathScreen() async {
+    try {
+      debugPrint('🚀 Launching native math screen for testing');
+      await _platformChannel.invokeMethod('launchTestMathScreen', {
+        'primaryColor': AppTheme.primaryColor.value,
+        'primaryColorLight': AppTheme.primaryColorLight.value,
+      });
+    } catch (e) {
+      debugPrint('❌ Error launching test math screen: $e');
+    }
+  }
+
   // Send alarm broadcast to native side
-  static Future<void> _sendAlarmBroadcast(AlarmModel alarm) async {
+  static Future<void> sendAlarmBroadcast(AlarmModel alarm) async {
     try {
       debugPrint('📱 ALARM BROADCAST: Sending broadcast for alarm ${alarm.id}');
 
@@ -635,11 +651,11 @@ class AlarmService {
       }
 
       await _platformChannel.invokeMethod('sendAlarmBroadcast', {
-        'id': alarm.id,
-        'label': alarm.label.isNotEmpty ? alarm.label : 'Alarm',
         'soundName': soundName,
         'hour': alarm.hour,
         'minute': alarm.minute,
+        'primaryColor': AppTheme.primaryColor.value,
+        'primaryColorLight': AppTheme.primaryColorLight.value,
       });
 
       debugPrint('📱 ALARM BROADCAST: Broadcast sent successfully');

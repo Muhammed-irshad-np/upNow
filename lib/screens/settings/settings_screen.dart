@@ -12,6 +12,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:upnow/widgets/alarm_optimization_card.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
+import 'package:upnow/services/alarm_service.dart';
 
 class SettingsScreen extends StatelessWidget {
   const SettingsScreen({Key? key}) : super(key: key);
@@ -119,6 +120,14 @@ class SettingsScreen extends StatelessWidget {
                   title: 'Test Congratulations Screen',
                   onTap: () {
                     Navigator.pushNamed(context, '/congratulations');
+                  },
+                  isLast: false,
+                ),
+                _buildSettingTile(
+                  icon: Icons.calculate_outlined,
+                  title: 'Test Native Math Screen',
+                  onTap: () {
+                    AlarmService.launchTestMathScreen();
                   },
                   isLast: true,
                 ),
