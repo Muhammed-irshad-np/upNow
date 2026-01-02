@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:provider/provider.dart';
-import 'package:in_app_purchase/in_app_purchase.dart';
 import 'package:in_app_purchase_android/in_app_purchase_android.dart';
 import 'package:in_app_purchase_android/billing_client_wrappers.dart';
 import 'package:upnow/providers/subscription_provider.dart';
@@ -18,6 +17,15 @@ class SubscriptionScreen extends StatefulWidget {
 
 class _SubscriptionScreenState extends State<SubscriptionScreen> {
   int _selectedPlanIndex = 1; // Default to Yearly (Best Value)
+  // Debug logs state
+  final List<String> _logs = [];
+
+  void _log(String message) {
+    debugPrint(message);
+    setState(() {
+      _logs.add(message);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,6 +74,30 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                 _buildRestoreButton(subscriptionProvider),
                 SizedBox(height: 24.h),
                 _buildTermsLinks(),
+                SizedBox(height: 40.h),
+                // DEBUG CONSOLE
+                Container(
+                  padding: EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('DEBUG LOGS (Screenshot this):',
+                          style: TextStyle(
+                              color: Colors.red, fontWeight: FontWeight.bold)),
+                      Divider(color: Colors.red),
+                      if (_logs.isEmpty)
+                        Text('Waiting for data...',
+                            style: TextStyle(color: Colors.white70)),
+                      ..._logs.map((l) => Text(l,
+                          style: TextStyle(color: Colors.white, fontSize: 10))),
+                    ],
+                  ),
+                ),
               ],
             ),
           );
@@ -81,7 +113,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           height: 80.h,
           width: 80.h,
           decoration: BoxDecoration(
-            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            color: AppTheme.primaryColor.withOpacity(0.1),
             shape: BoxShape.circle,
           ),
           child: Icon(
@@ -148,7 +180,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
           ),
           Icon(
             icon,
-            color: AppTheme.secondaryTextColor.withValues(alpha: 0.5),
+            color: AppTheme.secondaryTextColor.withOpacity(0.5),
             size: 20.sp,
           ),
         ],
@@ -184,12 +216,39 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (product is GooglePlayProductDetails) {
       final offers = product.productDetails.subscriptionOfferDetails ?? [];
 
+      // Avoid adding duplicate logs on re-renders
+      if (_logs.isEmpty) {
+        _log('Product ID: ${product.id}');
+        _log('Found ${offers.length} offers');
+      }
+
+      for (var offer in offers) {
+        // Simple check to avoid spamming the log if build is called multiple times
+        // In a real debug tool we'd be cleaner, but this is a quick fix for the user
+        final logMsg = 'Offer: ${offer.basePlanId}';
+        if (!_logs.contains(logMsg)) {
+          _log(logMsg);
+          for (var phase in offer.pricingPhases) {
+            _log(' > Phase: ${phase.billingPeriod} ${phase.formattedPrice}');
+          }
+        }
+      }
+
       final monthlyOffers = offers
-          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1M'))
+          .where((o) =>
+              o.basePlanId.contains('month') || // Fallback check
+              o.pricingPhases.any(
+                  (p) => p.billingPeriod == 'P1M' || p.billingPeriod == 'P30D'))
           .toList();
       final yearlyOffers = offers
-          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1Y'))
+          .where((o) =>
+              o.basePlanId.contains('year') || // Fallback check
+              o.pricingPhases.any((p) =>
+                  p.billingPeriod == 'P1Y' || p.billingPeriod == 'P365D'))
           .toList();
+
+      debugPrint('Filtered Monthly Offers: ${monthlyOffers.length}');
+      debugPrint('Filtered Yearly Offers: ${yearlyOffers.length}');
 
       return Column(
         children: [
@@ -210,6 +269,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
               period: '/year',
               subtitle: 'Best Value',
             ),
+          if (yearlyOffers.isEmpty)
+            Text('WARN: No yearly plan found via filters.',
+                style: TextStyle(color: Colors.amber)),
         ],
       );
     } else {
@@ -241,7 +303,6 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     required String price,
     required String period,
     String? subtitle,
-    bool isBestValue = false,
   }) {
     final isSelected = _selectedPlanIndex == index;
 
