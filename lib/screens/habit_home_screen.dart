@@ -48,6 +48,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final habitService = context.watch<HabitService>();
+    final activeHabits = habitService.getActiveHabits();
+    final hasHabits = activeHabits.isNotEmpty;
+
     return Scaffold(
       appBar: AppBar(
         title: Text(
@@ -57,87 +61,100 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         backgroundColor: AppTheme.darkBackground,
         elevation: 0,
         centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(60),
-          child: Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: SegmentedButton<HabitGridLayout>(
-              segments: const [
-                ButtonSegment<HabitGridLayout>(
-                  value: HabitGridLayout.weekly,
-                  label: Text('Weekly'),
-                  icon: Icon(Icons.view_week),
-                ),
-                ButtonSegment<HabitGridLayout>(
-                  value: HabitGridLayout.monthly,
-                  label: Text('Monthly'),
-                  icon: Icon(Icons.calendar_view_month),
-                ),
-                ButtonSegment<HabitGridLayout>(
-                  value: HabitGridLayout.yearly,
-                  label: Text('Yearly'),
-                  icon: Icon(Icons.calendar_today),
-                ),
-              ],
-              selected: {_selectedLayout},
-              onSelectionChanged: (Set<HabitGridLayout> newSelection) {
-                setState(() {
-                  _selectedLayout = newSelection.first;
-                });
-                HapticFeedbackHelper.trigger();
-              },
-              style: ButtonStyle(
-                backgroundColor: MaterialStateProperty.resolveWith<Color>(
-                  (Set<MaterialState> states) {
-                    if (states.contains(MaterialState.selected)) {
-                      return AppTheme.primaryColor;
-                    }
-                    return Colors.transparent;
-                  },
-                ),
-                foregroundColor: MaterialStateProperty.resolveWith<Color>(
-                  (Set<MaterialState> states) {
-                    if (states.contains(MaterialState.selected)) {
-                      return Colors.white;
-                    }
-                    return AppTheme.secondaryTextColor;
-                  },
-                ),
-                side: MaterialStateProperty.all(
-                  BorderSide(color: AppTheme.primaryColor.withOpacity(0.5)),
-                ),
-              ),
-            ),
+        actions: [
+          IconButton(
+            onPressed: () {
+              HapticFeedbackHelper.trigger();
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AddHabitScreen()),
+              ).then((_) {
+                if (mounted) {
+                  context.read<HabitService>().loadHabits();
+                }
+              });
+            },
+            icon: Icon(Icons.add, color: AppTheme.primaryColor, size: 28.sp),
           ),
-        ),
+          SizedBox(width: 8.w),
+        ],
+        bottom: hasHabits
+            ? PreferredSize(
+                preferredSize: const Size.fromHeight(60),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: SegmentedButton<HabitGridLayout>(
+                    segments: const [
+                      ButtonSegment<HabitGridLayout>(
+                        value: HabitGridLayout.weekly,
+                        label: Text('Weekly'),
+                        icon: Icon(Icons.view_week),
+                      ),
+                      ButtonSegment<HabitGridLayout>(
+                        value: HabitGridLayout.monthly,
+                        label: Text('Monthly'),
+                        icon: Icon(Icons.calendar_view_month),
+                      ),
+                      ButtonSegment<HabitGridLayout>(
+                        value: HabitGridLayout.yearly,
+                        label: Text('Yearly'),
+                        icon: Icon(Icons.calendar_today),
+                      ),
+                    ],
+                    selected: {_selectedLayout},
+                    onSelectionChanged: (Set<HabitGridLayout> newSelection) {
+                      setState(() {
+                        _selectedLayout = newSelection.first;
+                      });
+                      HapticFeedbackHelper.trigger();
+                    },
+                    style: ButtonStyle(
+                      backgroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return AppTheme.primaryColor;
+                          }
+                          return Colors.transparent;
+                        },
+                      ),
+                      foregroundColor: MaterialStateProperty.resolveWith<Color>(
+                        (Set<MaterialState> states) {
+                          if (states.contains(MaterialState.selected)) {
+                            return Colors.white;
+                          }
+                          return AppTheme.secondaryTextColor;
+                        },
+                      ),
+                      side: MaterialStateProperty.all(
+                        BorderSide(
+                            color: AppTheme.primaryColor.withOpacity(0.5)),
+                      ),
+                    ),
+                  ),
+                ),
+              )
+            : null,
       ),
       body: Stack(
         children: [
-          Consumer<HabitService>(
-            builder: (context, habitService, child) {
-              final activeHabits = habitService.getActiveHabits();
-
-              if (activeHabits.isEmpty) {
-                return _buildEmptyState();
-              }
-
-              return RefreshIndicator(
-                onRefresh: () async {
-                  await habitService.loadHabits();
-                  await habitService.loadHabitEntries();
+          if (!hasHabits)
+            _buildEmptyState()
+          else
+            RefreshIndicator(
+              onRefresh: () async {
+                await habitService.loadHabits();
+                await habitService.loadHabitEntries();
+              },
+              color: AppTheme.primaryColor,
+              child: ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: activeHabits.length,
+                itemBuilder: (context, index) {
+                  final habit = activeHabits[index];
+                  return _buildHabitCard(habit, habitService);
                 },
-                color: AppTheme.primaryColor,
-                child: ListView.builder(
-                  padding: const EdgeInsets.all(16),
-                  itemCount: activeHabits.length,
-                  itemBuilder: (context, index) {
-                    final habit = activeHabits[index];
-                    return _buildHabitCard(habit, habitService);
-                  },
-                ),
-              );
-            },
-          ),
+              ),
+            ),
           // Confetti widget
           Align(
             alignment: Alignment.topCenter,
@@ -161,23 +178,6 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedbackHelper.trigger();
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const AddHabitScreen()),
-          ).then((_) {
-            if (mounted) {
-              context.read<HabitService>().loadHabits();
-            }
-          });
-        },
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add),
-        label: const Text('Add Habit'),
       ),
     );
   }

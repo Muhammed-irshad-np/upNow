@@ -30,7 +30,7 @@ class AppTheme {
         return const Color(0xFF77DD77);
       case AppThemeType.tealOrange:
       default:
-        return const Color.fromARGB(255, 28, 231, 167);
+        return const Color.fromARGB(255, 8, 162, 113);
     }
   }
 

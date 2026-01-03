@@ -201,35 +201,35 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
                 type: DismissType.typing,
                 icon: Icons.keyboard_alt_outlined,
                 title: 'Type Text',
-                color: Colors.green,
+                color: Colors.orange,
               ),
               _buildDismissOption(
                 form: form,
                 type: DismissType.shake,
                 icon: Icons.vibration,
                 title: 'Shake Phone',
-                color: Colors.purple,
+                color: Colors.orange,
               ),
               _buildDismissOption(
                 form: form,
                 type: DismissType.memory,
                 icon: Icons.psychology_outlined,
                 title: 'Memory Game',
-                color: Colors.blue,
+                color: Colors.orange,
               ),
               _buildDismissOption(
                 form: form,
                 type: DismissType.barcode,
                 icon: Icons.qr_code_scanner,
                 title: 'Scan Barcode',
-                color: Colors.red,
+                color: Colors.orange,
               ),
               _buildDismissOption(
                 form: form,
                 type: DismissType.swipe,
                 icon: Icons.swipe,
                 title: 'Swipe',
-                color: Colors.cyan,
+                color: Colors.orange,
               ),
             ],
           ),
@@ -253,32 +253,40 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
 
     Widget optionWidget = Container(
       width: 110.w,
+      height: 120.h,
       margin: EdgeInsets.only(right: 12.w),
       padding: EdgeInsets.all(12.w),
       decoration: BoxDecoration(
-        color: isSelected ? color.withOpacity(0.2) : AppTheme.darkCardColor,
+        color: isSelected
+            ? color.withOpacity(0.2)
+            : isComingSoon
+                ? AppTheme.darkCardColor.withOpacity(0.5)
+                : AppTheme.darkCardColor,
         borderRadius: BorderRadius.circular(12.r),
         border: isSelected ? Border.all(color: color, width: 2.w) : null,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected ? color : AppTheme.secondaryTextColor,
-            size: 32.h,
-          ),
-          SizedBox(height: 8.r),
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color:
-                  isSelected ? AppTheme.textColor : AppTheme.secondaryTextColor,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? color : AppTheme.secondaryTextColor,
+              size: 32.h,
             ),
-          ),
-        ],
+            SizedBox(height: 8.r),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: isSelected
+                    ? AppTheme.textColor
+                    : AppTheme.secondaryTextColor,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
       ),
     );
 

@@ -69,6 +69,20 @@ class _AlarmScreenState extends State<AlarmScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         titleSpacing: 20.w,
+        actions: [
+          IconButton(
+            onPressed: () async {
+              HapticFeedbackHelper.trigger();
+              try {
+                await Navigator.pushNamed(context, '/create_alarm');
+              } catch (e, s) {
+                GlobalErrorHandler.onException(e, s);
+              }
+            },
+            icon: Icon(Icons.add, color: AppTheme.primaryColor, size: 28.sp),
+          ),
+          SizedBox(width: 8.w),
+        ],
       ),
       body: SafeArea(
         child: CustomScrollView(
@@ -108,21 +122,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
                   ),
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'alarmFab',
-        onPressed: () async {
-          HapticFeedbackHelper.trigger();
-          try {
-            await Navigator.pushNamed(context, '/create_alarm');
-          } catch (e, s) {
-            // Ensure any navigation-related errors surface visibly
-            GlobalErrorHandler.onException(e, s);
-          }
-        },
-        backgroundColor: AppTheme.primaryColor,
-        foregroundColor: Colors.white,
-        child: const Icon(Icons.add),
       ),
     );
   }
@@ -421,75 +420,60 @@ class _AlarmScreenState extends State<AlarmScreen> {
     // Grey color for inactive alarms
     final Color inactiveCardColor = Colors.grey.shade600;
 
-    // Calculate the height needed for stacked cards
-    final double cardHeight = 150.h;
-    final double stackOffset =
-        120.h; // Show more of each card while keeping stacked effect
-    final double totalHeight =
-        (sortedAlarms.length - 1) * stackOffset + cardHeight + 40.h;
-
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-      height: totalHeight,
-      child: Stack(
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Column(
         children: [
-          // Build cards from bottom to top (reverse order for proper stacking)
-          for (int i = sortedAlarms.length - 1; i >= 0; i--)
-            Positioned(
-              top: i * stackOffset,
-              left: 0,
-              right: 0,
-              child: AlarmCard(
-                alarm: sortedAlarms[i],
-                cardColor: sortedAlarms[i].isEnabled
-                    ? activeCardColors[i % activeCardColors.length]
-                    : inactiveCardColor,
-                isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
-                stackOffset: 0,
-                onDelete: () {
-                  HapticFeedbackHelper.trigger();
-                  Provider.of<AlarmProvider>(context, listen: false)
-                      .deleteAlarm(sortedAlarms[i].id);
-                },
-                onToggle: (value) async {
-                  HapticFeedbackHelper.trigger();
-                  if (value) {
-                    final hasPermission =
-                        await PermissionsManager.ensureNotificationPermission(
-                            context);
-                    if (!hasPermission) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Enable notifications so alarms can ring over the lock screen.',
-                            ),
+          for (int i = 0; i < sortedAlarms.length; i++)
+            AlarmCard(
+              alarm: sortedAlarms[i],
+              cardColor: sortedAlarms[i].isEnabled
+                  ? activeCardColors[i % activeCardColors.length]
+                  : inactiveCardColor,
+              isMorningAlarm: sortedAlarms[i].isMorningAlarm == true,
+              onDelete: () {
+                HapticFeedbackHelper.trigger();
+                Provider.of<AlarmProvider>(context, listen: false)
+                    .deleteAlarm(sortedAlarms[i].id);
+              },
+              onToggle: (value) async {
+                HapticFeedbackHelper.trigger();
+                if (value) {
+                  final hasPermission =
+                      await PermissionsManager.ensureNotificationPermission(
+                          context);
+                  if (!hasPermission) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Enable notifications so alarms can ring over the lock screen.',
                           ),
-                        );
-                      }
-                      return;
+                        ),
+                      );
                     }
+                    return;
                   }
+                }
 
-                  Provider.of<AlarmProvider>(context, listen: false)
-                      .toggleAlarm(sortedAlarms[i].id, value);
-                },
-                onTap: () async {
-                  HapticFeedbackHelper.trigger();
-                  // Navigate to edit alarm screen
-                  await Navigator.pushNamed(
-                    context,
-                    '/edit_alarm',
-                    arguments: sortedAlarms[i],
-                  );
-                  // AlarmProvider will automatically reload alarms
-                },
-                onSkipOnce: () {
-                  HapticFeedbackHelper.trigger();
-                  _skipAlarmOnce(context, sortedAlarms[i]);
-                },
-              ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
-            ),
+                Provider.of<AlarmProvider>(context, listen: false)
+                    .toggleAlarm(sortedAlarms[i].id, value);
+              },
+              onTap: () async {
+                HapticFeedbackHelper.trigger();
+                // Navigate to edit alarm screen
+                await Navigator.pushNamed(
+                  context,
+                  '/edit_alarm',
+                  arguments: sortedAlarms[i],
+                );
+                // AlarmProvider will automatically reload alarms
+              },
+              onSkipOnce: () {
+                HapticFeedbackHelper.trigger();
+                _skipAlarmOnce(context, sortedAlarms[i]);
+              },
+            ).animate().fadeIn(duration: 400.ms).slideX(begin: 0.1, end: 0),
         ],
       ),
     );
