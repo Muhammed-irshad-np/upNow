@@ -162,6 +162,7 @@ class AlarmForegroundService : Service() {
             // Pass theme colors
             primaryColor?.let { putExtra("primaryColor", it) }
             primaryColorLight?.let { putExtra("primaryColorLight", it) }
+            putExtra("dismissType", dismissType)
         }
 
         val fullScreenIntent = PendingIntent.getActivity(

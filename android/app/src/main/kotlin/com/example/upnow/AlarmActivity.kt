@@ -134,50 +134,77 @@ class AlarmActivity : AppCompatActivity() {
     private fun refreshUI() {
         Log.d(TAG, "Refreshing UI for Dismiss Type: $currentDismissType")
         
-        // Hide all dismissal cards first for clean state
-        findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
-        findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.GONE
-        findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.GONE
+        try {
+            // Hide all dismissal cards first for clean state
+            findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
+            findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.GONE
+            findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.GONE
 
-        when (currentDismissType) {
-            "typing", "text" -> setupTypeTextDismiss()
-            "swipe" -> setupSwipeDismiss()
-            else -> setupMathDismiss()
+            when (currentDismissType) {
+                "typing", "text" -> setupTypeTextDismiss()
+                "swipe" -> setupSwipeDismiss()
+                else -> setupMathDismiss()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error refreshing UI: ${e.message}")
+            // Fallback to Math if specific UI fails
+            try {
+                setupMathDismiss()
+            } catch (e2: Exception) {
+                Log.e(TAG, "Critical error setting up fallback UI: ${e2.message}")
+            }
         }
     }
     
     private fun setupSwipeDismiss() {
-        Log.d(TAG, "Setting up Swipe dismiss")
-        findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.VISIBLE
-        
-        val seekBar = findViewById<android.widget.SeekBar>(R.id.swipe_seekbar)
-        
-        // Reset progress
-        seekBar.progress = 0
-        
-        seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                // Optional: Change transparency or color based on progress
+        try {
+            Log.d(TAG, "Setting up Swipe dismiss")
+            val card = findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card)
+            if (card == null) {
+                Log.e(TAG, "Swipe Card View not found!")
+                setupMathDismiss() // Fallback
+                return
             }
-
-            override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
-                // Do nothing
+            card.visibility = android.view.View.VISIBLE
+            
+            val seekBar = findViewById<android.widget.SeekBar>(R.id.swipe_seekbar)
+            if (seekBar == null) {
+                Log.e(TAG, "Swipe SeekBar View not found!")
+                // Don't crash, just let the card show (maybe without functionality, or fallback)
+                setupMathDismiss() // Fallback
+                return
             }
+            
+            // Reset progress
+            seekBar.progress = 0
+            
+            seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                    // Optional: Change transparency or color based on progress
+                }
 
-            override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
-                if (seekBar != null) {
-                    if (seekBar.progress > 85) {
-                        // Successful swipe
-                        seekBar.progress = 100
-                        Toast.makeText(this@AlarmActivity, "Alarm Dismissed!", Toast.LENGTH_SHORT).show()
-                        stopAlarmAndOpenCongratulations()
-                    } else {
-                        // Snap back if not swiped enough
-                        seekBar.progress = 0
+                override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
+                    // Do nothing
+                }
+
+                override fun onStopTrackingTouch(seekBar: android.widget.SeekBar?) {
+                    if (seekBar != null) {
+                        if (seekBar.progress > 85) {
+                            // Successful swipe
+                            seekBar.progress = 100
+                            Toast.makeText(this@AlarmActivity, "Alarm Dismissed!", Toast.LENGTH_SHORT).show()
+                            stopAlarmAndOpenCongratulations()
+                        } else {
+                            // Snap back if not swiped enough
+                            seekBar.progress = 0
+                        }
                     }
                 }
-            }
-        })
+            })
+        } catch (e: Exception) {
+            Log.e(TAG, "Error generating Swipe UI: ${e.message}")
+            setupMathDismiss() // Fallback to Math
+        }
     }
 
     
@@ -490,40 +517,57 @@ class AlarmActivity : AppCompatActivity() {
     }
 
     private fun setupTypeTextDismiss() {
-        // Hide math card, show type text card
-        findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
-        findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.VISIBLE
-        
-        val targetPhraseView = findViewById<TextView>(R.id.target_phrase)
-        val phraseInput = findViewById<EditText>(R.id.phrase_input)
-        val verifyButton = findViewById<Button>(R.id.verify_text_button)
-        
-        // Random phrases
-        val phrases = listOf(
-            "I am awake",
-            "I will achieve my goals",
-            "Today is a new day",
-            "Rise and shine",
-            "Focus on the positive",
-            "Action cures fear",
-            "Discipline equals freedom"
-        )
-        val targetPhrase = phrases.random()
-        targetPhraseView.text = targetPhrase
-        
-        // Request focus to show keyboard
-        phraseInput.requestFocus()
-        // Note: Soft keyboard might not show automatically on lock screen without extra flags or user interaction
-        
-        verifyButton.setOnClickListener {
-            val userPhrase = phraseInput.text.toString().trim()
-            if (userPhrase.equals(targetPhrase, ignoreCase = true)) {
-                Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
-                stopAlarmAndOpenCongratulations()
-            } else {
-                Toast.makeText(this, "Incorrect phrase. Try again!", Toast.LENGTH_SHORT).show()
-                phraseInput.text.clear()
+        try {
+            // Hide math card, show type text card
+            findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
+            val card = findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card)
+            if (card == null) {
+                 Log.e(TAG, "Type Text Card View not found!")
+                 setupMathDismiss()
+                 return
             }
+            card.visibility = android.view.View.VISIBLE
+            
+            val targetPhraseView = findViewById<TextView>(R.id.target_phrase)
+            val phraseInput = findViewById<EditText>(R.id.phrase_input)
+            val verifyButton = findViewById<Button>(R.id.verify_text_button)
+            
+            if (targetPhraseView == null || phraseInput == null || verifyButton == null) {
+                 Log.e(TAG, "Type Text UI elements missing!")
+                 setupMathDismiss()
+                 return
+            }
+            
+            // Random phrases
+            val phrases = listOf(
+                "I am awake",
+                "I will achieve my goals",
+                "Today is a new day",
+                "Rise and shine",
+                "Focus on the positive",
+                "Action cures fear",
+                "Discipline equals freedom"
+            )
+            val targetPhrase = phrases.random()
+            targetPhraseView.text = targetPhrase
+            
+            // Request focus to show keyboard
+            phraseInput.requestFocus()
+            // Note: Soft keyboard might not show automatically on lock screen without extra flags or user interaction
+            
+            verifyButton.setOnClickListener {
+                val userPhrase = phraseInput.text.toString().trim()
+                if (userPhrase.equals(targetPhrase, ignoreCase = true)) {
+                    Toast.makeText(this, "Correct! Alarm dismissed.", Toast.LENGTH_SHORT).show()
+                    stopAlarmAndOpenCongratulations()
+                } else {
+                    Toast.makeText(this, "Incorrect phrase. Try again!", Toast.LENGTH_SHORT).show()
+                    phraseInput.text.clear()
+                }
+            }
+        } catch (e: Exception) {
+             Log.e(TAG, "Error generating Type Text UI: ${e.message}")
+             setupMathDismiss() // Fallback
         }
     }
 } 
