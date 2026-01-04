@@ -32,6 +32,18 @@ class AlarmForegroundService : Service() {
         private const val ACTION_START = "com.example.upnow.action.START_ALARM"
         private const val ACTION_STOP = "com.example.upnow.action.STOP_ALARM"
 
+        // Global state to track ringing alarm
+        var activeAlarmId: String? = null
+        var activeAlarmLabel: String? = null
+        var activeAlarmSound: String? = null
+        var activeAlarmHour: Int? = null
+        var activeAlarmMinute: Int? = null
+        var activeAlarmRepeat: String? = null
+        var activeAlarmWeekdays: BooleanArray? = null
+        var activeAlarmPrimaryColor: Long? = null
+        var activeAlarmPrimaryColorLight: Long? = null
+        var activeDismissType: String? = null
+
         fun start(
             context: Context,
             alarmId: String,
@@ -45,6 +57,18 @@ class AlarmForegroundService : Service() {
             primaryColorLight: Long? = null,
             dismissType: String = "math"
         ) {
+            // Update global state
+            activeAlarmId = alarmId
+            activeAlarmLabel = alarmLabel
+            activeAlarmSound = soundName
+            activeAlarmHour = hour
+            activeAlarmMinute = minute
+            activeAlarmRepeat = repeatType
+            activeAlarmWeekdays = weekdays
+            activeAlarmPrimaryColor = primaryColor
+            activeAlarmPrimaryColorLight = primaryColorLight
+            activeDismissType = dismissType
+
             val intent = Intent(context, AlarmForegroundService::class.java).apply {
                 action = ACTION_START
                 putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)
@@ -64,6 +88,20 @@ class AlarmForegroundService : Service() {
         }
 
         fun stop(context: Context, alarmId: String?) {
+            // Clear global state if stopping the current alarm
+            if (activeAlarmId == alarmId || alarmId == null) {
+                activeAlarmId = null
+                activeAlarmLabel = null
+                activeAlarmSound = null
+                activeAlarmHour = null
+                activeAlarmMinute = null
+                activeAlarmRepeat = null
+                activeAlarmWeekdays = null
+                activeAlarmPrimaryColor = null
+                activeAlarmPrimaryColorLight = null
+                activeDismissType = null
+            }
+
             val intent = Intent(context, AlarmForegroundService::class.java).apply {
                 action = ACTION_STOP
                 putExtra(AlarmActivity.EXTRA_ALARM_ID, alarmId)

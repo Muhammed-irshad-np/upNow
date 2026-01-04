@@ -23,6 +23,12 @@ import java.util.Calendar
 class MainActivity : FlutterActivity() {
     private val CHANNEL = "com.example.upnow/alarm_overlay"
     
+    override fun onResume() {
+        super.onResume()
+        // Check if an alarm is currently ringing when app comes to foreground
+        processActiveAlarmLaunchCheck()
+    }
+    
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
         Log.d("MainActivity", "Configuring Flutter Engine and Method Channel")
@@ -798,12 +804,10 @@ class MainActivity : FlutterActivity() {
                         stopPreview()
                     }
                 }
-                Log.d("MainActivity", "Previewing sound: $soundName")
-            } else {
-                Log.w("MainActivity", "Sound not found: $soundName")
+                previewMediaPlayer?.start()
             }
         } catch (e: Exception) {
-            Log.e("MainActivity", "Error previewing sound: ${e.message}")
+            Log.e("MainActivity", "Error in previewSound: ${e.message}")
         }
     }
 
@@ -820,4 +824,55 @@ class MainActivity : FlutterActivity() {
         }
         previewMediaPlayer = null
     }
+
+    private fun processActiveAlarmLaunchCheck() {
+        try {
+            // Check if there is an active alarm in the foreground service
+            val activeId = AlarmForegroundService.activeAlarmId
+            
+            if (activeId != null) {
+                Log.d("MainActivity", "🚨 FOUND ACTIVE ALARM IN FOREGROUND SERVICE: $activeId")
+                Log.d("MainActivity", "🚀 Redirecting to AlarmActivity immediately")
+                
+                val intent = Intent(this, AlarmActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
+                            Intent.FLAG_ACTIVITY_CLEAR_TOP or
+                            Intent.FLAG_ACTIVITY_EXCLUDE_FROM_RECENTS or
+                            Intent.FLAG_ACTIVITY_NO_HISTORY
+                            
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                    }
+                    
+                    // Recover full alarm details from static state
+                    putExtra(AlarmActivity.EXTRA_ALARM_ID, activeId)
+                    putExtra(AlarmActivity.EXTRA_ALARM_LABEL, AlarmForegroundService.activeAlarmLabel ?: "Alarm")
+                    putExtra(AlarmActivity.EXTRA_ALARM_SOUND, AlarmForegroundService.activeAlarmSound ?: "alarm_sound")
+                    
+                    val hour = AlarmForegroundService.activeAlarmHour
+                    val minute = AlarmForegroundService.activeAlarmMinute
+                    if (hour != null && minute != null) {
+                        putExtra("hour", hour)
+                        putExtra("minute", minute)
+                    }
+                    
+                    putExtra("repeatType", AlarmForegroundService.activeAlarmRepeat ?: "once")
+                    putExtra("weekdays", AlarmForegroundService.activeAlarmWeekdays)
+                    putExtra("service_started", true)
+                    
+                    // Pass theme colors
+                    AlarmForegroundService.activeAlarmPrimaryColor?.let { putExtra("primaryColor", it) }
+                    AlarmForegroundService.activeAlarmPrimaryColorLight?.let { putExtra("primaryColorLight", it) }
+                    
+                    val dismissType = AlarmForegroundService.activeDismissType ?: "math"
+                    putExtra("dismissType", dismissType)
+                }
+                
+                startActivity(intent)
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error in processActiveAlarmLaunchCheck: ${e.message}")
+        }
+    }
+
 }
