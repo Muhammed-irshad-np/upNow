@@ -31,6 +31,7 @@ class AlarmForegroundService : Service() {
         private const val CHANNEL_ID = "upnow_alarm_channel_v2"
         private const val ACTION_START = "com.example.upnow.action.START_ALARM"
         private const val ACTION_STOP = "com.example.upnow.action.STOP_ALARM"
+        private const val ACTION_RESPAWN = "com.example.upnow.action.RESPAWN_NOTIFICATION"
 
         // Global state to track ringing alarm
         var activeAlarmId: String? = null
@@ -128,6 +129,25 @@ class AlarmForegroundService : Service() {
                 stopSelf()
                 return START_NOT_STICKY
             }
+            ACTION_RESPAWN -> {
+                Log.d(TAG, "🔔 RESPAWN: Notification cleared by user, respawning immediately")
+                if (activeAlarmId != null) {
+                    // Respawn notification using global state
+                    val notification = buildNotification(
+                        activeAlarmId!!,
+                        activeAlarmLabel ?: "Alarm",
+                        activeAlarmSound ?: "alarm_sound",
+                        activeAlarmRepeat ?: "once",
+                        activeAlarmWeekdays,
+                        activeAlarmPrimaryColor,
+                        activeAlarmPrimaryColorLight,
+                        activeDismissType ?: "math"
+                    )
+                    startForeground(activeAlarmId.hashCode(), notification)
+                } else {
+                    Log.d(TAG, "🔔 RESPAWN: No active alarm to respawn")
+                }
+            }
             ACTION_START, null -> {
                 handleStart(intent)
             }
@@ -210,6 +230,17 @@ class AlarmForegroundService : Service() {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        // Intent to respawn notification if cleared
+        val deleteIntent = Intent(this, AlarmForegroundService::class.java).apply {
+            action = ACTION_RESPAWN
+        }
+        val deletePendingIntent = PendingIntent.getService(
+            this,
+            alarmId.hashCode() + 1, // Unique request code
+            deleteIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
         return NotificationCompat.Builder(this, CHANNEL_ID)
             .setSmallIcon(android.R.drawable.ic_lock_idle_alarm)
             .setContentTitle(alarmLabel)
@@ -219,6 +250,7 @@ class AlarmForegroundService : Service() {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .setFullScreenIntent(fullScreenIntent, true)  // Critical: true enables lockscreen launch
             .setContentIntent(fullScreenIntent)
+            .setDeleteIntent(deletePendingIntent) // Trigger respawn on dismissal
             .setOngoing(true)
             .setAutoCancel(false)
             .setSound(null)  // Sound handled separately

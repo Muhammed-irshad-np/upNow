@@ -11,6 +11,7 @@ import 'package:intl/intl.dart';
 import 'package:upnow/providers/alarm_form_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 import 'package:upnow/services/permissions_manager.dart';
+import 'package:upnow/screens/alarm/alarm_sound_selection_screen.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -446,122 +447,18 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               size: 16.sp, color: AppTheme.secondaryTextColor),
         ],
       ),
-      onTap: () => _showSoundSelectionDialog(context, form),
-    );
-  }
-
-  void _showSoundSelectionDialog(BuildContext context, AlarmFormProvider form) {
-    // Store the initially selected path to manage temporary selection in the dialog
-    String? tempSelectedPath = form.selectedSoundPath;
-
-    showDialog(
-      context: context,
-      // Prevent dialog dismissal by tapping outside
-      barrierDismissible: false,
-      builder: (BuildContext context) {
-        // Use StatefulBuilder to manage state within the dialog
-        return StatefulBuilder(
-          builder: (context, dialogSetState) {
-            return SimpleDialog(
-              title: const Text('Select Alarm Sound'),
-              backgroundColor: AppTheme.darkCardColor,
-              titleTextStyle: const TextStyle(
-                  color: AppTheme.textColor,
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              children: [
-                // Map sounds to dialog options
-                ...form.availableSounds.map((soundPath) {
-                  final fileName = p.basename(soundPath);
-                  // Check if this sound is the one temporarily selected in the dialog
-                  final isTemporarilySelected = tempSelectedPath == soundPath;
-
-                  return SimpleDialogOption(
-                    onPressed: () async {
-                      String relativePath = ''; // Declare outside try
-                      try {
-                        await form.stopPreview(); // Stop previous sound
-                        relativePath = soundPath.replaceFirst(
-                            'assets/', ''); // Assign inside try
-                        debugPrint('Previewing sound: $relativePath');
-                        await form.previewSound(soundPath); // Play preview
-
-                        // Update the temporary selection within the dialog ONLY
-                        dialogSetState(() {
-                          tempSelectedPath = soundPath;
-                        });
-                      } catch (e, stackTrace) {
-                        // Add stackTrace here
-                        GlobalErrorHandler.onException(e, stackTrace);
-                      }
-                      // DO NOT pop navigator here
-                      // DO NOT set the main screen state here
-                    },
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(fileName,
-                            style: TextStyle(
-                              // Highlight the temporarily selected item
-                              color: isTemporarilySelected
-                                  ? Theme.of(context).primaryColor
-                                  : AppTheme.textColor,
-                              fontSize: 16.sp,
-                              fontWeight: isTemporarilySelected
-                                  ? FontWeight.bold
-                                  : FontWeight.normal,
-                            )),
-                        if (isTemporarilySelected) // Show check only for temporary selection
-                          Icon(Icons.music_note,
-                              color: Theme.of(context).primaryColor,
-                              size: 20.h),
-                        // Optional: Show a different indicator for the *originally* selected sound
-                        // else if (_selectedSoundPath == soundPath)
-                        //   Icon(Icons.check_circle_outline, color: AppTheme.secondaryTextColor, size: 20),
-                      ],
-                    ),
-                  );
-                }).toList(),
-
-                // Add Cancel and OK buttons
-                Padding(
-                  padding: EdgeInsets.only(
-                      top: 16.0.h, right: 16.0.w, bottom: 8.0.h),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        child: const Text('Cancel',
-                            style:
-                                TextStyle(color: AppTheme.secondaryTextColor)),
-                        onPressed: () async {
-                          await form.stopPreview(); // Stop preview on cancel
-                          Navigator.pop(context); // Close dialog
-                        },
-                      ),
-                      SizedBox(width: 8.w),
-                      TextButton(
-                        child: Text('OK',
-                            style: TextStyle(
-                                color: Theme.of(context).primaryColor,
-                                fontWeight: FontWeight.bold)),
-                        onPressed: () async {
-                          await form.stopPreview(); // Stop preview on OK
-                          form.setSelectedSoundPath(tempSelectedPath);
-                          Navigator.pop(context); // Close dialog
-                        },
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => ChangeNotifierProvider.value(
+              value: form,
+              child: const AlarmSoundSelectionScreen(),
+            ),
+          ),
         );
       },
-    ); // Removed .then() as stopping is handled by buttons now
+    );
   }
 
   Widget _buildVibrationOption(AlarmFormProvider form) {
