@@ -292,55 +292,6 @@ class _AlarmScreenState extends State<AlarmScreen> {
 
   // Morning alarm section removed; now highlighted as the first alarm card
 
-  // Check and request critical permissions if needed
-  Future<bool> _checkCriticalPermissions(BuildContext context) async {
-    // Check if any critical permission is missing
-    if (!await PermissionsManager.hasAllCriticalPermissions()) {
-      // Show explanation dialog
-      final bool shouldContinue = await showDialog<bool>(
-            context: context,
-            barrierDismissible: false,
-            builder: (context) => AlertDialog(
-              title: Row(
-                children: [
-                  Icon(Icons.notification_important,
-                      color: AppTheme.primaryColor),
-                  SizedBox(width: 10.w),
-                  const Text('Permissions Required'),
-                ],
-              ),
-              content: Text(
-                'we need to request some important permissions.',
-                style: TextStyle(fontSize: 14.sp),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.of(context).pop(false),
-                  child: const Text('Later'),
-                ),
-                ElevatedButton(
-                  onPressed: () => Navigator.of(context).pop(true),
-                  child: const Text('Continue'),
-                ),
-              ],
-            ),
-          ) ??
-          false;
-
-      if (!shouldContinue) {
-        return false;
-      }
-
-      // Request permissions
-      await PermissionsManager.requestNotifications(context);
-      await PermissionsManager.requestDisplayOverApps(context);
-      await PermissionsManager.requestBatteryOptimization(context);
-      // await PermissionsManager.requestExactAlarm(context);
-    }
-
-    return true;
-  }
-
   Widget _buildEmptyState(BuildContext context) {
     return Center(
       child: Column(

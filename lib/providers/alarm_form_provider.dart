@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:upnow/models/alarm_model.dart';
+import 'package:upnow/services/alarm_service.dart';
+import 'package:path/path.dart' as p;
 
 class AlarmFormProvider with ChangeNotifier {
   late TimeOfDay _selectedTime;
@@ -13,12 +14,24 @@ class AlarmFormProvider with ChangeNotifier {
   bool _isMorningAlarm = false;
 
   final List<String> availableSounds = const [
-    'assets/sounds/stardust.mp3',
-    'assets/sounds/simplified.mp3',
-    'assets/sounds/lofi.mp3',
+    'alarm',
+    'eas_alarm_iphone_alarm_262882',
+    'fire_alarm',
+    'iphone_alarm',
+    'lo_fi_alarm_clock_243766',
+    'lofi',
+    'loudest_alarm',
+    'loudest_alarm_clock',
+    'morning_flower',
+    'motivational_alarm',
+    'perfect_alarm',
+    'rooster_alarm',
+    'simplified',
+    'south_korea_eas_alarm_1966_422162',
+    'stardust',
+    'thailand_eas_alarm_2006_266492',
+    'wake_up',
   ];
-
-  final AudioPlayer _audioPlayer = AudioPlayer();
 
   AlarmFormProvider({AlarmModel? initial}) {
     if (initial != null) {
@@ -28,7 +41,11 @@ class AlarmFormProvider with ChangeNotifier {
       _repeat = initial.repeat;
       _weekdays = List<bool>.from(initial.weekdays);
       _vibrate = initial.vibrate;
-      _selectedSoundPath = initial.soundPath;
+      if (initial.soundPath.isNotEmpty) {
+        _selectedSoundPath = p.basenameWithoutExtension(initial.soundPath);
+      } else {
+        _selectedSoundPath = initial.soundPath;
+      }
       _isMorningAlarm = initial.isMorningAlarm;
     } else {
       final now = TimeOfDay.now();
@@ -97,22 +114,16 @@ class AlarmFormProvider with ChangeNotifier {
   }
 
   Future<void> stopPreview() async {
-    await _audioPlayer.stop();
+    await AlarmService.stopPreview();
   }
 
-  Future<void> previewSound(String assetPath) async {
-    try {
-      await _audioPlayer.stop();
-      await _audioPlayer.setReleaseMode(ReleaseMode.loop);
-      final relative = assetPath.replaceFirst('assets/', '');
-      await _audioPlayer.play(AssetSource(relative));
-    } catch (_) {
-      // ignore preview errors for now
-    }
+  Future<void> previewSound(String soundName) async {
+    await AlarmService.previewSound(soundName);
   }
 
   AlarmModel buildOrUpdate(AlarmModel? existing) {
-    final alarm = existing ?? AlarmModel(hour: _selectedTime.hour, minute: _selectedTime.minute);
+    final alarm = existing ??
+        AlarmModel(hour: _selectedTime.hour, minute: _selectedTime.minute);
     alarm.hour = _selectedTime.hour;
     alarm.minute = _selectedTime.minute;
     alarm.label = _label.isEmpty ? 'Alarm' : _label;
@@ -124,12 +135,4 @@ class AlarmFormProvider with ChangeNotifier {
     alarm.isMorningAlarm = _isMorningAlarm;
     return alarm;
   }
-
-  @override
-  void dispose() {
-    _audioPlayer.dispose();
-    super.dispose();
-  }
 }
-
-

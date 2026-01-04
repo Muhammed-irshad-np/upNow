@@ -794,4 +794,25 @@ class AlarmService {
       debugPrint('❌ SKIP ALARM: Error skipping alarm: $e');
     }
   }
+
+  // ✅ PREVIEW SOUNDS FROM RES/RAW
+  static Future<void> previewSound(String soundName) async {
+    try {
+      debugPrint('🔊 PREVIEW SOUND: Requesting native preview for $soundName');
+      await _platformChannel.invokeMethod('previewSound', {
+        'soundName': soundName,
+      });
+    } catch (e) {
+      debugPrint('❌ PREVIEW SOUND: Error: $e');
+    }
+  }
+
+  static Future<void> stopPreview() async {
+    try {
+      debugPrint('🔇 STOP PREVIEW: Requesting native stop');
+      await _platformChannel.invokeMethod('stopPreview');
+    } catch (e) {
+      debugPrint('❌ STOP PREVIEW: Error: $e');
+    }
+  }
 }

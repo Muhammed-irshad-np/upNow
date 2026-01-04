@@ -583,32 +583,6 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     );
   }
 
-  Widget _buildMorningAlarmOption(AlarmFormProvider form) {
-    return SwitchListTile(
-      title: const Text(
-        'Morning Wake-Up Alarm',
-        style: TextStyle(
-          color: AppTheme.textColor,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-      subtitle: Text(
-        'Set as your daily wake-up alarm',
-        style: TextStyle(
-          color: AppTheme.secondaryTextColor,
-          fontSize: 12.sp,
-        ),
-      ),
-      value: form.isMorningAlarm,
-      activeColor: Colors.orange,
-      onChanged: (value) => form.setMorningAlarm(value),
-      tileColor: AppTheme.darkCardColor,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12.r),
-      ),
-    );
-  }
-
   Future<void> _showTimePicker(
       BuildContext context, AlarmFormProvider form) async {
     final pickedTime = await showTimePicker(

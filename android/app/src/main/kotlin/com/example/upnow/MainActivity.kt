@@ -209,6 +209,19 @@ class MainActivity : FlutterActivity() {
                     val reset = resetAlarmNotificationChannel()
                     result.success(reset)
                 }
+                "previewSound" -> {
+                    val soundName = call.argument<String>("soundName")
+                    if (soundName != null) {
+                        previewSound(soundName)
+                        result.success(true)
+                    } else {
+                        result.error("INVALID_ARGS", "Missing soundName", null)
+                    }
+                }
+                "stopPreview" -> {
+                    stopPreview()
+                    result.success(true)
+                }
                 else -> {
                     Log.w("MainActivity", "Method ${call.method} not implemented.")
                     result.notImplemented()
@@ -729,6 +742,9 @@ class MainActivity : FlutterActivity() {
     /**
      * Cancel all native alarms
      */
+    /**
+     * Cancel all native alarms
+     */
     private fun cancelAllNativeAlarms(): Boolean {
         try {
             Log.d("MainActivity", "🗑️ NATIVE ALARM: Cancelling all alarms")
@@ -758,5 +774,50 @@ class MainActivity : FlutterActivity() {
             Log.e("MainActivity", "❌ NATIVE ALARM: Failed to cancel all alarms: ${e.message}")
             return false
         }
+    }
+
+    private var previewMediaPlayer: android.media.MediaPlayer? = null
+
+    private fun previewSound(soundName: String) {
+        stopPreview() // Stop any existing preview
+        try {
+            val resourceId = resources.getIdentifier(soundName, "raw", packageName)
+            if (resourceId != 0) {
+                val soundUri = Uri.parse("android.resource://$packageName/$resourceId")
+                previewMediaPlayer = android.media.MediaPlayer().apply {
+                    setDataSource(this@MainActivity, soundUri)
+                    setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                            .build()
+                    )
+                    prepare()
+                    start()
+                    setOnCompletionListener {
+                        stopPreview()
+                    }
+                }
+                Log.d("MainActivity", "Previewing sound: $soundName")
+            } else {
+                Log.w("MainActivity", "Sound not found: $soundName")
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error previewing sound: ${e.message}")
+        }
+    }
+
+    private fun stopPreview() {
+        try {
+            previewMediaPlayer?.let {
+                if (it.isPlaying) {
+                    it.stop()
+                }
+                it.release()
+            }
+        } catch (e: Exception) {
+            Log.e("MainActivity", "Error stopping preview: ${e.message}")
+        }
+        previewMediaPlayer = null
     }
 }
