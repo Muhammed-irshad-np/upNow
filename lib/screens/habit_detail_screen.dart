@@ -104,7 +104,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
 
   Widget _buildSliverAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 200.h,
+      expandedHeight: 220.h,
       pinned: true,
       backgroundColor: AppTheme.darkBackground,
       leading: IconButton(
@@ -231,7 +231,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         physics: const NeverScrollableScrollPhysics(),
         mainAxisSpacing: 12.h,
         crossAxisSpacing: 12.w,
-        childAspectRatio: 1.5,
+        childAspectRatio: 1.3,
         children: [
           _buildAnimatedStatCard(
             'Current Streak',

@@ -55,7 +55,8 @@ class _HabitCheckButtonState extends State<HabitCheckButton>
       setState(() {
         _isAnimating = true;
       });
-      _controller.forward(from: 0);
+      // The animation will start in the DotLottieLoader's onLoaded callback
+      // once the composition is loaded and duration is known.
     } else {
       HapticFeedbackHelper.trigger();
       widget.onToggle();
