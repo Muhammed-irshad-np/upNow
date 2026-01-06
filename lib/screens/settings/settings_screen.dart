@@ -35,8 +35,15 @@ class SettingsScreen extends StatelessWidget {
         child: ListView(
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
           children: [
-            _buildProBanner(context),
-            SizedBox(height: 24.h),
+            Visibility(
+              visible: false,
+              child: Column(
+                children: [
+                  _buildProBanner(context),
+                  SizedBox(height: 24.h),
+                ],
+              ),
+            ),
             _buildSectionTitle('Alarm'),
             _buildSettingGroup(
               children: [
@@ -61,10 +68,17 @@ class SettingsScreen extends StatelessWidget {
                   height: 1.h,
                   color: AppTheme.darkBackground.withOpacity(0.5),
                 ),
-                _buildThemeSetting(context),
-                Container(
-                  height: 1.h,
-                  color: AppTheme.darkBackground.withOpacity(0.5),
+                Visibility(
+                  visible: false,
+                  child: Column(
+                    children: [
+                      _buildThemeSetting(context),
+                      Container(
+                        height: 1.h,
+                        color: AppTheme.darkBackground.withOpacity(0.5),
+                      ),
+                    ],
+                  ),
                 ),
                 _buildHapticFeedbackSetting(context),
                 _buildSettingTile(
