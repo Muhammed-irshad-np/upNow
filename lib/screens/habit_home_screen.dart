@@ -333,6 +333,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                           child: Icon(
                             () {
                               const Map<String, IconData> iconMap = {
+                                '0xe5f9': Icons.star,
                                 '0xe3a7': Icons.fitness_center,
                                 '0xe0bb': Icons.book,
                                 '0xe798': Icons.water_drop,

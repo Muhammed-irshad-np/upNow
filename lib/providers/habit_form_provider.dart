@@ -49,6 +49,7 @@ class HabitFormProvider with ChangeNotifier {
   ];
 
   final List<Map<String, dynamic>> _habitIcons = [
+    {'icon': Icons.star, 'code': '0xe5f9', 'name': 'Default'},
     {'icon': Icons.fitness_center, 'code': '0xe3a7', 'name': 'Fitness'},
     {'icon': Icons.book, 'code': '0xe0bb', 'name': 'Reading'},
     {'icon': Icons.water_drop, 'code': '0xe798', 'name': 'Water'},
