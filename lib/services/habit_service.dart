@@ -478,6 +478,85 @@ class HabitService extends ChangeNotifier {
   List<HabitModel> getArchivedHabits() {
     return _habits.where((h) => h.isArchived).toList();
   }
+
+  // Get completion distribution by day of week (1=Mon, 7=Sun)
+  Map<int, double> getCompletionDistributionByDayOfWeek(String habitId) {
+    final entries = getHabitEntries(habitId);
+    final completedEntries = entries.where((e) => e.completed).toList();
+    if (completedEntries.isEmpty) {
+      return {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
+    }
+
+    final Map<int, int> counts = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0};
+    for (var entry in completedEntries) {
+      counts[entry.date.weekday] = (counts[entry.date.weekday] ?? 0) + 1;
+    }
+
+    // Convert to percentage of total completions (or rate relative to total attempts?)
+    // Let's use percentage of total completions for distribution
+    final total = completedEntries.length;
+    final Map<int, double> distribution = {};
+    counts.forEach((key, value) {
+      distribution[key] = (value / total);
+    });
+
+    return distribution;
+  }
+
+  // Get completion time distribution (0-23 hours)
+  Map<int, int> getCompletionTimeDistribution(String habitId) {
+    final entries = getHabitEntries(habitId);
+    final completedEntries =
+        entries.where((e) => e.completed && e.completedAt != null).toList();
+
+    final Map<int, int> hourlyCounts = {};
+    for (int i = 0; i < 24; i++) hourlyCounts[i] = 0;
+
+    for (var entry in completedEntries) {
+      if (entry.completedAt != null) {
+        hourlyCounts[entry.completedAt!.hour] =
+            (hourlyCounts[entry.completedAt!.hour] ?? 0) + 1;
+      }
+    }
+
+    return hourlyCounts;
+  }
+
+  // Get monthly completion history (Month -> completion rate)
+  Map<DateTime, double> getMonthlyCompletionHistory(String habitId,
+      {int months = 6}) {
+    final Map<DateTime, double> monthlyRates = {};
+    final now = DateTime.now();
+
+    for (int i = months - 1; i >= 0; i--) {
+      final month = DateTime(now.year, now.month - i, 1);
+
+      // Calculate rate for this month
+      final lastDay =
+          DateTime(month.year, month.month + 1, 0); // Last day of month
+
+      int totalDays = lastDay.day;
+
+      // If current month, only count up to today?
+      // Or full month? Let's use up to today if it's current month to be fair.
+      if (month.year == now.year && month.month == now.month) {
+        totalDays = now.day;
+      }
+
+      int completedCount = 0;
+      for (int d = 1; d <= totalDays; d++) {
+        final date = DateTime(month.year, month.month, d);
+        final entry = getHabitEntryForDate(habitId, date);
+        if (entry?.completed == true) {
+          completedCount++;
+        }
+      }
+
+      monthlyRates[month] = totalDays > 0 ? (completedCount / totalDays) : 0.0;
+    }
+
+    return monthlyRates;
+  }
 }
 
 // Helper classes for statistics

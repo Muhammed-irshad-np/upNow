@@ -412,9 +412,13 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
           ] else if (_selectedFilter == TimeFilter.month) ...[
             _buildMonthlyLineChart(habitService),
             SizedBox(height: 16.h),
-            _buildContributionHeatmap(habitService),
+            _buildDayOfWeekChart(habitService),
+            SizedBox(height: 16.h),
+            _buildTimeOfDayChart(habitService),
+            SizedBox(height: 16.h),
+            _buildMonthlyHistoryChart(habitService),
           ] else ...[
-            _buildContributionHeatmap(habitService),
+            _buildMonthlyHistoryChart(habitService),
           ],
         ],
       ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0),
@@ -568,7 +572,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Monthly Trend',
+            'Current Month Daily',
             style: TextStyle(
               fontSize: 18.sp,
               fontWeight: FontWeight.bold,
@@ -669,9 +673,9 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
     );
   }
 
-  Widget _buildContributionHeatmap(HabitService habitService) {
-    final yearGrid =
-        habitService.getYearlyGridData(_habit.id, DateTime.now().year);
+  Widget _buildDayOfWeekChart(HabitService habitService) {
+    final distribution =
+        habitService.getCompletionDistributionByDayOfWeek(_habit.id);
 
     return Container(
       padding: EdgeInsets.all(20.w),
@@ -685,96 +689,346 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Activity Heatmap',
-                style: TextStyle(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              _buildHeatmapLegend(),
-            ],
+          Text(
+            'Best Days',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
           ),
-          SizedBox(height: 16.h),
-          if (yearGrid.isEmpty)
-            Center(
-              child: Padding(
-                padding: EdgeInsets.all(20.h),
-                child: Text(
-                  'No data available yet',
-                  style: TextStyle(color: AppTheme.secondaryTextColor),
-                ),
-              ),
-            )
-          else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              reverse: true,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: yearGrid.reversed.map((week) {
-                  return Column(
-                    children: week.map((day) {
-                      return Container(
-                        width: 14.w,
-                        height: 14.w,
-                        margin: EdgeInsets.all(2.w),
-                        decoration: BoxDecoration(
-                          color: day.completed
-                              ? _habit.color
-                              : Colors.white.withOpacity(0.05),
-                          borderRadius: BorderRadius.circular(3.r),
-                          border: day.date.day == DateTime.now().day &&
-                                  day.date.month == DateTime.now().month
-                              ? Border.all(color: Colors.white, width: 1)
-                              : null,
+          SizedBox(height: 20.h),
+          SizedBox(
+            height: 180.h,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: 1.0,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipBgColor: _habit.color.withOpacity(0.8),
+                    tooltipRoundedRadius: 8,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${(rod.toY * 100).toInt()}%',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
                         ),
                       );
-                    }).toList(),
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        const days = {
+                          1: 'Mon',
+                          2: 'Tue',
+                          3: 'Wed',
+                          4: 'Thu',
+                          5: 'Fri',
+                          6: 'Sat',
+                          7: 'Sun'
+                        };
+                        return Padding(
+                          padding: EdgeInsets.only(top: 8.h),
+                          child: Text(
+                            days[value.toInt()] ?? '',
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 10.sp,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(7, (index) {
+                  final day = index + 1;
+                  final value = distribution[day] ?? 0.0;
+                  return BarChartGroupData(
+                    x: day,
+                    barRods: [
+                      BarChartRodData(
+                        toY: value,
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            _habit.color.withOpacity(0.5),
+                            _habit.color,
+                          ],
+                        ),
+                        width: 16.w,
+                        borderRadius: BorderRadius.circular(4.r),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: 1.0,
+                          color: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                    ],
                   );
-                }).toList(),
+                }),
               ),
             ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildHeatmapLegend() {
-    return Row(
-      children: [
-        Text(
-          'Less',
-          style: TextStyle(
-            color: AppTheme.secondaryTextColor,
-            fontSize: 10.sp,
-          ),
+  Widget _buildTimeOfDayChart(HabitService habitService) {
+    final hourlyCounts = habitService.getCompletionTimeDistribution(_habit.id);
+    int maxCount = 0;
+    hourlyCounts.forEach((k, v) {
+      if (v > maxCount) maxCount = v;
+    });
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCardColor,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
         ),
-        SizedBox(width: 4.w),
-        ...List.generate(4, (index) {
-          return Container(
-            width: 12.w,
-            height: 12.w,
-            margin: EdgeInsets.symmetric(horizontal: 2.w),
-            decoration: BoxDecoration(
-              color: _habit.color.withOpacity(0.25 + (index * 0.25)),
-              borderRadius: BorderRadius.circular(2.r),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Time of Day',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
-          );
-        }),
-        SizedBox(width: 4.w),
-        Text(
-          'More',
-          style: TextStyle(
-            color: AppTheme.secondaryTextColor,
-            fontSize: 10.sp,
           ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            height: 150.h,
+            child: LineChart(
+              LineChartData(
+                gridData: FlGridData(show: false),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      interval: 6,
+                      getTitlesWidget: (value, meta) {
+                        final hour = value.toInt();
+                        if (hour % 6 != 0) return const SizedBox();
+                        return Padding(
+                          padding: EdgeInsets.only(top: 8.h),
+                          child: Text(
+                            '$hour:00',
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 10.sp,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                borderData: FlBorderData(show: false),
+                minX: 0,
+                maxX: 23,
+                minY: 0,
+                maxY: (maxCount > 0 ? maxCount.toDouble() : 1.0) * 1.2,
+                lineBarsData: [
+                  LineChartBarData(
+                    spots: List.generate(24, (index) {
+                      return FlSpot(index.toDouble(),
+                          (hourlyCounts[index] ?? 0).toDouble());
+                    }),
+                    isCurved: true,
+                    gradient: LinearGradient(
+                      colors: [_habit.color, _habit.color.withOpacity(0.5)],
+                    ),
+                    barWidth: 3,
+                    isStrokeCapRound: true,
+                    dotData: const FlDotData(show: false),
+                    belowBarData: BarAreaData(
+                      show: true,
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          _habit.color.withOpacity(0.3),
+                          _habit.color.withOpacity(0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMonthlyHistoryChart(HabitService habitService) {
+    // Show last 6 months trend
+    final monthlyRates =
+        habitService.getMonthlyCompletionHistory(_habit.id, months: 6);
+    final sortedMonths = monthlyRates.keys.toList()..sort();
+
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: AppTheme.darkCardColor,
+        borderRadius: BorderRadius.circular(20.r),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.1),
         ),
-      ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Monthly Consistency',
+            style: TextStyle(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          SizedBox(height: 20.h),
+          SizedBox(
+            height: 180.h,
+            child: BarChart(
+              BarChartData(
+                alignment: BarChartAlignment.spaceAround,
+                maxY: 1.0,
+                barTouchData: BarTouchData(
+                  enabled: true,
+                  touchTooltipData: BarTouchTooltipData(
+                    tooltipBgColor: _habit.color.withOpacity(0.8),
+                    tooltipRoundedRadius: 8,
+                    getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                      return BarTooltipItem(
+                        '${(rod.toY * 100).toInt()}%',
+                        const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+                titlesData: FlTitlesData(
+                  show: true,
+                  bottomTitles: AxisTitles(
+                    sideTitles: SideTitles(
+                      showTitles: true,
+                      getTitlesWidget: (value, meta) {
+                        if (value.toInt() >= sortedMonths.length)
+                          return const SizedBox();
+                        final date = sortedMonths[value.toInt()];
+                        const months = [
+                          '',
+                          'Jan',
+                          'Feb',
+                          'Mar',
+                          'Apr',
+                          'May',
+                          'Jun',
+                          'Jul',
+                          'Aug',
+                          'Sep',
+                          'Oct',
+                          'Nov',
+                          'Dec'
+                        ];
+                        return Padding(
+                          padding: EdgeInsets.only(top: 8.h),
+                          child: Text(
+                            months[date.month],
+                            style: TextStyle(
+                              color: AppTheme.secondaryTextColor,
+                              fontSize: 10.sp,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  leftTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  topTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                  rightTitles: const AxisTitles(
+                    sideTitles: SideTitles(showTitles: false),
+                  ),
+                ),
+                gridData: const FlGridData(show: false),
+                borderData: FlBorderData(show: false),
+                barGroups: List.generate(sortedMonths.length, (index) {
+                  final date = sortedMonths[index];
+                  final value = monthlyRates[date] ?? 0.0;
+                  return BarChartGroupData(
+                    x: index,
+                    barRods: [
+                      BarChartRodData(
+                        toY: value,
+                        gradient: LinearGradient(
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                          colors: [
+                            _habit.color.withOpacity(0.4),
+                            _habit.color,
+                          ],
+                        ),
+                        width: 16.w,
+                        borderRadius: BorderRadius.circular(4.r),
+                        backDrawRodData: BackgroundBarChartRodData(
+                          show: true,
+                          toY: 1.0,
+                          color: Colors.white.withOpacity(0.05),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
