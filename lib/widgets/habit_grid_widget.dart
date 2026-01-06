@@ -303,6 +303,16 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
 
   Color _getCellColor(HabitGridDay day, HabitModel habit) {
     if (!day.completed) {
+      if (!day.isScheduled) {
+        // Debugging transparency issue
+        if (day.date.weekday == DateTime.monday) {
+          // Limit logs
+          print(
+              'DEBUG: Rendering non-scheduled day ${day.date} for ${habit.name}. isScheduled=${day.isScheduled}, returning RED for debug');
+        }
+        // RED FOR DEBUGGING VISIBILITY
+        return Colors.red;
+      }
       return Theme.of(context).brightness == Brightness.dark
           ? Colors.grey[800]!
           : Colors.grey[200]!;
@@ -312,6 +322,7 @@ class _HabitGridWidgetState extends State<HabitGridWidget> {
 
     switch (day.intensityLevel) {
       case 0:
+        // This case shouldn't be hit if completed is true, but just in case
         return Theme.of(context).brightness == Brightness.dark
             ? Colors.grey[800]!
             : Colors.grey[200]!;

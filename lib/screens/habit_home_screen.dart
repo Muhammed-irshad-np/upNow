@@ -1,5 +1,4 @@
 import 'dart:ui';
-import 'dart:math';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_animate/flutter_animate.dart';
@@ -32,7 +31,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   void initState() {
     super.initState();
     _confettiController =
-        ConfettiController(duration: const Duration(seconds: 1));
+        ConfettiController(duration: const Duration(milliseconds: 200));
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final habitService = context.read<HabitService>();
       habitService.loadHabits();
@@ -160,12 +159,12 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             alignment: Alignment.topCenter,
             child: ConfettiWidget(
               confettiController: _confettiController,
-              blastDirection: pi / 2, // downward
-              maxBlastForce: 5,
-              minBlastForce: 2,
-              emissionFrequency: 0.05,
-              numberOfParticles: 50,
-              gravity: 0.3,
+              blastDirectionality: BlastDirectionality.explosive,
+              maxBlastForce: 15,
+              minBlastForce: 5,
+              emissionFrequency: 0.4,
+              numberOfParticles: 12,
+              gravity: 0.5,
               shouldLoop: false,
               colors: const [
                 Colors.green,
@@ -235,7 +234,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   }
 
   Widget _buildHabitCard(HabitModel habit, HabitService habitService) {
-    final stats = habitService.getHabitStats(habit.id);
+    // final stats = habitService.getHabitStats(habit.id);
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(habit.id, today);
     final isCompletedToday = todayEntry?.completed == true;
@@ -411,21 +410,21 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
                     // Layout based on selection
                     if (_selectedLayout == HabitGridLayout.monthly)
-                      _buildMonthlyLayout(habit, habitService, stats)
+                      _buildMonthlyLayout(habit, habitService)
                     else ...[
                       // Stats Row
-                      Container(
-                        padding: EdgeInsets.symmetric(vertical: 8.h),
-                        decoration: BoxDecoration(
-                          color: Colors.black.withOpacity(0.3),
-                          borderRadius: BorderRadius.circular(16.r),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.05),
-                            width: 1,
-                          ),
-                        ),
-                        child: _buildStatsRow(stats, habit.color),
-                      ),
+                      // Container(
+                      //   padding: EdgeInsets.symmetric(vertical: 8.h),
+                      //   decoration: BoxDecoration(
+                      //     color: Colors.black.withOpacity(0.3),
+                      //     borderRadius: BorderRadius.circular(16.r),
+                      //     border: Border.all(
+                      //       color: Colors.white.withOpacity(0.05),
+                      //       width: 1,
+                      //     ),
+                      //   ),
+                      //   child: _buildStatsRow(stats, habit.color),
+                      // ),
 
                       SizedBox(height: 12.h),
 
@@ -442,72 +441,74 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
   }
 
-  Widget _buildMonthlyLayout(
-      HabitModel habit, HabitService habitService, HabitStats stats) {
+  Widget _buildMonthlyLayout(HabitModel habit, HabitService habitService) {
     final monthData = habitService.getMonthlyGridData(habit.id, DateTime.now());
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildMonthlyGrid(monthData, habit.color),
-        const SizedBox(width: 12),
-        Expanded(
-          child: _buildCompactStats(stats, habit.color),
-        ),
-      ],
+    return Center(
+      child: _buildMonthlyGrid(monthData, habit.color),
     );
+    // return Row(
+    //   crossAxisAlignment: CrossAxisAlignment.start,
+    //   children: [
+    //     _buildMonthlyGrid(monthData, habit.color),
+    //     const SizedBox(width: 12),
+    //     Expanded(
+    //       child: _buildCompactStats(stats, habit.color),
+    //     ),
+    //   ],
+    // );
   }
 
-  Widget _buildCompactStats(HabitStats stats, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-      decoration: BoxDecoration(
-        color: Colors.black.withOpacity(0.3),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Colors.white.withOpacity(0.05),
-          width: 1,
-        ),
-      ),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Row(
-            children: [
-              _buildStatItem(
-                '${stats.completedDays}',
-                'Done',
-                Icons.check_circle_outline,
-                color,
-              ),
-              _buildStatItem(
-                '${stats.currentStreak}',
-                'Streak',
-                Icons.local_fire_department,
-                color,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              _buildStatItem(
-                '${stats.longestStreak}',
-                'Best',
-                Icons.emoji_events_outlined,
-                color,
-              ),
-              _buildStatItem(
-                '${stats.completionRate.toStringAsFixed(0)}%',
-                'Rate',
-                Icons.trending_up,
-                color,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildCompactStats(HabitStats stats, Color color) {
+  //   return Container(
+  //     padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+  //     decoration: BoxDecoration(
+  //       color: Colors.black.withOpacity(0.3),
+  //       borderRadius: BorderRadius.circular(16),
+  //       border: Border.all(
+  //         color: Colors.white.withOpacity(0.05),
+  //         width: 1,
+  //       ),
+  //     ),
+  //     child: Column(
+  //       mainAxisAlignment: MainAxisAlignment.center,
+  //       children: [
+  //         Row(
+  //           children: [
+  //             _buildStatItem(
+  //               '${stats.completedDays}',
+  //               'Done',
+  //               Icons.check_circle_outline,
+  //               color,
+  //             ),
+  //             _buildStatItem(
+  //               '${stats.currentStreak}',
+  //               'Streak',
+  //               Icons.local_fire_department,
+  //               color,
+  //             ),
+  //           ],
+  //         ),
+  //         const SizedBox(height: 12),
+  //         Row(
+  //           children: [
+  //             _buildStatItem(
+  //               '${stats.longestStreak}',
+  //               'Best',
+  //               Icons.emoji_events_outlined,
+  //               color,
+  //             ),
+  //             _buildStatItem(
+  //               '${stats.completionRate.toStringAsFixed(0)}%',
+  //               'Rate',
+  //               Icons.trending_up,
+  //               color,
+  //             ),
+  //           ],
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildGridForLayout(HabitModel habit, HabitService habitService) {
     switch (_selectedLayout) {
@@ -571,10 +572,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   }
 
   Widget _buildMonthlyGrid(List<HabitGridDay> monthData, Color habitColor) {
-    // Calculate width for 7 columns with 24px items and 4px spacing
+    // Calculate width for 11 columns with 24px items and 4px spacing
     const double itemSize = 24.0;
     const double spacing = 4.0;
-    const double gridWidth = (itemSize * 7) + (spacing * 6);
+    const double gridWidth = (itemSize * 11) + (spacing * 10);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -600,7 +601,7 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
+                crossAxisCount: 11,
                 crossAxisSpacing: spacing,
                 mainAxisSpacing: spacing,
                 childAspectRatio: 1.0, // Square items
@@ -649,71 +650,33 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
     );
   }
 
-  Widget _buildStatsRow(HabitStats stats, Color color) {
-    return Row(
-      // mainAxisAlignment: MainAxisAlignment.spaceAround,
-      children: [
-        _buildStatItem(
-          '${stats.completedDays}',
-          'Completed',
-          Icons.check_circle_outline,
-          color,
-        ),
-        _buildStatItem(
-          '${stats.currentStreak}',
-          'Current Streak',
-          Icons.local_fire_department,
-          color,
-        ),
-        _buildStatItem(
-          '${stats.longestStreak}',
-          'Best Streak',
-          Icons.emoji_events_outlined,
-          color,
-        ),
-        _buildStatItem(
-          '${stats.completionRate.toStringAsFixed(0)}%',
-          'Success',
-          Icons.trending_up,
-          color,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildStatItem(
-      String value, String label, IconData icon, Color color) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 16,
-          ),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: AppTheme.bodyStyle.copyWith(
-              fontWeight: FontWeight.bold,
-              fontSize: 12,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: AppTheme.captionStyle.copyWith(
-              fontSize: 10,
-              color: Colors.white.withOpacity(0.5),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
+  // Widget _buildStatsRow(HabitStats stats, Color color) {
+  //   return Row(
+  //     // mainAxisAlignment: MainAxisAlignment.spaceAround,
+  //     children: [
+  //       _buildStatItem(
+  //         '${stats.completedDays}',
+  //         'Completed',
+  //         Icons.check_circle_outline,
+  //         color,
+  //       ),
+  //       _buildStatItem(
+  //         '${stats.currentStreak}',
+  //         'Current Streak',
+  //         Icons.local_fire_department,
+  //         color,
+  //       ),
+  //       _buildStatItem(
+  //         '${stats.longestStreak}',
+  //         'Best Streak',
+  //         Icons.emoji_events_outlined,
+  //         color,
+  //       ),
+  //       _buildStatItem(
+  //         '${stats.completionRate.toStringAsFixed(0)}%',
+  //         'Success',
+  //         Icons.trending_up,
+  //         color,
   Widget _buildContributionGrid(
       List<List<HabitGridDay>> yearGrid, Color habitColor) {
     if (yearGrid.isEmpty) {

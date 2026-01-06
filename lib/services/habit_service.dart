@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:upnow/models/habit_model.dart';
 import 'package:upnow/database/hive_database.dart';
 
@@ -159,23 +160,96 @@ class HabitService extends ChangeNotifier {
     return yearData;
   }
 
+  // Check if a specific date is a scheduled day for the habit
+  bool isScheduledDay(HabitModel habit, DateTime date) {
+    if (habit.frequency == HabitFrequency.daily) {
+      return true; // Daily habits are scheduled every day
+    } else if (habit.frequency == HabitFrequency.custom) {
+      // weekday is 1 for Monday, 7 for Sunday
+      final isScheduled = habit.daysOfWeek.contains(date.weekday);
+      // Debug log for custom habits (limit excessive logging)
+      // Log for the first week of Jan 2026 to see the pattern
+      if (date.year == 2026 && date.month == 1 && date.day <= 7) {
+        print(
+            'DEBUG: checking isScheduled for ${habit.name} (${habit.id}) on ${date.toString().split(' ')[0]} (Weekday ${date.weekday}). Frequency: ${habit.frequency}, Days: ${habit.daysOfWeek}. Result: $isScheduled');
+      }
+      return isScheduled;
+    }
+    return true;
+  }
+
   // Get current streak for a habit
   int getCurrentStreak(String habitId) {
+    final habit = _habits.firstWhere((h) => h.id == habitId,
+        orElse: () => HabitModel(name: 'Unknown'));
+    if (habit.name == 'Unknown') return 0;
+
     final entries = getHabitEntries(habitId);
-    entries.sort((a, b) => b.date.compareTo(a.date));
+    // Create a set of completed dates for faster lookup
+    final completedDates =
+        entries.where((e) => e.completed).map((e) => e.dateKey).toSet();
 
     int streak = 0;
     final today = DateTime.now();
+    bool streakBroken = false;
 
+    // Check up to 365 days back
     for (int i = 0; i < 365; i++) {
       final checkDate = today.subtract(Duration(days: i));
-      final entry = getHabitEntryForDate(habitId, checkDate);
 
-      if (entry != null && entry.completed) {
-        streak++;
-      } else {
-        break;
+      // Calculate date key manually to match the format in HabitEntry
+      final dateKey =
+          '${checkDate.year}-${checkDate.month.toString().padLeft(2, '0')}-${checkDate.day.toString().padLeft(2, '0')}';
+
+      final isCompleted = completedDates.contains(dateKey);
+      final isScheduled = isScheduledDay(habit, checkDate);
+
+      // If it's today and not completed yet, don't break streak, just continue
+      if (i == 0 && !isCompleted) {
+        if (isScheduled && DateTime.now().hour < 24) {
+          // It's today, scheduled, but not done yet.
+          // Technically streak includes today if done, but looking back
+          // we shouldn't fail immediately if today isn't done.
+          continue;
+        }
       }
+
+      if (isScheduled) {
+        if (isCompleted) {
+          streak++;
+        } else {
+          // If today (i=0) was handled above, this triggers for past days
+          // If we are here, it's a scheduled day that was NOT completed.
+          // However, if we skipped today (i=0) because it's not over yet,
+          // we need to be careful.
+
+          // Simplified approach:
+          // If it's a past scheduled day and not done -> break.
+          // If it's today, scheduled, not done -> don't increment, don't break (allow user to finish today).
+          if (i == 0) {
+            // Today not done, handled by continue above usually, but if we are here
+            // it means we are strictly checking.
+            // Let's rely on the logic: Current streak usually counts completed days.
+            // If today is not done, does it break the streak from yesterday?
+            // No, so we just stop counting.
+            break;
+          } else {
+            streakBroken = true;
+          }
+        }
+      } else {
+        // Not scheduled day
+        // Check if user did it anyway (optional: bonus? ignore?)
+        // For standard "Current Streak" usually we ignore non-scheduled days
+        // unless they contribute.
+        // If user did it on off day, it adds to streak!
+        if (isCompleted) {
+          streak++;
+        }
+        // If not completed on off day, it does NOT break streak.
+      }
+
+      if (streakBroken) break;
     }
 
     return streak;
@@ -183,37 +257,70 @@ class HabitService extends ChangeNotifier {
 
   // Get longest streak for a habit
   int getLongestStreak(String habitId) {
+    final habit = _habits.firstWhere((h) => h.id == habitId,
+        orElse: () => HabitModel(name: 'Unknown'));
+    if (habit.name == 'Unknown') return 0;
+
     final entries = getHabitEntries(habitId);
     entries.sort((a, b) => a.date.compareTo(b.date));
 
+    // We need to iterate through all days from first entry to now (or just iterate entries?)
+    // Iterating entries is insufficient because we need to know about "missed" scheduled days
+    // to break the streak.
+
+    if (entries.isEmpty) return 0;
+
+    // Find the range of dates to check
+    // Ideally we start from the habit creation date or the first entry date
+    DateTime startDate = entries.first.date;
+    if (habit.createdAt.isBefore(startDate)) {
+      startDate = habit.createdAt;
+    }
+
+    final endDate = DateTime.now();
+    final completedDates =
+        entries.where((e) => e.completed).map((e) => e.dateKey).toSet();
+
     int maxStreak = 0;
     int currentStreak = 0;
-    DateTime? lastDate;
 
-    for (var entry in entries) {
-      if (entry.completed) {
-        if (lastDate == null || entry.date.difference(lastDate).inDays == 1) {
+    // Iterate day by day
+    for (DateTime date = startDate;
+        date.isBefore(endDate.add(const Duration(days: 1)));
+        date = date.add(const Duration(days: 1))) {
+      final dateKey =
+          '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+      final isCompleted = completedDates.contains(dateKey);
+      final isScheduled = isScheduledDay(habit, date);
+
+      if (isScheduled) {
+        if (isCompleted) {
           currentStreak++;
         } else {
-          currentStreak = 1;
+          // Missed a scheduled day -> reset
+          // But check if it is today? If today and not done, strictly calling "longest streak"
+          // usually implies finished streaks or current running.
+          // If today is not done, it breaks 'current' increment, resetting to 0.
+          // However, if today is the day we are checking, we might exclude it if not done?
+          // Let's just treat it as a break for simplicity in historical calculation.
+          if (!DateUtils.isSameDay(date, DateTime.now())) {
+            currentStreak = 0;
+          }
         }
-
-        maxStreak = currentStreak > maxStreak ? currentStreak : maxStreak;
-        lastDate = entry.date;
       } else {
-        currentStreak = 0;
-        lastDate = null;
+        // Not scheduled
+        if (isCompleted) {
+          currentStreak++; // Bonus day!
+        }
+        // Else ignore
+      }
+
+      if (currentStreak > maxStreak) {
+        maxStreak = currentStreak;
       }
     }
 
-    // Ensure we count the last streak
-    if (currentStreak > maxStreak) {
-      maxStreak = currentStreak;
-    }
-
-    // The longest streak should at least be the current streak
-    final current = getCurrentStreak(habitId);
-    return maxStreak > current ? maxStreak : current;
+    return maxStreak;
   }
 
   // Get completion rate for a habit in percentage
@@ -268,6 +375,8 @@ class HabitService extends ChangeNotifier {
   // Get weekly grid data (7 days)
   List<HabitGridDay> getWeeklyGridData(String habitId, DateTime startDate) {
     final List<HabitGridDay> weekData = [];
+    final habit = _habits.firstWhere((h) => h.id == habitId,
+        orElse: () => HabitModel(name: 'Unknown'));
 
     for (int i = 0; i < 7; i++) {
       final date = startDate.add(Duration(days: i));
@@ -278,6 +387,8 @@ class HabitService extends ChangeNotifier {
         completed: entry?.completed ?? false,
         completionCount: entry?.completionCount ?? 0,
         intensity: entry?.intensity,
+        isScheduled:
+            habit.name != 'Unknown' ? isScheduledDay(habit, date) : true,
       ));
     }
 
@@ -289,6 +400,8 @@ class HabitService extends ChangeNotifier {
     final List<HabitGridDay> monthData = [];
     final firstDay = DateTime(month.year, month.month, 1);
     final lastDay = DateTime(month.year, month.month + 1, 0);
+    final habit = _habits.firstWhere((h) => h.id == habitId,
+        orElse: () => HabitModel(name: 'Unknown'));
 
     for (int day = 1; day <= lastDay.day; day++) {
       final date = DateTime(month.year, month.month, day);
@@ -299,6 +412,8 @@ class HabitService extends ChangeNotifier {
         completed: entry?.completed ?? false,
         completionCount: entry?.completionCount ?? 0,
         intensity: entry?.intensity,
+        isScheduled:
+            habit.name != 'Unknown' ? isScheduledDay(habit, date) : true,
       ));
     }
 
@@ -309,6 +424,8 @@ class HabitService extends ChangeNotifier {
   List<List<HabitGridDay>> getYearlyGridData(String habitId, int year) {
     final List<List<HabitGridDay>> yearGrid = [];
     final startDate = DateTime(year, 1, 1);
+    final habit = _habits.firstWhere((h) => h.id == habitId,
+        orElse: () => HabitModel(name: 'Unknown'));
 
     // Calculate weeks in year
     int totalDays = DateTime(year, 12, 31).difference(startDate).inDays + 1;
@@ -328,6 +445,9 @@ class HabitService extends ChangeNotifier {
             completed: entry?.completed ?? false,
             completionCount: entry?.completionCount ?? 0,
             intensity: entry?.intensity,
+            isScheduled: habit.name != 'Unknown'
+                ? isScheduledDay(habit, currentDate)
+                : true,
           ));
         }
 
@@ -388,12 +508,14 @@ class HabitGridDay {
   final bool completed;
   final int completionCount;
   final HabitIntensity? intensity;
+  final bool isScheduled;
 
   HabitGridDay({
     required this.date,
     required this.completed,
     required this.completionCount,
     this.intensity,
+    this.isScheduled = true,
   });
 
   // Get intensity level for grid coloring (0-4)

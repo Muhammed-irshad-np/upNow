@@ -517,6 +517,9 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         }
       } else {
         // Create new habit
+        print(
+            'DEBUG: Changing/Creating habit ${habitFormProvider.nameController.text}. Frequency: ${habitFormProvider.selectedFrequency}. Days: ${habitFormProvider.selectedDays}');
+
         final habit = HabitModel(
           name: habitFormProvider.nameController.text.trim(),
           description:
