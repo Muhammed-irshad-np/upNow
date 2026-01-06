@@ -1,9 +1,9 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
-import 'package:confetti/confetti.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:lottie/lottie.dart';
 import 'package:dotlottie_loader/dotlottie_loader.dart';
+import 'package:provider/provider.dart';
+import 'package:upnow/providers/navigation_provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class CongratulationsScreen extends StatefulWidget {
@@ -14,24 +14,9 @@ class CongratulationsScreen extends StatefulWidget {
 }
 
 class _CongratulationsScreenState extends State<CongratulationsScreen> {
-  late ConfettiController _confettiController;
-
   @override
   void initState() {
     super.initState();
-    _confettiController =
-        ConfettiController(duration: const Duration(seconds: 2));
-
-    // Auto-play confetti when screen appears
-    Future.delayed(const Duration(milliseconds: 300), () {
-      _confettiController.play();
-    });
-  }
-
-  @override
-  void dispose() {
-    _confettiController.dispose();
-    super.dispose();
   }
 
   @override
@@ -95,9 +80,14 @@ class _CongratulationsScreenState extends State<CongratulationsScreen> {
                       height: 56,
                       child: ElevatedButton(
                         onPressed: () {
+                          // Reset navigation to Alarm tab (index 0)
+                          Provider.of<NavigationProvider>(context,
+                                  listen: false)
+                              .setCurrentIndex(0);
+
                           // Navigate back to main screen
                           Navigator.of(context).pushNamedAndRemoveUntil(
-                            '/',
+                            '/main',
                             (route) => false,
                           );
                         },
@@ -113,30 +103,6 @@ class _CongratulationsScreenState extends State<CongratulationsScreen> {
                   ],
                 ),
               ),
-            ),
-          ),
-          // Confetti widget - positioned at top center
-          Align(
-            alignment: Alignment.topCenter,
-            child: ConfettiWidget(
-              confettiController: _confettiController,
-              blastDirection: pi / 2, // downward
-              maxBlastForce: 7,
-              minBlastForce: 3,
-              emissionFrequency: 0.03,
-              numberOfParticles: 80,
-              gravity: 0.3,
-              shouldLoop: false,
-              colors: const [
-                Colors.green,
-                Colors.blue,
-                Colors.pink,
-                Colors.orange,
-                Colors.purple,
-                Colors.yellow,
-                Colors.red,
-                Colors.teal,
-              ],
             ),
           ),
         ],

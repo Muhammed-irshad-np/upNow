@@ -107,6 +107,7 @@ class MyApp extends StatelessWidget {
                   },
                   '/congratulations': (context) =>
                       const CongratulationsScreen(),
+                  '/main': (context) => const MainScreen(),
                 },
               );
             },

@@ -192,6 +192,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
             children: [
               _buildDismissOption(
                 form: form,
+                type: DismissType.swipe,
+                icon: Icons.swipe,
+                title: 'Swipe',
+                color: Colors.orange,
+              ),
+              _buildDismissOption(
+                form: form,
                 type: DismissType.math,
                 icon: Icons.calculate_outlined,
                 title: 'Math Problem',
@@ -206,30 +213,9 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
               ),
               _buildDismissOption(
                 form: form,
-                type: DismissType.shake,
-                icon: Icons.vibration,
-                title: 'Shake Phone',
-                color: Colors.orange,
-              ),
-              _buildDismissOption(
-                form: form,
                 type: DismissType.memory,
                 icon: Icons.psychology_outlined,
                 title: 'Memory Game',
-                color: Colors.orange,
-              ),
-              _buildDismissOption(
-                form: form,
-                type: DismissType.barcode,
-                icon: Icons.qr_code_scanner,
-                title: 'Scan Barcode',
-                color: Colors.orange,
-              ),
-              _buildDismissOption(
-                form: form,
-                type: DismissType.swipe,
-                icon: Icons.swipe,
-                title: 'Swipe',
                 color: Colors.orange,
               ),
             ],
@@ -250,6 +236,7 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     final bool isComingSoon = type != DismissType.math &&
         type != DismissType.normal &&
         type != DismissType.typing &&
+        type != DismissType.memory &&
         type != DismissType.swipe;
 
     Widget optionWidget = Container(

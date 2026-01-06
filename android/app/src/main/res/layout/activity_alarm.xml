@@ -416,49 +416,103 @@
                     android:layout_marginBottom="24dp"
                     android:gravity="center" />
 
-                <SeekBar
-                    android:id="@+id/swipe_seekbar"
+                <FrameLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="64dp"
+                    android:background="@drawable/slider_background">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:text=">>> Slide to Dismiss >>>"
+                        android:textColor="@color/text_secondary"
+                        android:gravity="center"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        android:alpha="0.5" />
+
+                    <SeekBar
+                        android:id="@+id/swipe_seekbar"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:max="100"
+                        android:progress="0"
+                        android:thumb="@mipmap/launcher_icon"
+                        android:thumbOffset="8dp"
+                        android:paddingStart="24dp"
+                        android:paddingEnd="24dp"
+                        android:progressDrawable="@android:color/transparent"
+                        android:splitTrack="false" />
+                        
+                </FrameLayout>
+
+            </LinearLayout>
+
+        </androidx.cardview.widget.CardView>
+
+        <!-- Memory Game Dismiss Card -->
+        <androidx.cardview.widget.CardView
+            android:id="@+id/memory_game_card"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:visibility="gone"
+            app:cardBackgroundColor="@color/dark_surface"
+            app:cardCornerRadius="16dp"
+            app:cardElevation="4dp"
+            app:layout_constraintTop_   toBottomOf="@id/alarm_title"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:paddingVertical="20dp"
+                android:paddingHorizontal="4dp">
+
+                <TextView
+                    android:id="@+id/memory_description"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:max="100"
-                    android:progress="0"
-                    android:thumb="@mipmap/ic_launcher"
-                    android:progressDrawable="@android:color/transparent"
-                    android:splitTrack="false"
-                    android:layout_marginBottom="8dp" />
-                    <!-- Note: standard seekbar might need styling to look like a slide button. 
-                         For now, using standard SeekBar but user might want better visual. 
-                         Just a basic implementation as requested "swipe to dismiss". -->
-                 
-                 <TextView
+                    android:text="Match all pairs to dismiss"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="16sp"
+                    android:fontFamily="sans-serif-medium"
+                    android:layout_marginBottom="16dp"
+                    android:gravity="center" />
+
+                <GridLayout
+                    android:id="@+id/memory_grid"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:columnCount="3"
+                    android:rowCount="4"
+                    android:alignmentMode="alignMargins"
+                    android:columnOrderPreserved="false"
+                    android:useDefaultMargins="true">
+                    
+                    <!-- We will populate this programmatically, but adding placeholders helps preview or if needed -->
+                </GridLayout>
+                
+                <TextView
+                    android:id="@+id/memory_status"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text=">>> Slide to Dismiss >>>"
+                    android:text="Matches: 0/6"
                     android:textColor="@color/primary"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
                     android:gravity="center"
-                    android:textSize="14sp" 
-                    android:textStyle="bold" />
+                    android:layout_marginTop="16dp" />
 
             </LinearLayout>
 
         </androidx.cardview.widget.CardView>
 
         <!-- Keep bottom message small so important actions stay above fold -->
-        <TextView
-            android:id="@+id/alarm_message"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:text="Complete the math problem to stop the alarm"
-            android:textColor="@color/text_secondary"
-            android:textSize="14sp"
-            android:fontFamily="sans-serif"
-            android:gravity="center"
-            android:layout_marginTop="8dp"
-            android:layout_marginBottom="8dp"
-            app:layout_constraintTop_toBottomOf="@id/math_card"
-            app:layout_constraintBottom_toBottomOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent" />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 </androidx.core.widget.NestedScrollView> 

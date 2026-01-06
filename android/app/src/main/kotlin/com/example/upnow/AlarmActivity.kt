@@ -143,6 +143,7 @@ class AlarmActivity : AppCompatActivity() {
             when (currentDismissType) {
                 "typing", "text" -> setupTypeTextDismiss()
                 "swipe" -> setupSwipeDismiss()
+                "memory" -> setupMemoryGameDismiss()
                 else -> setupMathDismiss()
             }
         } catch (e: Exception) {
@@ -178,9 +179,13 @@ class AlarmActivity : AppCompatActivity() {
             // Reset progress
             seekBar.progress = 0
             
+            // Adjust padding to ensure the larger icon thumb is not clipped
+            // seekBar.setPadding(32, 0, 32, 0) 
+            
             seekBar.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
                 override fun onProgressChanged(seekBar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
-                    // Optional: Change transparency or color based on progress
+                    // Make the text fade out as we slide?
+                    // Optional visual polish
                 }
 
                 override fun onStartTrackingTouch(seekBar: android.widget.SeekBar?) {
@@ -196,7 +201,11 @@ class AlarmActivity : AppCompatActivity() {
                             stopAlarmAndOpenCongratulations()
                         } else {
                             // Snap back if not swiped enough
-                            seekBar.progress = 0
+                            // Animate back to 0
+                            val animator = android.animation.ObjectAnimator.ofInt(seekBar, "progress", 0)
+                            animator.duration = 300
+                            animator.interpolator = android.view.animation.DecelerateInterpolator()
+                            animator.start()
                         }
                     }
                 }
@@ -662,5 +671,178 @@ class AlarmActivity : AppCompatActivity() {
              Log.e(TAG, "Error generating Type Text UI: ${e.message}")
              setupMathDismiss() // Fallback
         }
+    }
+
+    // Memory Game Implementation
+    private data class MemoryCard(val id: Int, val value: String, var isFaceUp: Boolean = false, var isMatched: Boolean = false)
+    
+    private var memoryCards = mutableListOf<MemoryCard>()
+    private var firstSelectedCard: Int? = null
+    private var isProcessingMove = false
+    private var matchesFound = 0
+    private val totalMatchesNeeded = 6 // 12 cards -> 6 pairs
+    
+    private fun setupMemoryGameDismiss() {
+        try {
+            Log.d(TAG, "Setting up Memory Game dismiss")
+            
+            // Hide other cards, show memory card
+            findViewById<androidx.cardview.widget.CardView>(R.id.math_card).visibility = android.view.View.GONE
+            findViewById<androidx.cardview.widget.CardView>(R.id.type_text_card).visibility = android.view.View.GONE
+            findViewById<androidx.cardview.widget.CardView>(R.id.swipe_card).visibility = android.view.View.GONE
+            
+            val card = findViewById<androidx.cardview.widget.CardView>(R.id.memory_game_card)
+            if (card == null) {
+                 Log.e(TAG, "Memory Game Card View not found!")
+                 setupMathDismiss() // Fallback
+                 return
+            }
+            card.visibility = android.view.View.VISIBLE
+            
+            val gridLayout = findViewById<GridLayout>(R.id.memory_grid)
+            val statusText = findViewById<TextView>(R.id.memory_status)
+            
+            if (gridLayout == null || statusText == null) {
+                 Log.e(TAG, "Memory Game UI elements missing!")
+                 setupMathDismiss()
+                 return
+            }
+            
+            // Initialize game
+            initializeMemoryGame(gridLayout, statusText)
+            
+        } catch (e: Exception) {
+             Log.e(TAG, "Error generating Memory Game UI: ${e.message}")
+             setupMathDismiss() // Fallback
+        }
+    }
+    
+    private fun initializeMemoryGame(gridLayout: GridLayout, statusText: TextView) {
+        // Reset state
+        memoryCards.clear()
+        firstSelectedCard = null
+        isProcessingMove = false
+        matchesFound = 0
+        updateMemoryStatus(statusText)
+        
+        // Generate pairs (using emojis for fun)
+        val emojis = listOf("🐶", "🐱", "🐭", "🐹", "🐰", "🦊", "🐻", "🐼")
+        val selectedEmojis = emojis.shuffled().take(6)
+        val pairs = (selectedEmojis + selectedEmojis).shuffled()
+        
+        pairs.forEachIndexed { index, value ->
+            memoryCards.add(MemoryCard(index, value))
+        }
+        
+        // Populate Grid
+        gridLayout.removeAllViews()
+        
+        // Dynamic Sizing Calculation
+        val displayMetrics = resources.displayMetrics
+        val screenWidth = displayMetrics.widthPixels
+        val screenHeight = displayMetrics.heightPixels
+        
+        // Calculate dimensions
+        // Root padding: 24dp * 2 = 48dp
+        // Card padding: 4dp * 2 = 8dp
+        // Total horizontal padding = 56dp
+        val hPadding = (56 * displayMetrics.density).toInt() 
+        val vSpaceAvailable = (screenHeight * 0.60).toInt() // Increased to 60% as user wants bigger boxes
+        
+        val sizeFromWidth = (screenWidth - hPadding) / 3
+        val sizeFromHeight = vSpaceAvailable / 4 // 4 rows
+        
+        // Choose the somewhat smaller size to ensure it fits, but prioritize width fill if possible
+        val buttonSize = kotlin.math.min(sizeFromWidth, sizeFromHeight)
+        
+        // Convert 4dp margin to pixels
+        val marginPx = (4 * displayMetrics.density).toInt()
+
+        memoryCards.forEachIndexed { index, card ->
+            val button = Button(this).apply {
+                layoutParams = GridLayout.LayoutParams().apply {
+                    width = buttonSize - (marginPx * 2)
+                    height = buttonSize - (marginPx * 2)
+                    setMargins(marginPx, marginPx, marginPx, marginPx)
+                }
+                text = "?"
+                textSize = 24f
+                setPadding(0, 0, 0, 0) // Reduce padding to maximize icon size
+                setBackgroundColor(android.graphics.Color.DKGRAY)
+                setTextColor(android.graphics.Color.WHITE)
+                setOnClickListener {
+                    onMemoryCardClicked(index, this, gridLayout, statusText)
+                }
+            }
+            gridLayout.addView(button)
+        }
+    }
+    
+    private fun onMemoryCardClicked(index: Int, button: Button, gridLayout: GridLayout, statusText: TextView) {
+        if (isProcessingMove) return
+        
+        val card = memoryCards[index]
+        if (card.isFaceUp || card.isMatched) return
+        
+        // Reveal card
+        flipCard(button, card, true)
+        
+        if (firstSelectedCard == null) {
+            // First card selected
+            firstSelectedCard = index
+        } else {
+            // Second card selected
+            val firstIndex = firstSelectedCard!!
+            val firstCard = memoryCards[firstIndex]
+            
+            if (card.value == firstCard.value) {
+                // Match!
+                card.isMatched = true
+                firstCard.isMatched = true
+                firstSelectedCard = null
+                matchesFound++
+                updateMemoryStatus(statusText)
+                
+                // Visual feedback for match
+                button.setBackgroundColor(primaryColor)
+                val firstButton = gridLayout.getChildAt(firstIndex) as Button
+                firstButton.setBackgroundColor(primaryColor)
+                
+                if (matchesFound == totalMatchesNeeded) {
+                    // Game Over - Win
+                    Toast.makeText(this, "Memory Master! Alarm Dismissed.", Toast.LENGTH_SHORT).show()
+                    android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                        stopAlarmAndOpenCongratulations()
+                    }, 500)
+                }
+            } else {
+                // No match
+                isProcessingMove = true
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    flipCard(button, card, false)
+                    val firstButton = gridLayout.getChildAt(firstIndex) as Button
+                    flipCard(firstButton, firstCard, false)
+                    firstSelectedCard = null
+                    isProcessingMove = false
+                }, 1000) // 1 second delay
+            }
+        }
+    }
+    
+    private fun flipCard(button: Button, card: MemoryCard, faceUp: Boolean) {
+        card.isFaceUp = faceUp
+        if (faceUp) {
+            button.text = card.value
+            button.setBackgroundColor(android.graphics.Color.LTGRAY)
+            button.setTextColor(android.graphics.Color.BLACK)
+        } else {
+            button.text = "?"
+            button.setBackgroundColor(android.graphics.Color.DKGRAY)
+            button.setTextColor(android.graphics.Color.WHITE)
+        }
+    }
+    
+    private fun updateMemoryStatus(statusText: TextView) {
+        statusText.text = "Matches: $matchesFound/$totalMatchesNeeded"
     }
 } 
