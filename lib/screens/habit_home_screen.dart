@@ -544,6 +544,17 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
               day.date.month == DateTime.now().month &&
               day.date.year == DateTime.now().year;
 
+          // Visual logic for completion
+          // Color containerColor;
+          // if (day.completed) {
+          //   containerColor = habitColor;
+          // } else if (!day.isScheduled) {
+          //   containerColor = Colors.transparent;
+          // } else {
+          //   containerColor = Colors.white.withOpacity(0.1);
+          //   // Slightly increased opacity for better visibility of "to-do" slots
+          // }
+
           return Column(
             children: [
               Text(
@@ -557,12 +568,29 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
                 ),
               ),
               const SizedBox(height: 8),
-              HabitCheckButton(
-                isCompleted: day.completed,
-                color: habitColor,
-                onToggle: () =>
-                    _toggleHabitCompletion(habit.id, day.date, habitService),
-                size: 32.w,
+              Container(
+                width: 32.w,
+                height: 32.w,
+                decoration: BoxDecoration(
+                  color:
+                      !day.isScheduled ? Colors.white.withOpacity(0.05) : null,
+                  borderRadius: BorderRadius.circular(16.w), // Circular
+                ),
+                child: !day.isScheduled
+                    ? Center(
+                        child: Icon(
+                          Icons.close,
+                          color: Colors.red.withOpacity(0.5),
+                          size: 16.w,
+                        ),
+                      )
+                    : HabitCheckButton(
+                        isCompleted: day.completed,
+                        color: habitColor,
+                        onToggle: () => _toggleHabitCompletion(
+                            habit.id, day.date, habitService),
+                        size: 32.w,
+                      ),
               ),
             ],
           );
@@ -615,30 +643,41 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
                 return Tooltip(
                   message:
-                      '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
+                      '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : (day.isScheduled ? "Not completed" : "Not scheduled")}',
                   child: Container(
                     decoration: BoxDecoration(
                       color: day.completed
                           ? habitColor
-                          : Colors.white.withOpacity(0.05),
+                          : (day.isScheduled
+                              ? Colors.white.withOpacity(0.1)
+                              : Colors.transparent),
                       borderRadius: BorderRadius.circular(4),
                       border: isToday
                           ? Border.all(
                               color: habitColor.withOpacity(0.5), width: 1)
-                          : null,
+                          : (day.isScheduled
+                              ? null
+                              : Border.all(
+                                  color: Colors.white.withOpacity(0.05),
+                                  width: 1)),
                     ),
                     child: Center(
-                      child: Text(
-                        '${day.date.day}',
-                        style: TextStyle(
-                          color: day.completed
-                              ? Colors.white
-                              : AppTheme.secondaryTextColor.withOpacity(0.5),
-                          fontSize: 10,
-                          fontWeight:
-                              isToday ? FontWeight.bold : FontWeight.normal,
-                        ),
-                      ),
+                      child: !day.isScheduled
+                          ? Icon(Icons.close,
+                              color: Colors.red.withOpacity(0.5), size: 14)
+                          : Text(
+                              '${day.date.day}',
+                              style: TextStyle(
+                                color: day.completed
+                                    ? Colors.white
+                                    : AppTheme.secondaryTextColor
+                                        .withOpacity(0.5),
+                                fontSize: 10,
+                                fontWeight: isToday
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
+                              ),
+                            ),
                     ),
                   ),
                 );
@@ -840,11 +879,16 @@ class _HabitContributionGridState extends State<HabitContributionGrid> {
                             color: _getDayColor(day, widget.habitColor),
                             borderRadius: BorderRadius.circular(2),
                           ),
-                          child: Tooltip(
-                            message:
-                                '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
-                            child: const SizedBox.expand(),
-                          ),
+                          child: !day.isScheduled && !day.completed
+                              ? Center(
+                                  child: Icon(Icons.close,
+                                      color: Colors.red.withOpacity(0.5),
+                                      size: 8))
+                              : Tooltip(
+                                  message:
+                                      '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : "Not completed"}',
+                                  child: const SizedBox.expand(),
+                                ),
                         );
                       }).toList(),
                     );
@@ -927,11 +971,14 @@ class _HabitContributionGridState extends State<HabitContributionGrid> {
   }
 
   Color _getDayColor(HabitGridDay day, Color habitColor) {
-    if (!day.completed) {
-      return Colors.white.withOpacity(0.05);
+    if (!day.completed && !day.isScheduled) {
+      return Colors.transparent;
     }
 
-    // Simple completed/not completed - completed days show in habit color
+    if (!day.completed) {
+      return Colors.white.withOpacity(0.1);
+    }
+
     return habitColor;
   }
 }

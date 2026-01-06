@@ -170,8 +170,8 @@ class HabitService extends ChangeNotifier {
       // Debug log for custom habits (limit excessive logging)
       // Log for the first week of Jan 2026 to see the pattern
       if (date.year == 2026 && date.month == 1 && date.day <= 7) {
-        print(
-            'DEBUG: checking isScheduled for ${habit.name} (${habit.id}) on ${date.toString().split(' ')[0]} (Weekday ${date.weekday}). Frequency: ${habit.frequency}, Days: ${habit.daysOfWeek}. Result: $isScheduled');
+        // print(
+        //     'DEBUG: checking isScheduled for ${habit.name} (${habit.id}) on ${date.toString().split(' ')[0]} (Weekday ${date.weekday}). Frequency: ${habit.frequency}, Days: ${habit.daysOfWeek}. Result: $isScheduled');
       }
       return isScheduled;
     }
