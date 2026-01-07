@@ -216,36 +216,29 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
     if (product is GooglePlayProductDetails) {
       final offers = product.productDetails.subscriptionOfferDetails ?? [];
 
-      // Avoid adding duplicate logs on re-renders
+      // Avoid adding duplicate logs on re-renders by scheduling them post-frame
       if (_logs.isEmpty) {
-        _log('Product ID: ${product.id}');
-        _log('Found ${offers.length} offers');
-      }
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && _logs.isEmpty) {
+            _log('Product ID: ${product.id}');
+            _log('Found ${offers.length} offers');
 
-      for (var offer in offers) {
-        // Simple check to avoid spamming the log if build is called multiple times
-        // In a real debug tool we'd be cleaner, but this is a quick fix for the user
-        final logMsg = 'Offer: ${offer.basePlanId}';
-        if (!_logs.contains(logMsg)) {
-          _log(logMsg);
-          for (var phase in offer.pricingPhases) {
-            _log(' > Phase: ${phase.billingPeriod} ${phase.formattedPrice}');
+            for (var offer in offers) {
+              final logMsg = 'Offer: ${offer.basePlanId}';
+              if (!_logs.contains(logMsg)) {
+                _log(logMsg);
+                for (var phase in offer.pricingPhases) {
+                  _log(
+                      ' > Phase: ${phase.billingPeriod} ${phase.formattedPrice}');
+                }
+              }
+            }
           }
-        }
+        });
       }
 
-      final monthlyOffers = offers
-          .where((o) =>
-              o.basePlanId.contains('month') || // Fallback check
-              o.pricingPhases.any(
-                  (p) => p.billingPeriod == 'P1M' || p.billingPeriod == 'P30D'))
-          .toList();
-      final yearlyOffers = offers
-          .where((o) =>
-              o.basePlanId.contains('year') || // Fallback check
-              o.pricingPhases.any((p) =>
-                  p.billingPeriod == 'P1Y' || p.billingPeriod == 'P365D'))
-          .toList();
+      final monthlyOffers = _getMonthlyOffers(offers);
+      final yearlyOffers = _getYearlyOffers(offers);
 
       // identifying any offers that didn't fit into the above categories
       final usedOfferTokens = {
@@ -511,28 +504,66 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
   }
 
   void _handlePurchase(SubscriptionProvider provider) {
-    if (provider.products.isEmpty) return;
+    if (provider.products.isEmpty) {
+      _log('Purchase failed: No products loaded');
+      return;
+    }
 
     final product = provider.products.first;
     String? selectedOfferToken;
+    String debugDecision = "None"; // For logging
 
     if (product is GooglePlayProductDetails) {
       final offers = product.productDetails.subscriptionOfferDetails ?? [];
 
-      final monthlyOffers = offers
-          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1M'))
-          .toList();
-      final yearlyOffers = offers
-          .where((o) => o.pricingPhases.any((p) => p.billingPeriod == 'P1Y'))
-          .toList();
+      // Use the ROBUST filtering logic (same as UI)
+      final monthlyOffers = _getMonthlyOffers(offers);
+      final yearlyOffers = _getYearlyOffers(offers);
 
-      if (_selectedPlanIndex == 0 && monthlyOffers.isNotEmpty) {
-        selectedOfferToken = monthlyOffers.first.offerIdToken;
-      } else if (_selectedPlanIndex == 1 && yearlyOffers.isNotEmpty) {
-        selectedOfferToken = yearlyOffers.first.offerIdToken;
+      if (_selectedPlanIndex == 0) {
+        if (monthlyOffers.isNotEmpty) {
+          selectedOfferToken = monthlyOffers.first.offerIdToken;
+          debugDecision =
+              "Monthly (Token: ${selectedOfferToken.substring(0, 10)}...)";
+        } else {
+          debugDecision = "Monthly selected but NO monthly offers found!";
+        }
+      } else if (_selectedPlanIndex == 1) {
+        if (yearlyOffers.isNotEmpty) {
+          selectedOfferToken = yearlyOffers.first.offerIdToken;
+          debugDecision =
+              "Yearly (Token: ${selectedOfferToken.substring(0, 10)}...)";
+        } else {
+          debugDecision = "Yearly selected but NO yearly offers found!";
+        }
       }
+
+      _log('Initiating purchase...');
+      _log('Selected Index: $_selectedPlanIndex');
+      _log('Decision: $debugDecision');
     }
 
     provider.buySubscription(product, selectedOfferToken);
+  }
+
+  // Helper methods to ensure consistent logic between UI and Purchase
+  List<SubscriptionOfferDetailsWrapper> _getMonthlyOffers(
+      List<SubscriptionOfferDetailsWrapper> offers) {
+    return offers
+        .where((o) =>
+            o.basePlanId.toLowerCase().contains('month') || // Fallback check
+            o.pricingPhases.any(
+                (p) => p.billingPeriod == 'P1M' || p.billingPeriod == 'P30D'))
+        .toList();
+  }
+
+  List<SubscriptionOfferDetailsWrapper> _getYearlyOffers(
+      List<SubscriptionOfferDetailsWrapper> offers) {
+    return offers
+        .where((o) =>
+            o.basePlanId.toLowerCase().contains('year') || // Fallback check
+            o.pricingPhases.any(
+                (p) => p.billingPeriod == 'P1Y' || p.billingPeriod == 'P365D'))
+        .toList();
   }
 }

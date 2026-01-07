@@ -36,7 +36,7 @@ class SettingsScreen extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 24.h),
           children: [
             Visibility(
-              visible: false,
+              visible: true,
               child: Column(
                 children: [
                   _buildProBanner(context),
