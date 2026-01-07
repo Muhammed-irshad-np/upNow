@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:upnow/models/alarm_model.dart';
 import 'package:upnow/providers/settings_provider.dart';
-import 'package:upnow/utils/app_theme.dart';
+
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class AlarmCard extends StatelessWidget {
@@ -279,6 +279,14 @@ class AlarmCard extends StatelessWidget {
                                   ? 'DAILY'
                                   : alarm.repeatString.toUpperCase(),
                             ),
+                            // Habit indicator
+                            if (alarm.linkedHabitId != null) ...[
+                              SizedBox(width: 8.w),
+                              _buildInfoIcon(
+                                Icons.check_circle_outline,
+                                'HABIT',
+                              ),
+                            ],
                           ],
                         ),
                       ),

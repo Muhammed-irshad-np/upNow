@@ -28,14 +28,15 @@ class AlarmModelAdapter extends TypeAdapter<AlarmModel> {
       soundPath: fields[8] as String,
       volume: fields[9] as int,
       vibrate: fields[10] as bool,
-      isMorningAlarm: fields[11] as bool? ?? false,
+      isMorningAlarm: fields[11] as bool,
+      linkedHabitId: fields[12] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, AlarmModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(13)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -59,7 +60,9 @@ class AlarmModelAdapter extends TypeAdapter<AlarmModel> {
       ..writeByte(10)
       ..write(obj.vibrate)
       ..writeByte(11)
-      ..write(obj.isMorningAlarm);
+      ..write(obj.isMorningAlarm)
+      ..writeByte(12)
+      ..write(obj.linkedHabitId);
   }
 
   @override

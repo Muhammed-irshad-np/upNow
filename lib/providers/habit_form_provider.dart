@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:upnow/models/habit_model.dart';
+import 'package:upnow/models/alarm_model.dart';
 
 class HabitFormProvider with ChangeNotifier {
   final _formKey = GlobalKey<FormState>();
@@ -12,6 +13,8 @@ class HabitFormProvider with ChangeNotifier {
   String? _selectedIcon;
   bool _hasAlarm = false;
   bool _showStats = false;
+  DismissType _dismissType = DismissType.swipe;
+  String _soundPath = 'alarm_sound';
   TimeOfDay _alarmTime = TimeOfDay.now();
   List<int> _selectedDays = [1, 2, 3, 4, 5, 6, 7]; // All days by default
   String? _habitId; // Store habit ID for editing
@@ -73,6 +76,8 @@ class HabitFormProvider with ChangeNotifier {
   String? get selectedIcon => _selectedIcon;
   bool get hasAlarm => _hasAlarm;
   bool get showStats => _showStats;
+  DismissType get dismissType => _dismissType;
+  String get soundPath => _soundPath;
   TimeOfDay get alarmTime => _alarmTime;
   List<int> get selectedDays => _selectedDays;
   List<Color> get habitColors => _habitColors;
@@ -117,6 +122,22 @@ class HabitFormProvider with ChangeNotifier {
 
   void setShowStats(bool value) {
     _showStats = value;
+    notifyListeners();
+  }
+
+  void setDismissType(DismissType type) {
+    _dismissType = type;
+    notifyListeners();
+  }
+
+  void setSoundPath(String path) {
+    _soundPath = path;
+    notifyListeners();
+  }
+
+  void setAlarmDetails({required DismissType type, required String sound}) {
+    _dismissType = type;
+    _soundPath = sound;
     notifyListeners();
   }
 
@@ -168,6 +189,8 @@ class HabitFormProvider with ChangeNotifier {
     _selectedIcon = null;
     _hasAlarm = false;
     _showStats = false;
+    _dismissType = DismissType.swipe;
+    _soundPath = 'alarm_sound';
     _alarmTime = TimeOfDay.now();
     _selectedDays = [1, 2, 3, 4, 5, 6, 7];
     notifyListeners();

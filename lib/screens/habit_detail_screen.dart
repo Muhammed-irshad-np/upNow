@@ -80,6 +80,7 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
                   opacity: _fadeAnimation,
                   child: Column(
                     children: [
+                      _buildHabitHeader(),
                       SizedBox(height: 16.h),
                       _buildStatsCards(stats),
                       SizedBox(height: 24.h),
@@ -104,9 +105,16 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
 
   Widget _buildSliverAppBar(BuildContext context) {
     return SliverAppBar(
-      expandedHeight: 220.h,
       pinned: true,
       backgroundColor: AppTheme.darkBackground,
+      title: Text(
+        _habit.name,
+        style: TextStyle(
+          color: Colors.white,
+          fontSize: 18.sp,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back, color: Colors.white),
         onPressed: () => Navigator.pop(context),
@@ -127,81 +135,66 @@ class _HabitDetailScreenState extends State<HabitDetailScreen>
           },
         ),
       ],
-      flexibleSpace: FlexibleSpaceBar(
-        background: Stack(
-          fit: StackFit.expand,
-          children: [
-            // Gradient background
-            Container(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    _habit.color.withOpacity(0.3),
-                    AppTheme.darkBackground,
-                  ],
-                ),
-              ),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: Container(color: Colors.transparent),
-              ),
-            ),
-            // Content
-            Padding(
-              padding: EdgeInsets.only(left: 16.w, right: 16.w, bottom: 16.h),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(16.w),
-                    decoration: BoxDecoration(
-                      color: _habit.color.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20.r),
-                      border: Border.all(
-                        color: _habit.color.withOpacity(0.4),
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      _getIconData(),
-                      color: _habit.color,
-                      size: 40.sp,
-                    ),
-                  ),
-                  SizedBox(height: 12.h),
-                  Text(
-                    _habit.name,
-                    style: TextStyle(
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black.withOpacity(0.5),
-                          offset: const Offset(0, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (_habit.description != null) ...[
-                    SizedBox(height: 4.h),
-                    Text(
-                      _habit.description!,
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14.sp,
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
+    );
+  }
+
+  Widget _buildHabitHeader() {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            _habit.color.withOpacity(0.2),
+            Colors.transparent,
           ],
         ),
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withOpacity(0.05)),
+        ),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: EdgeInsets.all(16.w),
+            decoration: BoxDecoration(
+              color: _habit.color.withOpacity(0.2),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: _habit.color.withOpacity(0.4),
+                width: 2,
+              ),
+            ),
+            child: Icon(
+              _getIconData(),
+              color: _habit.color,
+              size: 32.sp,
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            _habit.name,
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (_habit.description != null && _habit.description!.isNotEmpty) ...[
+            SizedBox(height: 8.h),
+            Text(
+              _habit.description!,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14.sp,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ],
       ),
     );
   }

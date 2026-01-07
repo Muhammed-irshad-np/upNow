@@ -76,6 +76,9 @@ class AlarmModel {
   @HiveField(11)
   bool isMorningAlarm;
 
+  @HiveField(12)
+  String? linkedHabitId;
+
   AlarmModel({
     String? id,
     required this.hour,
@@ -89,6 +92,7 @@ class AlarmModel {
     this.volume = 70,
     this.vibrate = true,
     this.isMorningAlarm = false,
+    this.linkedHabitId,
   })  : id = id ?? const Uuid().v4(),
         weekdays = weekdays ?? List.filled(7, false);
 
@@ -157,6 +161,7 @@ class AlarmModel {
     int? volume,
     bool? vibrate,
     bool? isMorningAlarm,
+    String? linkedHabitId,
   }) {
     return AlarmModel(
       id: id ?? this.id,
@@ -171,6 +176,7 @@ class AlarmModel {
       volume: volume ?? this.volume,
       vibrate: vibrate ?? this.vibrate,
       isMorningAlarm: isMorningAlarm ?? this.isMorningAlarm,
+      linkedHabitId: linkedHabitId ?? this.linkedHabitId,
     );
   }
 
@@ -189,6 +195,7 @@ class AlarmModel {
       'volume': volume,
       'vibrate': vibrate,
       'isMorningAlarm': isMorningAlarm,
+      'linkedHabitId': linkedHabitId,
     };
   }
 
@@ -206,6 +213,7 @@ class AlarmModel {
       volume: json['volume'],
       vibrate: json['vibrate'],
       isMorningAlarm: json['isMorningAlarm'] ?? false,
+      linkedHabitId: json['linkedHabitId'],
     );
   }
 
