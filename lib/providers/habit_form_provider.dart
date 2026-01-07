@@ -11,6 +11,7 @@ class HabitFormProvider with ChangeNotifier {
   Color _selectedColor = Colors.blue;
   String? _selectedIcon;
   bool _hasAlarm = false;
+  bool _showStats = false;
   TimeOfDay _alarmTime = TimeOfDay.now();
   List<int> _selectedDays = [1, 2, 3, 4, 5, 6, 7]; // All days by default
   String? _habitId; // Store habit ID for editing
@@ -25,6 +26,7 @@ class HabitFormProvider with ChangeNotifier {
       _selectedColor = initialHabit.color;
       _selectedIcon = initialHabit.icon;
       _hasAlarm = initialHabit.hasAlarm;
+      _showStats = initialHabit.showStats;
       if (initialHabit.targetTime != null) {
         _alarmTime = TimeOfDay(
           hour: initialHabit.targetTime!.hour,
@@ -70,6 +72,7 @@ class HabitFormProvider with ChangeNotifier {
   Color get selectedColor => _selectedColor;
   String? get selectedIcon => _selectedIcon;
   bool get hasAlarm => _hasAlarm;
+  bool get showStats => _showStats;
   TimeOfDay get alarmTime => _alarmTime;
   List<int> get selectedDays => _selectedDays;
   List<Color> get habitColors => _habitColors;
@@ -109,6 +112,11 @@ class HabitFormProvider with ChangeNotifier {
 
   void setHasAlarm(bool hasAlarm) {
     _hasAlarm = hasAlarm;
+    notifyListeners();
+  }
+
+  void setShowStats(bool value) {
+    _showStats = value;
     notifyListeners();
   }
 
@@ -159,6 +167,7 @@ class HabitFormProvider with ChangeNotifier {
     _selectedColor = Colors.blue;
     _selectedIcon = null;
     _hasAlarm = false;
+    _showStats = false;
     _alarmTime = TimeOfDay.now();
     _selectedDays = [1, 2, 3, 4, 5, 6, 7];
     notifyListeners();

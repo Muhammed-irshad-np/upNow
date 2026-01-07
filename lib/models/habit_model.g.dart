@@ -31,13 +31,14 @@ class HabitModelAdapter extends TypeAdapter<HabitModel> {
       hasAlarm: fields[11] as bool,
       isArchived: fields[12] as bool,
       metadata: (fields[13] as Map?)?.cast<String, dynamic>(),
+      showStats: fields[14] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, HabitModel obj) {
     writer
-      ..writeByte(14)
+      ..writeByte(15)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -65,7 +66,9 @@ class HabitModelAdapter extends TypeAdapter<HabitModel> {
       ..writeByte(12)
       ..write(obj.isArchived)
       ..writeByte(13)
-      ..write(obj.metadata);
+      ..write(obj.metadata)
+      ..writeByte(14)
+      ..write(obj.showStats);
   }
 
   @override

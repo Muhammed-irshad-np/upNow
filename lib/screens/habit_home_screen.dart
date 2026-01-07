@@ -250,7 +250,14 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   }
 
   Widget _buildHabitCard(HabitModel habit, HabitService habitService) {
-    // final stats = habitService.getHabitStats(habit.id);
+    // Only fetch stats if needed, to optimize?
+    // Actually we need stats if showStats is true.
+    // Let's just fetch it, it's cheap enough for now or wrap in conditional later?
+    // But since the boolean is on the habit model, we can check that first.
+    // However, the existing commented out line was at the top.
+
+    // final stats = habitService.getHabitStats(habit.id); // Old line
+
     final today = DateTime.now();
     final todayEntry = habitService.getHabitEntryForDate(habit.id, today);
     final isCompletedToday = todayEntry?.completed == true;
@@ -425,29 +432,26 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
 
                     SizedBox(height: 12.h),
 
-                    // Layout based on selection
-                    if (_selectedLayout == HabitGridLayout.monthly)
-                      _buildMonthlyLayout(habit, habitService)
-                    else ...[
-                      // Stats Row
-                      // Container(
-                      //   padding: EdgeInsets.symmetric(vertical: 8.h),
-                      //   decoration: BoxDecoration(
-                      //     color: Colors.black.withOpacity(0.3),
-                      //     borderRadius: BorderRadius.circular(16.r),
-                      //     border: Border.all(
-                      //       color: Colors.white.withOpacity(0.05),
-                      //       width: 1,
-                      //     ),
-                      //   ),
-                      //   child: _buildStatsRow(stats, habit.color),
-                      // ),
-
+                    // Stats Row (Premium Feature)
+                    if (habit.showStats) ...[
+                      Container(
+                        padding: EdgeInsets.symmetric(vertical: 8.h),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.05),
+                            width: 1,
+                          ),
+                        ),
+                        child: _buildStatsRow(
+                            habitService.getHabitStats(habit.id), habit.color),
+                      ),
                       SizedBox(height: 12.h),
-
-                      // Contribution Grid based on selected layout
-                      _buildGridForLayout(habit, habitService),
                     ],
+
+                    // Layout based on selection
+                    _buildGridForLayout(habit, habitService),
                   ],
                 ),
               ),
@@ -456,23 +460,6 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
         ),
       ),
     ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0);
-  }
-
-  Widget _buildMonthlyLayout(HabitModel habit, HabitService habitService) {
-    final monthData = habitService.getMonthlyGridData(habit.id, DateTime.now());
-    return Center(
-      child: _buildMonthlyGrid(monthData, habit.color),
-    );
-    // return Row(
-    //   crossAxisAlignment: CrossAxisAlignment.start,
-    //   children: [
-    //     _buildMonthlyGrid(monthData, habit.color),
-    //     const SizedBox(width: 12),
-    //     Expanded(
-    //       child: _buildCompactStats(stats, habit.color),
-    //     ),
-    //   ],
-    // );
   }
 
   // Widget _buildCompactStats(HabitStats stats, Color color) {
@@ -617,12 +604,10 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
   }
 
   Widget _buildMonthlyGrid(List<HabitGridDay> monthData, Color habitColor) {
-    // Calculate width for 11 columns with 24px items and 4px spacing
-    const double itemSize = 24.0;
     const double spacing = 4.0;
-    const double gridWidth = (itemSize * 11) + (spacing * 10);
 
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.black.withOpacity(0.2),
@@ -640,99 +625,125 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          SizedBox(
-            width: gridWidth,
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 11,
-                crossAxisSpacing: spacing,
-                mainAxisSpacing: spacing,
-                childAspectRatio: 1.0, // Square items
-              ),
-              itemCount: monthData.length,
-              itemBuilder: (context, index) {
-                final day = monthData[index];
-                final isToday = day.date.day == DateTime.now().day &&
-                    day.date.month == DateTime.now().month &&
-                    day.date.year == DateTime.now().year;
-
-                return Tooltip(
-                  message:
-                      '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : (day.isScheduled ? "Not completed" : "Not scheduled")}',
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: day.completed
-                          ? habitColor
-                          : (day.isScheduled
-                              ? Colors.white.withOpacity(0.1)
-                              : Colors.transparent),
-                      borderRadius: BorderRadius.circular(4),
-                      border: isToday
-                          ? Border.all(
-                              color: habitColor.withOpacity(0.5), width: 1)
-                          : (day.isScheduled
-                              ? null
-                              : Border.all(
-                                  color: Colors.white.withOpacity(0.05),
-                                  width: 1)),
-                    ),
-                    child: Center(
-                      child: !day.isScheduled
-                          ? Icon(Icons.close,
-                              color: Colors.red.withOpacity(0.5), size: 14)
-                          : Text(
-                              '${day.date.day}',
-                              style: TextStyle(
-                                color: day.completed
-                                    ? Colors.white
-                                    : AppTheme.secondaryTextColor
-                                        .withOpacity(0.5),
-                                fontSize: 10,
-                                fontWeight: isToday
-                                    ? FontWeight.bold
-                                    : FontWeight.normal,
-                              ),
-                            ),
-                    ),
-                  ),
-                );
-              },
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 11,
+              crossAxisSpacing: spacing,
+              mainAxisSpacing: spacing,
+              childAspectRatio: 1.0, // Square items
             ),
+            itemCount: monthData.length,
+            itemBuilder: (context, index) {
+              final day = monthData[index];
+              final isToday = day.date.day == DateTime.now().day &&
+                  day.date.month == DateTime.now().month &&
+                  day.date.year == DateTime.now().year;
+
+              return Tooltip(
+                message:
+                    '${DateFormat('MMM d').format(day.date)}\n${day.completed ? "Completed" : (day.isScheduled ? "Not completed" : "Not scheduled")}',
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: day.completed
+                        ? habitColor
+                        : (day.isScheduled
+                            ? Colors.white.withOpacity(0.1)
+                            : Colors.transparent),
+                    borderRadius: BorderRadius.circular(4),
+                    border: isToday
+                        ? Border.all(
+                            color: habitColor.withOpacity(0.5), width: 1)
+                        : (day.isScheduled
+                            ? null
+                            : Border.all(
+                                color: Colors.white.withOpacity(0.05),
+                                width: 1)),
+                  ),
+                  child: Center(
+                    child: !day.isScheduled
+                        ? Icon(Icons.close,
+                            color: Colors.red.withOpacity(0.5), size: 14)
+                        : Text(
+                            '${day.date.day}',
+                            style: TextStyle(
+                              color: day.completed
+                                  ? Colors.white
+                                  : AppTheme.secondaryTextColor
+                                      .withOpacity(0.5),
+                              fontSize: 10,
+                              fontWeight:
+                                  isToday ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
     );
   }
 
-  // Widget _buildStatsRow(HabitStats stats, Color color) {
-  //   return Row(
-  //     // mainAxisAlignment: MainAxisAlignment.spaceAround,
-  //     children: [
-  //       _buildStatItem(
-  //         '${stats.completedDays}',
-  //         'Completed',
-  //         Icons.check_circle_outline,
-  //         color,
-  //       ),
-  //       _buildStatItem(
-  //         '${stats.currentStreak}',
-  //         'Current Streak',
-  //         Icons.local_fire_department,
-  //         color,
-  //       ),
-  //       _buildStatItem(
-  //         '${stats.longestStreak}',
-  //         'Best Streak',
-  //         Icons.emoji_events_outlined,
-  //         color,
-  //       ),
-  //       _buildStatItem(
-  //         '${stats.completionRate.toStringAsFixed(0)}%',
-  //         'Success',
-  //         Icons.trending_up,
-  //         color,
+  Widget _buildStatsRow(HabitStats stats, Color color) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      children: [
+        _buildStatItem(
+          '${stats.completedDays}',
+          'Completed',
+          Icons.check_circle_outline,
+          color,
+        ),
+        _buildStatItem(
+          '${stats.currentStreak}',
+          'Current Streak',
+          Icons.local_fire_department,
+          color,
+        ),
+        _buildStatItem(
+          '${stats.longestStreak}',
+          'Best Streak',
+          Icons.emoji_events_outlined,
+          color,
+        ),
+        _buildStatItem(
+          '${stats.completionRate.toStringAsFixed(0)}%',
+          'Success',
+          Icons.trending_up,
+          color,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatItem(
+      String value, String label, IconData icon, Color color) {
+    return Column(
+      children: [
+        Icon(icon, size: 20.sp, color: color),
+        SizedBox(height: 4.h),
+        Text(
+          value,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 14.sp,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        Text(
+          label,
+          style: TextStyle(
+            color: AppTheme.secondaryTextColor,
+            fontSize: 10.sp,
+          ),
+        ),
+      ],
+    );
+  }
+
   Widget _buildContributionGrid(
       List<List<HabitGridDay>> yearGrid, Color habitColor) {
     if (yearGrid.isEmpty) {

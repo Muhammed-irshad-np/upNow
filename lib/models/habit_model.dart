@@ -30,45 +30,48 @@ enum HabitIntensity {
 class HabitModel {
   @HiveField(0)
   final String id;
-  
+
   @HiveField(1)
   String name;
-  
+
   @HiveField(2)
   String? description;
-  
+
   @HiveField(3)
   HabitFrequency frequency;
-  
+
   @HiveField(4)
   DateTime createdAt;
-  
+
   @HiveField(5)
   DateTime? targetTime; // For alarm functionality
-  
+
   @HiveField(6)
   Color color;
-  
+
   @HiveField(7)
   String? icon;
-  
+
   @HiveField(8)
   bool isActive;
-  
+
   @HiveField(9)
   int targetCount; // How many times per frequency period
-  
+
   @HiveField(10)
   List<int> daysOfWeek; // For weekly habits (1-7, Monday=1)
-  
+
   @HiveField(11)
   bool hasAlarm;
-  
+
   @HiveField(12)
   bool isArchived;
-  
+
   @HiveField(13)
   Map<String, dynamic>? metadata; // For additional data
+
+  @HiveField(14)
+  bool showStats;
 
   HabitModel({
     String? id,
@@ -85,44 +88,49 @@ class HabitModel {
     this.hasAlarm = false,
     this.isArchived = false,
     this.metadata,
+    this.showStats = false,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         daysOfWeek = daysOfWeek ?? [1, 2, 3, 4, 5, 6, 7];
 
   // JSON serialization
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'description': description,
-    'frequency': frequency.index,
-    'createdAt': createdAt.toIso8601String(),
-    'targetTime': targetTime?.toIso8601String(),
-    'color': color.value,
-    'icon': icon,
-    'isActive': isActive,
-    'targetCount': targetCount,
-    'daysOfWeek': daysOfWeek,
-    'hasAlarm': hasAlarm,
-    'isArchived': isArchived,
-    'metadata': metadata,
-  };
+        'id': id,
+        'name': name,
+        'description': description,
+        'frequency': frequency.index,
+        'createdAt': createdAt.toIso8601String(),
+        'targetTime': targetTime?.toIso8601String(),
+        'color': color.value,
+        'icon': icon,
+        'isActive': isActive,
+        'targetCount': targetCount,
+        'daysOfWeek': daysOfWeek,
+        'hasAlarm': hasAlarm,
+        'isArchived': isArchived,
+        'metadata': metadata,
+        'showStats': showStats,
+      };
 
   factory HabitModel.fromJson(Map<String, dynamic> json) => HabitModel(
-    id: json['id'],
-    name: json['name'],
-    description: json['description'],
-    frequency: HabitFrequency.values[json['frequency'] ?? 0],
-    createdAt: DateTime.parse(json['createdAt']),
-    targetTime: json['targetTime'] != null ? DateTime.parse(json['targetTime']) : null,
-    color: Color(json['color'] ?? Colors.blue.value),
-    icon: json['icon'],
-    isActive: json['isActive'] ?? true,
-    targetCount: json['targetCount'] ?? 1,
-    daysOfWeek: List<int>.from(json['daysOfWeek'] ?? [1, 2, 3, 4, 5, 6, 7]),
-    hasAlarm: json['hasAlarm'] ?? false,
-    isArchived: json['isArchived'] ?? false,
-    metadata: json['metadata'],
-  );
+        id: json['id'],
+        name: json['name'],
+        description: json['description'],
+        frequency: HabitFrequency.values[json['frequency'] ?? 0],
+        createdAt: DateTime.parse(json['createdAt']),
+        targetTime: json['targetTime'] != null
+            ? DateTime.parse(json['targetTime'])
+            : null,
+        color: Color(json['color'] ?? Colors.blue.value),
+        icon: json['icon'],
+        isActive: json['isActive'] ?? true,
+        targetCount: json['targetCount'] ?? 1,
+        daysOfWeek: List<int>.from(json['daysOfWeek'] ?? [1, 2, 3, 4, 5, 6, 7]),
+        hasAlarm: json['hasAlarm'] ?? false,
+        isArchived: json['isArchived'] ?? false,
+        metadata: json['metadata'],
+        showStats: json['showStats'] ?? false,
+      );
 
   HabitModel copyWith({
     String? name,
@@ -137,6 +145,7 @@ class HabitModel {
     bool? hasAlarm,
     bool? isArchived,
     Map<String, dynamic>? metadata,
+    bool? showStats,
   }) {
     return HabitModel(
       id: id,
@@ -153,6 +162,7 @@ class HabitModel {
       hasAlarm: hasAlarm ?? this.hasAlarm,
       isArchived: isArchived ?? this.isArchived,
       metadata: metadata ?? this.metadata,
+      showStats: showStats ?? this.showStats,
     );
   }
 }
@@ -161,28 +171,28 @@ class HabitModel {
 class HabitEntry {
   @HiveField(0)
   final String id;
-  
+
   @HiveField(1)
   final String habitId;
-  
+
   @HiveField(2)
   final DateTime date;
-  
+
   @HiveField(3)
   final bool completed;
-  
+
   @HiveField(4)
   final int completionCount; // For habits that can be done multiple times
-  
+
   @HiveField(5)
   final DateTime? completedAt;
-  
+
   @HiveField(6)
   final String? notes;
-  
+
   @HiveField(7)
   final HabitIntensity? intensity;
-  
+
   @HiveField(8)
   final Map<String, dynamic>? metadata;
 
@@ -200,28 +210,32 @@ class HabitEntry {
 
   // JSON serialization
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'habitId': habitId,
-    'date': date.toIso8601String(),
-    'completed': completed,
-    'completionCount': completionCount,
-    'completedAt': completedAt?.toIso8601String(),
-    'notes': notes,
-    'intensity': intensity?.index,
-    'metadata': metadata,
-  };
+        'id': id,
+        'habitId': habitId,
+        'date': date.toIso8601String(),
+        'completed': completed,
+        'completionCount': completionCount,
+        'completedAt': completedAt?.toIso8601String(),
+        'notes': notes,
+        'intensity': intensity?.index,
+        'metadata': metadata,
+      };
 
   factory HabitEntry.fromJson(Map<String, dynamic> json) => HabitEntry(
-    id: json['id'],
-    habitId: json['habitId'],
-    date: DateTime.parse(json['date']),
-    completed: json['completed'] ?? false,
-    completionCount: json['completionCount'] ?? 0,
-    completedAt: json['completedAt'] != null ? DateTime.parse(json['completedAt']) : null,
-    notes: json['notes'],
-    intensity: json['intensity'] != null ? HabitIntensity.values[json['intensity']] : null,
-    metadata: json['metadata'],
-  );
+        id: json['id'],
+        habitId: json['habitId'],
+        date: DateTime.parse(json['date']),
+        completed: json['completed'] ?? false,
+        completionCount: json['completionCount'] ?? 0,
+        completedAt: json['completedAt'] != null
+            ? DateTime.parse(json['completedAt'])
+            : null,
+        notes: json['notes'],
+        intensity: json['intensity'] != null
+            ? HabitIntensity.values[json['intensity']]
+            : null,
+        metadata: json['metadata'],
+      );
 
   HabitEntry copyWith({
     String? habitId,
@@ -247,5 +261,6 @@ class HabitEntry {
   }
 
   // Get date without time for comparison
-  String get dateKey => '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
+  String get dateKey =>
+      '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 }

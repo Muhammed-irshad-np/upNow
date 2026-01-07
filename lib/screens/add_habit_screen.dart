@@ -7,6 +7,8 @@ import 'package:upnow/services/habit_alarm_service.dart';
 import 'package:upnow/providers/habit_form_provider.dart';
 import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/widgets/gradient_button.dart';
+import 'package:upnow/providers/subscription_provider.dart';
+import 'package:upnow/screens/settings/subscription_screen.dart';
 
 class AddHabitScreen extends StatefulWidget {
   final HabitModel? habit; // Optional habit for editing
@@ -262,6 +264,8 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
       orElse: () => habitFormProvider.habitIcons.first,
     );
 
+    final isPro = context.read<SubscriptionProvider>().isPro;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -361,6 +365,72 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
               ),
             ),
           ],
+        ),
+        SizedBox(height: 16.h),
+        // Show Stats Toggle (Premium)
+        GestureDetector(
+          onTap: !isPro
+              ? () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (context) => const SubscriptionScreen()),
+                  );
+                }
+              : null,
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppTheme.darkCardColor,
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            child: AbsorbPointer(
+              absorbing: !isPro,
+              child: SwitchListTile(
+                title: Row(
+                  children: [
+                    const Text(
+                      'Show Stats on Card',
+                      style: TextStyle(
+                        color: AppTheme.textColor,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    if (!isPro) ...[
+                      SizedBox(width: 8.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                            horizontal: 6.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: Colors.amber,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Text(
+                          'PRO',
+                          style: TextStyle(
+                            color: Colors.black,
+                            fontSize: 10.sp,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                subtitle: Text(
+                  'Display stats directly on the home screen card',
+                  style: TextStyle(
+                    color: AppTheme.secondaryTextColor,
+                    fontSize: 12.sp,
+                  ),
+                ),
+                value: habitFormProvider.showStats,
+                onChanged: (value) => habitFormProvider.setShowStats(value),
+                activeColor: AppTheme.primaryColor,
+                secondary:
+                    !isPro ? const Icon(Icons.lock, color: Colors.amber) : null,
+              ),
+            ),
+          ),
         ),
       ],
     );
@@ -506,6 +576,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
         updatedHabit.hasAlarm = habitFormProvider.hasAlarm;
         updatedHabit.targetTime = targetTime;
         updatedHabit.daysOfWeek = habitFormProvider.selectedDays;
+        updatedHabit.showStats = habitFormProvider.showStats;
 
         await habitService.updateHabit(updatedHabit);
 
@@ -532,6 +603,7 @@ class _AddHabitScreenState extends State<AddHabitScreen> {
           hasAlarm: habitFormProvider.hasAlarm,
           targetTime: targetTime,
           daysOfWeek: habitFormProvider.selectedDays,
+          showStats: habitFormProvider.showStats,
         );
 
         await habitService.createHabit(habit);
