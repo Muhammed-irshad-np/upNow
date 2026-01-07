@@ -12,6 +12,8 @@ import 'package:upnow/providers/alarm_form_provider.dart';
 import 'package:upnow/utils/global_error_handler.dart';
 import 'package:upnow/services/permissions_manager.dart';
 import 'package:upnow/screens/alarm/alarm_sound_selection_screen.dart';
+import 'package:upnow/providers/subscription_provider.dart';
+import 'package:upnow/screens/settings/subscription_screen.dart';
 
 class CreateAlarmScreen extends StatefulWidget {
   final AlarmModel? alarm; // If null, we're creating a new alarm
@@ -233,6 +235,13 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
     required Color color,
   }) {
     final isSelected = form.dismissType == type;
+    final isPro = Provider.of<SubscriptionProvider>(context).isPro;
+
+    // Determine if this type should be locked
+    // Math and Swipe are free. Others are Pro.
+    final bool isLocked =
+        !isPro && (type == DismissType.typing || type == DismissType.memory);
+
     final bool isComingSoon = type != DismissType.math &&
         type != DismissType.normal &&
         type != DismissType.typing &&
@@ -257,10 +266,25 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? color : AppTheme.secondaryTextColor,
-              size: 32.h,
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  icon,
+                  color: isSelected ? color : AppTheme.secondaryTextColor,
+                  size: 32.h,
+                ),
+                if (isLocked)
+                  Positioned(
+                    right: -8,
+                    top: -8,
+                    child: Icon(
+                      Icons.lock,
+                      color: Colors.amber,
+                      size: 16.sp,
+                    ),
+                  ),
+              ],
             ),
             SizedBox(height: 8.r),
             Text(
@@ -278,7 +302,12 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
       ),
     );
 
-    // Wrap with stack to show the "SOON" label if needed
+    // Wrap with stack to show the "SOON" label if needed (priority over lock if both exist? No, lock implies ready but paid)
+    // Assuming "Coming Soon" types are NOT ready, so we shouldn't sell them as Pro features yet?
+    // Or maybe we treat them as locked placeholders?
+    // The user instruction "other two make it pro" refers to Typing and Memory in the list.
+    // The existing code has "Coming Soon" for types NOT in the list (Barcode, QR, etc if added later).
+
     if (isComingSoon) {
       optionWidget = Stack(
         children: [
@@ -305,13 +334,45 @@ class _CreateAlarmScreenState extends State<CreateAlarmScreen> {
         ],
       );
     }
+    // Show 'PRO' label if locked and not selected?
+    // Or just the lock icon is enough. Let's add a small PRO badge if locked.
+    else if (isLocked) {
+      optionWidget = Stack(
+        children: [
+          optionWidget,
+          Positioned(
+            top: 0,
+            right: 6.w,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 6.w, vertical: 2.h),
+              decoration: BoxDecoration(
+                color: Colors.amber,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                'PRO',
+                style: TextStyle(
+                  color: Colors.black, // Dark text on amber
+                  fontSize: 8.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
 
     return GestureDetector(
       onTap: () {
-        if (isComingSoon) {
+        if (isLocked) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SubscriptionScreen()),
+          );
+        } else if (isComingSoon) {
           // Show tooltip using overlay
           _showTooltip(context, '$title is coming soon!');
-          // Don't change the selected option
         } else {
           form.setDismissType(type);
         }

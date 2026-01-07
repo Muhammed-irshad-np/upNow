@@ -13,6 +13,8 @@ import 'package:upnow/utils/app_theme.dart';
 import 'package:upnow/utils/haptic_feedback_helper.dart';
 import 'package:upnow/screens/habit_detail_screen.dart';
 import 'package:upnow/widgets/habit_check_button.dart';
+import 'package:upnow/providers/subscription_provider.dart';
+import 'package:upnow/screens/settings/subscription_screen.dart';
 
 class HabitHomeScreen extends StatefulWidget {
   const HabitHomeScreen({Key? key}) : super(key: key);
@@ -64,6 +66,20 @@ class _HabitHomeScreenState extends State<HabitHomeScreen> {
           IconButton(
             onPressed: () {
               HapticFeedbackHelper.trigger();
+
+              final isPro = context.read<SubscriptionProvider>().isPro;
+              final currentHabits =
+                  context.read<HabitService>().getActiveHabits().length;
+
+              if (!isPro && currentHabits >= 3) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => const SubscriptionScreen()),
+                );
+                return;
+              }
+
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const AddHabitScreen()),
